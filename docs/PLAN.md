@@ -54,7 +54,8 @@ read from it. Numbers below are starting values that get tuned in the prototype.
 ### 3.1 The beam
 - The lens sits in the lantern room at `L = (0, 18, 0)` on Gannet Head.
 - **Aim:** the mouse ray hits the sea plane, which gives a target bearing θ*. The lens follows
-  with a critically damped spring, `ω_max = 200°/s` wide and `110°/s` focused, and angular
+  with a damped spring (ζ ≈ 0.6 as built, so big swings overshoot a couple of degrees and
+  settle), `ω_max = 200°/s` wide and `115°/s` focused, and angular
   acceleration capped so the swing has weight. Keyboard A/D or the arrow keys rotate the lens
   directly, and a gamepad right stick sets the bearing.
 - **Wide beam (default):** cone half-angle 13° with a soft edge, range 95 u. The hot core lights
