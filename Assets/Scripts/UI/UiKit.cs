@@ -136,7 +136,9 @@ namespace LastLight.UI
 
         public static CanvasGroup Group(this Component c, float alpha = 1f)
         {
-            var g = c.GetComponent<CanvasGroup>() ?? c.gameObject.AddComponent<CanvasGroup>();
+            // Not `??`: in the editor GetComponent returns a fake-null stub that `??` treats as real.
+            var g = c.GetComponent<CanvasGroup>();
+            if (g == null) g = c.gameObject.AddComponent<CanvasGroup>();
             g.alpha = alpha;
             return g;
         }

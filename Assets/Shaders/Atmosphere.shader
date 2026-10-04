@@ -51,7 +51,7 @@ Shader "LL/Atmosphere"
             {
                 float3 q = p * float3(0.045, 0.09, 0.045) + float3(_Time.y * 0.035, 0, _Time.y * 0.02);
                 float n = LLNoise3(q) * 0.62 + LLNoise3(q * 2.3 + 5.1) * 0.38;
-                return saturate(n * 1.6 - 0.35);
+                return saturate(n * 1.8 - 0.3);
             }
 
             half4 frag(Varyings input) : SV_Target
@@ -114,9 +114,12 @@ Shader "LL/Atmosphere"
                     float cosT = dot(lightDir, -rd);
                     float phase = 0.55 + 1.6 * pow(saturate(cosT), 6.0);
                     float3 light = _LLBeamColor.rgb * beam * phase * _BeamScatter;
+                    // Fog banks catch the moon: a soft grey veil over the dark sea.
+                    float fogShare = fog / max(dens, 1e-5);
+                    light += (moon.color * 0.2 * _LLAmbient.w + _LLAmbient.rgb * 2.0) * fogShare;
                     light += _LLFalseColor.rgb * LLFalseBeams(p) * 0.9;
                     float dl = length(p - lantern);
-                    light += _LLBeamColor.rgb * _LLBeamOrigin.w * _LanternGlow * 6.0 / (1.0 + dl * dl * 0.05);
+                    light += _LLBeamColor.rgb * _LLBeamOrigin.w * _LanternGlow * 3.0 / (1.0 + dl * dl * 0.09);
                     light += ambientLight + float3(0.7, 0.8, 1.0) * _LLFlash * 2.5;
 
                     scatter += transmittance * dens * light * dt * _ScatterGain;

@@ -144,7 +144,7 @@ namespace LastLight.View
             v.lamp = Glows.Glow("Lamp", v.body, lampPos, 3f, Color.black);
             v.light = Glows.PointLight("Lamp Light", v.body, lampPos + Vector3.up * 0.2f, v.lampColor.linear * 0.3f, 0f, 16f);
             v.light.color = new Color(v.lampColor.r, v.lampColor.g, v.lampColor.b) / Mathf.Max(v.lampColor.r, Mathf.Max(v.lampColor.g, v.lampColor.b));
-            v.aura = Glows.Ring("Aura", go.transform, SimBuoy.AuraRadius, Color.black, new Vector4(0.95f, 0.985f, 0.01f, 0), new Vector4(1, 36, 0, 0));
+            v.aura = Glows.Ring("Aura", go.transform, SimBuoy.AuraRadius, Color.black, new Vector4(0.972f, 0.985f, 0.006f, 0), new Vector4(1, 60, 0, 0));
             v.auraMat = v.aura.sharedMaterial;
             return v;
         }
@@ -166,7 +166,7 @@ namespace LastLight.View
             Glows.SetColor(lamp, lampColor * (on + flare * 2f) + new Color(0.06f, 0.06f, 0.07f));
             light.intensity = on * 4f + flare * 6f;
             float auraOn = charge > 0f ? Mathf.Clamp01(charge * 4f) : 0f;
-            auraMat.SetColor("_Color", lampColor * 0.12f * auraOn + lampColor * 0.25f * flare);
+            auraMat.SetColor("_Color", lampColor * 0.075f * auraOn * (0.6f + 0.4f * charge) + lampColor * 0.3f * flare);
             aura.transform.localScale = new Vector3(SimBuoy.AuraRadius * 2f * (1f + flare * 0.15f), 1, SimBuoy.AuraRadius * 2f * (1f + flare * 0.15f));
             aura.transform.localRotation = Quaternion.Euler(0, t * 6f, 0);
         }

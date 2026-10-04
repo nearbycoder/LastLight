@@ -48,6 +48,7 @@ namespace LastLight.Core
             data.antialiasingQuality = AntialiasingQuality.High;
             data.requiresDepthTexture = true;
             data.requiresColorTexture = false;
+            data.dithering = true;   // no banding in the long dark gradients and the dawn sky
             go.AddComponent<AudioListener>();
             var rig = go.AddComponent<CameraRig>();
             rig.Snap(CameraRig.PlayPose);

@@ -23,6 +23,7 @@ namespace LastLight.View
                 rain = new Material(Lit);
                 rain.SetFloat("_Streak", 1f);
                 rain.SetFloat("_Softness", 1f);
+                rain.SetFloat("_LightBoost", 3.5f);
                 return rain;
             }
         }
@@ -137,8 +138,8 @@ namespace LastLight.View
             var main = ps.main;
             main.startLifetime = 1.2f;
             main.startSpeed = 0f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
-            main.startColor = new Color(0.75f, 0.82f, 0.9f, 0.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.55f);
+            main.startColor = new Color(0.8f, 0.86f, 0.95f, 0.55f);
             var em = ps.emission;
             em.rateOverTime = 3500f * intensity;
             var shape = ps.shape;
@@ -153,8 +154,8 @@ namespace LastLight.View
             vel.z = new ParticleSystem.MinMaxCurve(-2f, -1f);
             var r = ps.GetComponent<ParticleSystemRenderer>();
             r.renderMode = ParticleSystemRenderMode.Stretch;
-            r.velocityScale = 0.035f;
-            r.lengthScale = 2f;
+            r.velocityScale = 0.07f;
+            r.lengthScale = 3f;
             ps.Play();
             return ps;
         }
@@ -230,14 +231,14 @@ namespace LastLight.View
         {
             for (int i = 0; i < 2; i++)
             {
-                var r = Glows.Ring("HornWave", Root, 1f, Color.black, new Vector4(0.9f, 0.985f, 0.01f, 0), new Vector4(1, 0, 0, 0));
+                var r = Glows.Ring("HornWave", Root, 1f, Color.black, new Vector4(0.972f, 0.99f, 0.006f, 0), new Vector4(1, 0, 0, 0));
                 r.transform.position = new Vector3(origin.x, 0.3f, origin.z);
                 var fx = r.gameObject.AddComponent<RingFx>();
                 fx.From = 8f;
                 fx.To = 150f;
                 fx.Time = 2.6f + i * 0.5f;
                 fx.Delay = i * 0.35f;
-                fx.Color = new Color(1f, 0.85f, 0.6f) * (0.55f - i * 0.2f);
+                fx.Color = new Color(1f, 0.85f, 0.6f) * (1.4f - i * 0.6f);
             }
         }
 

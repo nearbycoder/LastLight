@@ -76,6 +76,7 @@ namespace LastLight.Core
             {
                 game.StartEndingRunner();
                 game.Rig.Snap(CameraRig.EndingPose);
+                Stage.MoonTowards(true, 0.01f);   // the setting moon hangs beside the tower
             });
             yield return Wait(1.4f);
             Music.PlayTrack("music_dawn", 4f);
@@ -142,7 +143,8 @@ namespace LastLight.Core
             var save = SaveData.Current;
             var sb = new StringBuilder();
             sb.Append("<size=60><color=#E9DFC7>Thank you for the light</color></size>\n\n\n");
-            sb.Append($"<color=#C9A35A>YOU BROUGHT {Mathf.Max(save.shipsHome, save.homeNames.Count)} SHIPS HOME</color>\n\n");
+            if (save.homeNames.Count > 0)
+                sb.Append($"<color=#C9A35A>YOU BROUGHT {Mathf.Max(save.shipsHome, save.homeNames.Count)} SHIPS HOME</color>\n\n");
             for (int i = 0; i < save.homeNames.Count; i++)
             {
                 sb.Append(save.homeNames[i]);

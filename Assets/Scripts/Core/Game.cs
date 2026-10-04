@@ -312,6 +312,8 @@ namespace LastLight.Core
         {
             Current = State.Ending;
             Hud.Show(false);
+            foreach (var s in new UiScreen[] { title, logbook, briefing, pause, settings, results })
+                if (s.Visible) s.Hide();
             if (ending == null) ending = gameObject.AddComponent<Ending>();
             ending.Play(this, () =>
             {

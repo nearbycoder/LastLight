@@ -209,6 +209,14 @@ Shader "LL/Water"
                 foam *= LLSmooth(0.1, 0.6, foamNoise + foam * 0.5);
                 body = lerp(body, _ShallowColor.rgb * 1.5, shallow * 0.35 * saturate(beam * 2.0 + _LLFlash));
 
+                // Whitecaps when the swell is up (storm nights raise _WaveScale).
+                float blow = saturate((_WaveScale - 0.45) * 3.0);
+                // Streaks along the wind, breaking only on the highest crests, in patches.
+                float2 wq = float2(pos.x * 0.18 + pos.z * 0.05, pos.z * 0.45 - pos.x * 0.02);
+                float patches = LLSmooth(0.45, 0.8, LLNoise2(pos.xz * 0.025 + t * 0.03));
+                float streak = LLNoise2(wq + float2(t * 0.5, t * 0.2));
+                float caps = blow * patches * LLSmooth(0.7, 1.0, i.crest * 1.4 + streak * 0.55) * LLSmooth(0.4, 0.75, LLNoise2(pos.xz * 1.3 - t * 0.6));
+                foam = max(foam, caps * 0.75);
                 float flash = _LLFlash;
                 float3 col = body * (ambient * 1.4 + moon.color * moonB * 0.05 + flash * 0.5) + reflection * fresnel + moonGlint + beamLight + lamps;
                 float3 foamLight = ambient * 2.2 + moon.color * moonB * 0.18 + _LLBeamColor.rgb * beam * hot * 0.9 + _LLFalseColor.rgb * falseB * 0.7 + flash + lamps * 0.5;

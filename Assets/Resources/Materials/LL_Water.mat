@@ -25,8 +25,8 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Choppiness: 1
-    - _WaveScale: 0.35
+    - _Choppiness: 1.25
+    - _WaveScale: 0.75
     m_Colors:
     - _DeepColor: {r: 0.02, g: 0.05, b: 0.075, a: 1}
     - _FarFade: {r: 260, g: 900, b: 0, a: 0}

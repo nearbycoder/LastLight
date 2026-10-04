@@ -27,6 +27,59 @@ float LLSmooth(float e0, float e1, float x)
     return t * t * (3.0 - 2.0 * t);
 }
 
+// Interleaved gradient noise for dithering ray-march starts.
+float LLIGN(float2 pixel)
+{
+    return frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+}
+
+float LLHash31(float3 p)
+{
+    p = frac(p * 0.1031);
+    p += dot(p, p.zyx + 31.32);
+    return frac((p.x + p.y) * p.z);
+}
+
+float LLNoise3(float3 p)
+{
+    float3 i = floor(p);
+    float3 f = frac(p);
+    float3 u = f * f * (3.0 - 2.0 * f);
+    float n000 = LLHash31(i);
+    float n100 = LLHash31(i + float3(1, 0, 0));
+    float n010 = LLHash31(i + float3(0, 1, 0));
+    float n110 = LLHash31(i + float3(1, 1, 0));
+    float n001 = LLHash31(i + float3(0, 0, 1));
+    float n101 = LLHash31(i + float3(1, 0, 1));
+    float n011 = LLHash31(i + float3(0, 1, 1));
+    float n111 = LLHash31(i + float3(1, 1, 1));
+    return lerp(lerp(lerp(n000, n100, u.x), lerp(n010, n110, u.x), u.y),
+                lerp(lerp(n001, n101, u.x), lerp(n011, n111, u.x), u.y), u.z);
+}
+
+float LLHash21(float2 p)
+{
+    float3 p3 = frac(float3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
+float LLNoise2(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = frac(p);
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return lerp(lerp(LLHash21(i), LLHash21(i + float2(1, 0)), u.x),
+                lerp(LLHash21(i + float2(0, 1)), LLHash21(i + float2(1, 1)), u.x), u.y);
+}
+
+float LLFbm2(float2 p)
+{
+    float s = 0.0, a = 0.5;
+    [unroll] for (int k = 0; k < 4; k++) { s += LLNoise2(p) * a; p = p * 2.03 + 17.1; a *= 0.5; }
+    return s;
+}
+
 float LLWedge(float2 origin, float2 dir, float cosOuter, float cosInner, float range, float2 p)
 {
     float2 d = p - origin;
@@ -134,10 +187,13 @@ float LLFogBankDensity(float3 posWS)
     [loop] for (int k = 0; k < count; k++)
     {
         float4 f = _LLFogBanks[k];
-        float dist = length(posWS.xz - f.xy);
-        d = max(d, f.w * (1.0 - LLSmooth(f.z * 0.45, f.z * 1.05, dist)));
+        // Warp the outline so banks drift in ragged tongues rather than discs.
+        float2 q = posWS.xz * 0.028 + float2(k * 7.13, k * 3.71) + _Time.y * 0.012;
+        float warp = LLNoise2(q) * 0.65 + LLNoise2(q * 2.7 + 11.0) * 0.35;
+        float dist = length(posWS.xz - f.xy) * (0.6 + 0.8 * warp);
+        d = max(d, f.w * (1.0 - LLSmooth(f.z * 0.35, f.z * 1.1, dist)));
     }
-    return d * (1.0 - LLSmooth(3.0, 16.0, posWS.y));
+    return d * (1.0 - LLSmooth(2.0, 11.0, posWS.y));
 }
 
 // Light reaching a surface from the lantern and false lights: rgb, plus a scalar for rim terms.
@@ -154,59 +210,6 @@ float3 LLBeamLighting(float3 posWS, float3 normalWS, float3 viewWS, out float be
     // Lightning: a cold flash from above.
     light += float3(0.75, 0.82, 1.0) * _LLFlash * (saturate(normalWS.y) * 0.8 + 0.4) * 2.2;
     return light;
-}
-
-// Interleaved gradient noise for dithering ray-march starts.
-float LLIGN(float2 pixel)
-{
-    return frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
-}
-
-float LLHash31(float3 p)
-{
-    p = frac(p * 0.1031);
-    p += dot(p, p.zyx + 31.32);
-    return frac((p.x + p.y) * p.z);
-}
-
-float LLNoise3(float3 p)
-{
-    float3 i = floor(p);
-    float3 f = frac(p);
-    float3 u = f * f * (3.0 - 2.0 * f);
-    float n000 = LLHash31(i);
-    float n100 = LLHash31(i + float3(1, 0, 0));
-    float n010 = LLHash31(i + float3(0, 1, 0));
-    float n110 = LLHash31(i + float3(1, 1, 0));
-    float n001 = LLHash31(i + float3(0, 0, 1));
-    float n101 = LLHash31(i + float3(1, 0, 1));
-    float n011 = LLHash31(i + float3(0, 1, 1));
-    float n111 = LLHash31(i + float3(1, 1, 1));
-    return lerp(lerp(lerp(n000, n100, u.x), lerp(n010, n110, u.x), u.y),
-                lerp(lerp(n001, n101, u.x), lerp(n011, n111, u.x), u.y), u.z);
-}
-
-float LLHash21(float2 p)
-{
-    float3 p3 = frac(float3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return frac((p3.x + p3.y) * p3.z);
-}
-
-float LLNoise2(float2 p)
-{
-    float2 i = floor(p);
-    float2 f = frac(p);
-    float2 u = f * f * (3.0 - 2.0 * f);
-    return lerp(lerp(LLHash21(i), LLHash21(i + float2(1, 0)), u.x),
-                lerp(LLHash21(i + float2(0, 1)), LLHash21(i + float2(1, 1)), u.x), u.y);
-}
-
-float LLFbm2(float2 p)
-{
-    float s = 0.0, a = 0.5;
-    [unroll] for (int k = 0; k < 4; k++) { s += LLNoise2(p) * a; p = p * 2.03 + 17.1; a *= 0.5; }
-    return s;
 }
 
 #endif
