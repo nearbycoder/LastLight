@@ -172,6 +172,9 @@ Tools/build.sh                 # build through the resident editor
 - `Tools/tour.sh <ui|nights|ending|input> <outdir>` plays the built game with scripted input,
   saves screenshots and reports any console errors and frame times. The `input` tour drives the
   real mouse and keyboard path in the player.
+- `Tools/record.sh [out.mp4]` records a four-minute gameplay reel with sound (the title, five
+  nights played by the bot, the results and the ending) to `Builds/LastLight_gameplay.mp4`.
+  Time is stepped at a fixed 30 fps, so the video is smooth however busy the GPU is.
 
 ## Performance
 

@@ -19,6 +19,73 @@ namespace LastLight.Automation
             Tour.Scripts["nights"] = Nights;
             Tour.Scripts["ending"] = EndingTour;
             Tour.Scripts["input"] = InputTour;
+            Tour.Scripts["video"] = Video;
+        }
+
+        const int VideoFps = 30;
+
+        /// <summary>Waits a span of captured video time (frames, not wall-clock seconds).</summary>
+        static IEnumerator Hold(float seconds)
+        {
+            int frames = Mathf.RoundToInt(seconds * VideoFps);
+            for (int i = 0; i < frames; i++) yield return null;
+        }
+
+        /// <summary>
+        /// A gameplay reel recorded with <see cref="Recorder"/>: the title, then stretches of five
+        /// nights played by the AutoKeeper at real speed (each opening on its briefing card), the
+        /// dawn results and the ending. Spans between scenes are fast-forwarded off camera.
+        /// </summary>
+        static IEnumerator Video(Tour t)
+        {
+            var g = Game.Instance;
+            g.AutoPlay = true;
+            var rec = Recorder.Begin(t.OutDir, VideoFps);
+            yield return Hold(1.5f);
+            rec.Rolling = true;
+            yield return Hold(7f);
+            if (Game.Arg("-llVideoTest", 0) == 1)
+            {
+                g.TourBriefing(2);
+                yield return Hold(4.5f);
+                g.TourBegin();
+                yield return Hold(6f);
+                rec.Finish();
+                yield break;
+            }
+
+            (int night, float from, float to)[] scenes = { (2, 0f, 36f), (5, 24f, 50f), (8, 34f, 56f), (9, 28f, 58f), (12, 48f, 74f) };
+            for (int i = 0; i < scenes.Length; i++)
+            {
+                var (night, from, to) = scenes[i];
+                rec.Rolling = true;
+                g.TourBriefing(night);
+                yield return Hold(4.5f);
+                g.TourBegin();
+                yield return null;
+                if (from > 0f)
+                {
+                    rec.Rolling = false;
+                    g.Runner.TimeScale = 4f;
+                    while (g.Runner != null && g.Runner.World.Time < from && !g.ShowingResults) yield return null;
+                    g.Runner.TimeScale = 1f;
+                    rec.Rolling = true;
+                }
+                while (g.Runner != null && g.Runner.World.Time < to && !g.ShowingResults) yield return null;
+                t.Log($"night {night}: recorded to t={g.Runner?.World.Time:0}, {rec.Frames} frames so far");
+            }
+
+            rec.Rolling = false;
+            g.Runner.TimeScale = 4f;
+            while (!g.ShowingResults) yield return null;
+            rec.Rolling = true;
+            yield return Hold(8f);
+
+            g.TourEnding();
+            yield return Hold(72f);
+            rec.Rolling = false;
+            t.Log($"video: {rec.Frames} frames ({rec.Frames / (float)VideoFps:0.0} s)");
+            rec.Finish();
         }
 
         public static IEnumerator Default(Tour t)

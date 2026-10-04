@@ -55,6 +55,8 @@ namespace LastLight.Automation
             Application.Quit();
         }
 
+        public string OutDir => outDir;
+
         public void Log(string msg) => Debug.Log("[Tour] " + msg);
 
         float frameAcc;
