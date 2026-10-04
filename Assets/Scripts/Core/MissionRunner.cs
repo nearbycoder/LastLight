@@ -19,6 +19,11 @@ namespace LastLight.Core
         public MissionDef Def { get; private set; }
         public bool AutoPlay;
         public bool Paused;
+        /// <summary>Before the watch begins: nothing sails, the lens turns slowly on its own.</summary>
+        public bool Holding;
+        /// <summary>Title-screen mode: the lens sweeps steadily like a real light.</summary>
+        public bool Attract;
+        public float AttractTurn = 0.13f;
         public float TimeScale = 1f;
         public event Action<SimEvent> OnEvent;
         public KeeperControls Controls { get; } = new KeeperControls();
@@ -77,11 +82,21 @@ namespace LastLight.Core
             float dt = Mathf.Min(Time.deltaTime, 0.1f) * TimeScale;
             accumulator += dt;
 
-            KeeperInput input = AutoPlay ? default : Controls.Read(World.Beam.Origin);
+            if (Holding)
+            {
+                prevBearing = World.Beam.Bearing;
+                World.Beam.Step(new KeeperInput { Turn = AttractTurn }, dt);
+                Bearing = World.Beam.Bearing;
+                Controls.SyncTo(Bearing);
+                Render(1f);
+                return;
+            }
+
+            KeeperInput input = AutoPlay || Attract ? new KeeperInput { Turn = AttractTurn } : Controls.Read(World.Beam.Origin);
             int steps = 0;
             while (accumulator >= StepTime && steps < 12)
             {
-                if (AutoPlay) input = Bot.Decide(World, StepTime);
+                if (AutoPlay && !Attract) input = Bot.Decide(World, StepTime);
                 foreach (var v in ships.Values) v.BeforeStep();
                 prevBearing = World.Beam.Bearing;
                 World.Step(StepTime, input);

@@ -343,6 +343,1475 @@
     "lightningMin": 10,
     "lightningMax": 18
    }
+  },
+  {
+   "id": "deep_water",
+   "night": 4,
+   "title": "Deep Water",
+   "date": "Friday, 6th October",
+   "briefing": "Colliers tonight. A steamer draws four fathom, and the Long Sands will take her keel where a trawler floats over. Light the sands for the big ships.",
+   "newThing": "shoal",
+   "allowedWrecks": 1,
+   "reefGroups": [
+    "teeth",
+    "hens"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "sands_n",
+    "sands_s",
+    "fairway",
+    "hen_bell"
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "steamer",
+     "route": "n2_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway again. Coming down for Porthkell across the Sands. Mind them for me, keeper. I can't.",
+     "damaged": false
+    },
+    {
+     "t": 24,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill inbound from the west.",
+     "damaged": false
+    },
+    {
+     "t": 40,
+     "type": "trawler",
+     "route": "harbor_n2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake heading out. Fair night for it.",
+     "damaged": false
+    },
+    {
+     "t": 58,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen, collier, inbound from the east.",
+     "damaged": false
+    },
+    {
+     "t": 80,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk's coming home behind the Hen. Wave the light, keeper!",
+     "damaged": false
+    },
+    {
+     "t": 102,
+     "type": "steamer",
+     "route": "w1_harbor",
+     "name": "SS Penhallow",
+     "captain": "",
+     "hail": "Penhallow, loaded deep. Making for Porthkell.",
+     "damaged": false
+    },
+    {
+     "t": 124,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Dunlin",
+     "captain": "",
+     "hail": "Dunlin coming in along the coast.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Long Sands are shifting again. Shallow enough to wade at low water. Light them up before a steamer gets there."
+    },
+    {
+     "t": -1,
+     "on": "firstShoal",
+     "who": "pryce",
+     "text": "Sands lit. Good. I'll go round."
+    },
+    {
+     "t": -1,
+     "on": "firstWreck",
+     "who": "ianto",
+     "text": "Steamers turn like a church. Give them warning early, keeper."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "pryce",
+     "text": "Hm. You'll make a keeper yet."
+    }
+   ],
+   "hints": [
+    {
+     "id": "shoal",
+     "t": -1,
+     "on": "firstEntered"
+    }
+   ],
+   "fog": [],
+   "wreckers": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "sea_fret",
+   "night": 5,
+   "title": "Sea Fret",
+   "date": "Saturday, 7th October",
+   "briefing": "Sea fret rolling in off the water. Your light won't carry through it unless you hold it narrow, and the boats will lose their nerve quick. Sound the horn if they're lost.",
+   "newThing": "fog",
+   "allowedWrecks": 1,
+   "foghorn": true,
+   "haze": 1.5,
+   "reefGroups": [
+    "teeth",
+    "collar"
+   ],
+   "buoys": [
+    "collar",
+    "teeth_bell"
+   ],
+   "fog": [
+    {
+     "x": -60,
+     "z": 70,
+     "r": 34,
+     "density": 1.0,
+     "vx": 1.4,
+     "vz": 0.0
+    },
+    {
+     "x": 30,
+     "z": 50,
+     "r": 30,
+     "density": 1.0,
+     "vx": 1.1,
+     "vz": 0.2
+    },
+    {
+     "x": 95,
+     "z": 85,
+     "r": 36,
+     "density": 0.9,
+     "vx": 1.0,
+     "vz": -0.1
+    },
+    {
+     "x": -110,
+     "z": 20,
+     "r": 28,
+     "density": 0.9,
+     "vx": 1.3,
+     "vz": 0.1
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk here. Can't see my own bow, keeper. Keep that light coming.",
+     "damaged": false
+    },
+    {
+     "t": 22,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater in the fret, coming down from the east.",
+     "damaged": false
+    },
+    {
+     "t": 40,
+     "type": "steamer",
+     "route": "w1_e1",
+     "name": "SS Hesper",
+     "captain": "",
+     "hail": "Hesper, eastbound. Thick as porridge out here.",
+     "damaged": false
+    },
+    {
+     "t": 62,
+     "type": "trawler",
+     "route": "harbor_e2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake going out. Lord knows why.",
+     "damaged": false
+    },
+    {
+     "t": 80,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Guillemot",
+     "captain": "",
+     "hail": "Guillemot, inbound, blind as a mole.",
+     "damaged": false
+    },
+    {
+     "t": 100,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway in the fret. I'll take your horn over your light tonight, keeper.",
+     "damaged": false
+    },
+    {
+     "t": 126,
+     "type": "trawler",
+     "route": "n3_e1",
+     "name": "Fulmar",
+     "captain": "",
+     "hail": "Fulmar, passing north of the Teeth.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Fret's thick. Hold the light narrow to punch through it. And when they lose you, give them the horn."
+    },
+    {
+     "t": -1,
+     "on": "firstLost",
+     "who": "maren",
+     "text": "I heard you! I know where I am now!"
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "Silhouettes in the fog. That's a sight. Good work."
+    }
+   ],
+   "hints": [
+    {
+     "id": "focus",
+     "t": 5,
+     "on": ""
+    }
+   ],
+   "shoals": [],
+   "wreckers": [],
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "evening_star",
+   "night": 6,
+   "title": "The Evening Star",
+   "date": "Sunday, 8th October",
+   "briefing": "The Evening Star's running a late crossing: forty passengers and the Porthkell brass band. Bring her in with everyone else, and don't let her near the Ledge.",
+   "newThing": "ferry",
+   "allowedWrecks": 1,
+   "reefGroups": [
+    "teeth",
+    "widow",
+    "collar"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "widow",
+    "fairway",
+    "collar",
+    "sands_n"
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "ferry",
+     "route": "e2_harbor",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star, out of Corley with forty souls and a brass band! Evening, Gannet Head!",
+     "damaged": false
+    },
+    {
+     "t": 22,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk again. Is that the band I can hear?",
+     "damaged": false
+    },
+    {
+     "t": 40,
+     "type": "steamer",
+     "route": "harbor_e2",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen departing east.",
+     "damaged": false
+    },
+    {
+     "t": 58,
+     "type": "trawler",
+     "route": "w2_e2",
+     "name": "Saint Brannoc",
+     "captain": "",
+     "hail": "Saint Brannoc along the coast, eastbound.",
+     "damaged": false
+    },
+    {
+     "t": 76,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Puffin",
+     "captain": "",
+     "hail": "Puffin inbound from the east.",
+     "damaged": false
+    },
+    {
+     "t": 96,
+     "type": "ferry",
+     "route": "harbor_e2",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star again, going back out! The band wants to play for the lighthouse!",
+     "damaged": false
+    },
+    {
+     "t": 116,
+     "type": "steamer",
+     "route": "n2_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway. Will someone tell that ferry to stop playing the trombone.",
+     "damaged": false
+    },
+    {
+     "t": 138,
+     "type": "trawler",
+     "route": "e2_w2",
+     "name": "Curlew",
+     "captain": "",
+     "hail": "Curlew, westbound along the shore.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Ferry's worth more than the rest put together, keeper. In every way."
+    },
+    {
+     "t": 30,
+     "on": "",
+     "who": "dot",
+     "text": "Everyone wave at the lighthouse! Go on!"
+    },
+    {
+     "t": -1,
+     "on": "firstCharted",
+     "who": "dot",
+     "text": "Ooh, we're all lit up! Lovely!"
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "dot",
+     "text": "Home safe. Three cheers for the keeper! Hip hip!"
+    }
+   ],
+   "hints": [
+    {
+     "id": "buoy",
+     "t": 60,
+     "on": ""
+    }
+   ],
+   "fog": [],
+   "wreckers": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "mayday",
+   "night": 7,
+   "title": "Mayday",
+   "date": "Tuesday, 10th October",
+   "briefing": "The Calloway's dynamo has failed: no lamps, and she's shipping water somewhere off the Teeth. You'll not see her till your light finds her. Watch for the flares.",
+   "newThing": "damaged",
+   "allowedWrecks": 1,
+   "haze": 1.2,
+   "reefGroups": [
+    "teeth",
+    "widow",
+    "hens"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "teeth_bell",
+    "hen_bell",
+    "fairway"
+   ],
+   "fog": [
+    {
+     "x": 60,
+     "z": 70,
+     "r": 26,
+     "density": 0.6,
+     "vx": 0.6,
+     "vz": 0.0
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "steamer",
+     "route": "n3_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Gannet Head, Calloway. We've lost the dynamo. No lamps, taking water. North of the Teeth, I think. Find us.",
+     "damaged": true
+    },
+    {
+     "t": 20,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill inbound. Is that the Calloway in trouble?",
+     "damaged": false
+    },
+    {
+     "t": 38,
+     "type": "trawler",
+     "route": "harbor_n2",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk going out to stand by the Calloway. Don't lose me too!",
+     "damaged": false
+    },
+    {
+     "t": 60,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Dunlin",
+     "captain": "",
+     "hail": "Dunlin inbound from the east.",
+     "damaged": false
+    },
+    {
+     "t": 80,
+     "type": "ferry",
+     "route": "w1_e1",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star, passing. Thinking of you, Calloway!",
+     "damaged": false
+    },
+    {
+     "t": 102,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Guillemot",
+     "captain": "",
+     "hail": "Guillemot. Something dark on the water off Widow's Ledge, keeper. No lamps at all.",
+     "damaged": true
+    },
+    {
+     "t": 124,
+     "type": "steamer",
+     "route": "w2_e2",
+     "name": "SS Hesper",
+     "captain": "",
+     "hail": "Hesper, eastbound along the coast.",
+     "damaged": false
+    },
+    {
+     "t": 146,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Petrel",
+     "captain": "",
+     "hail": "Petrel inbound behind the Hen.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 3,
+     "on": "",
+     "who": "ianto",
+     "text": "No lamps on her, keeper. Sweep the dark till you find her, and keep her lit."
+    },
+    {
+     "t": -1,
+     "on": "firstFlare",
+     "who": "pryce",
+     "text": "That's a flare gone up. Look for it, keeper!"
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "pryce",
+     "text": "...Obliged to you. Truly."
+    }
+   ],
+   "hints": [
+    {
+     "id": "flare",
+     "t": 8,
+     "on": ""
+    }
+   ],
+   "wreckers": [],
+   "foghorn": false,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "squall",
+   "night": 8,
+   "title": "Squall",
+   "date": "Thursday, 12th October",
+   "briefing": "Glass is falling fast. The current runs hard onto the rocks in a blow, and the rain will cut your reach. The lightning's your friend tonight: it shows the reefs.",
+   "newThing": "storm",
+   "allowedWrecks": 2,
+   "haze": 1.3,
+   "storm": {
+    "enabled": true,
+    "cx": 0.45,
+    "cz": -0.55,
+    "rain": 0.8,
+    "lightningMin": 9,
+    "lightningMax": 15
+   },
+   "foghorn": true,
+   "reefGroups": [
+    "teeth",
+    "widow",
+    "collar",
+    "hens"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "collar",
+    "hen_bell",
+    "teeth_bell",
+    "fairway"
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "This is no night for a little boat, keeper. Running for home!",
+     "damaged": false
+    },
+    {
+     "t": 18,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake running for shelter!",
+     "damaged": false
+    },
+    {
+     "t": 34,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen, making for Porthkell, heavy weather.",
+     "damaged": false
+    },
+    {
+     "t": 52,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill in from the west, taking it green over the bow.",
+     "damaged": false
+    },
+    {
+     "t": 70,
+     "type": "ferry",
+     "route": "harbor_e2",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star must sail, keeper, mail and all. Hold on to your hats!",
+     "damaged": false
+    },
+    {
+     "t": 92,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater coming down past the Teeth. Can't see a thing between the flashes.",
+     "damaged": false
+    },
+    {
+     "t": 112,
+     "type": "steamer",
+     "route": "w2_e2",
+     "name": "SS Penhallow",
+     "captain": "",
+     "hail": "Penhallow eastbound. The current's pushing us shoreward.",
+     "damaged": false
+    },
+    {
+     "t": 132,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Fulmar",
+     "captain": "",
+     "hail": "Fulmar inbound.",
+     "damaged": false
+    },
+    {
+     "t": 150,
+     "type": "steamer",
+     "route": "n1_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway, coming home through the worst of it. Light on, keeper.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Storm's on us. The current will push them onto the rocks if they lose their way."
+    },
+    {
+     "t": -1,
+     "on": "firstWreck",
+     "who": "ianto",
+     "text": "Every flash of lightning shows the reefs. Use it."
+    },
+    {
+     "t": 50,
+     "on": "",
+     "who": "maren",
+     "text": "I saw the Teeth in the lightning! Ugly things."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "pryce",
+     "text": "Hell of a night. Hell of a light."
+    }
+   ],
+   "hints": [
+    {
+     "id": "storm",
+     "t": 5,
+     "on": ""
+    }
+   ],
+   "fog": [],
+   "wreckers": [],
+   "drainScale": 1.0,
+   "finale": false
+  },
+  {
+   "id": "false_light",
+   "night": 9,
+   "title": "False Light",
+   "date": "Saturday, 14th October",
+   "briefing": "Word from Corley: lanterns seen on the cliffs at night. The Corley brothers, wrecking again. A captain will steer for any light that turns like yours. Put your beam on theirs and they'll douse it.",
+   "newThing": "wrecker",
+   "allowedWrecks": 1,
+   "reefGroups": [
+    "widow",
+    "teeth",
+    "collar"
+   ],
+   "shoals": [
+    "cocklebank"
+   ],
+   "buoys": [
+    "widow",
+    "teeth_bell",
+    "collar"
+   ],
+   "wreckers": [
+    {
+     "sites": [
+      "corley",
+      "corley"
+     ],
+     "start": 34,
+     "relight": 24,
+     "sweep": 16
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Dunlin",
+     "captain": "",
+     "hail": "Dunlin inbound along the east coast.",
+     "damaged": false
+    },
+    {
+     "t": 22,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk here. Someone's playing silly devils on the Corley cliffs, keeper.",
+     "damaged": false
+    },
+    {
+     "t": 40,
+     "type": "steamer",
+     "route": "e2_w2",
+     "name": "SS Hesper",
+     "captain": "",
+     "hail": "Hesper, westbound along the coast.",
+     "damaged": false
+    },
+    {
+     "t": 58,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Puffin",
+     "captain": "",
+     "hail": "Puffin inbound from the east.",
+     "damaged": false
+    },
+    {
+     "t": 76,
+     "type": "ferry",
+     "route": "e2_harbor",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star coming in from Corley. Which of those lights is yours, keeper?",
+     "damaged": false
+    },
+    {
+     "t": 98,
+     "type": "trawler",
+     "route": "harbor_e2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake going east.",
+     "damaged": false
+    },
+    {
+     "t": 118,
+     "type": "steamer",
+     "route": "e2_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway. I've heard about the Corleys. Keep your eye on them.",
+     "damaged": false
+    },
+    {
+     "t": 138,
+     "type": "trawler",
+     "route": "w2_e2",
+     "name": "Saint Brannoc",
+     "captain": "",
+     "hail": "Saint Brannoc, eastbound.",
+     "damaged": false
+    },
+    {
+     "t": 156,
+     "type": "trawler",
+     "route": "e2_w2",
+     "name": "Morwenna",
+     "captain": "",
+     "hail": "Morwenna, westbound.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Watch the cliffs at Corley Cove. If a light shows that isn't yours, hold your beam on it."
+    },
+    {
+     "t": -1,
+     "on": "firstWrecker",
+     "who": "ianto",
+     "text": "There! A false light at Corley. Put your beam on it!"
+    },
+    {
+     "t": -1,
+     "on": "firstDoused",
+     "who": "ianto",
+     "text": "That's sent them running. They'll be back, mind."
+    },
+    {
+     "t": -1,
+     "on": "firstLured",
+     "who": "maren",
+     "text": "They want us on the rocks for the salvage. Wicked."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "The Corleys went home empty-handed. Well done, keeper."
+    }
+   ],
+   "hints": [],
+   "fog": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "two_lights",
+   "night": 10,
+   "title": "Two Lights",
+   "date": "Monday, 16th October",
+   "briefing": "Fret again, and the Corleys have learnt to move. Black Hen one hour, West Point the next. And a letter from the Board, for what it's worth.",
+   "newThing": "",
+   "allowedWrecks": 2,
+   "foghorn": true,
+   "haze": 1.4,
+   "reefGroups": [
+    "hens",
+    "teeth",
+    "collar",
+    "outer"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "hen_bell",
+    "sands_n",
+    "fairway",
+    "collar"
+   ],
+   "fog": [
+    {
+     "x": -30,
+     "z": 80,
+     "r": 30,
+     "density": 0.9,
+     "vx": 1.2,
+     "vz": 0.0
+    },
+    {
+     "x": 60,
+     "z": 40,
+     "r": 28,
+     "density": 0.9,
+     "vx": 1.0,
+     "vz": 0.1
+    },
+    {
+     "x": -120,
+     "z": 40,
+     "r": 26,
+     "density": 0.8,
+     "vx": 1.4,
+     "vz": 0.0
+    }
+   ],
+   "wreckers": [
+    {
+     "sites": [
+      "blackhen",
+      "westpoint"
+     ],
+     "start": 26,
+     "relight": 18,
+     "sweep": 18
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk, behind the Hen again. Two lights out here tonight. Which is you?",
+     "damaged": false
+    },
+    {
+     "t": 18,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill in from the west.",
+     "damaged": false
+    },
+    {
+     "t": 34,
+     "type": "steamer",
+     "route": "w1_e1",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen, eastbound, far out.",
+     "damaged": false
+    },
+    {
+     "t": 52,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Guillemot",
+     "captain": "",
+     "hail": "Guillemot inbound.",
+     "damaged": false
+    },
+    {
+     "t": 68,
+     "type": "ferry",
+     "route": "w2_e2",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star, along the coast. The passengers love the fog, keeper. I don't.",
+     "damaged": false
+    },
+    {
+     "t": 86,
+     "type": "trawler",
+     "route": "harbor_n2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake out past the Hen.",
+     "damaged": false
+    },
+    {
+     "t": 104,
+     "type": "steamer",
+     "route": "n3_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway, coming down past the Teeth. Two lights. I'll trust the one I know.",
+     "damaged": false
+    },
+    {
+     "t": 122,
+     "type": "trawler",
+     "route": "w1_n3",
+     "name": "Petrel",
+     "captain": "",
+     "hail": "Petrel, passing north.",
+     "damaged": false
+    },
+    {
+     "t": 140,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater inbound.",
+     "damaged": false
+    },
+    {
+     "t": 158,
+     "type": "steamer",
+     "route": "w1_harbor",
+     "name": "SS Penhallow",
+     "captain": "",
+     "hail": "Penhallow making for harbour from the west.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 6,
+     "on": "",
+     "who": "board",
+     "text": "The Board notes reports of 'false lights' on the Merrow coast. Such matters will be moot once the radio beacon is commissioned."
+    },
+    {
+     "t": 20,
+     "on": "",
+     "who": "ianto",
+     "text": "Moot, he says. Tell that to the Auk."
+    },
+    {
+     "t": -1,
+     "on": "firstDoused",
+     "who": "ianto",
+     "text": "Now West Point. They've a boat to row between them."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "Two lights, and they followed the right one. That's you, keeper."
+    }
+   ],
+   "hints": [],
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "the_mimic",
+   "night": 11,
+   "title": "The Mimic",
+   "date": "Wednesday, 18th October",
+   "briefing": "The Corleys have a bigger lantern now, on the Sentinels' cliff, and they turn it round and round, just like yours. The captains can't tell you apart unless you're on them.",
+   "newThing": "mimic",
+   "allowedWrecks": 2,
+   "haze": 1.1,
+   "reefGroups": [
+    "teeth",
+    "widow",
+    "collar",
+    "hens",
+    "outer"
+   ],
+   "shoals": [
+    "longsands",
+    "cocklebank"
+   ],
+   "buoys": [
+    "collar",
+    "widow",
+    "teeth_bell",
+    "hen_bell",
+    "fairway"
+   ],
+   "wreckers": [
+    {
+     "sites": [
+      "sentinels",
+      "sentinels"
+     ],
+     "start": 20,
+     "relight": 20,
+     "sweep": 26,
+     "mimic": true
+    },
+    {
+     "sites": [
+      "corley",
+      "blackhen"
+     ],
+     "start": 90,
+     "relight": 26,
+     "sweep": 16
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Two lights turning, keeper. Swing yours my way so I know.",
+     "damaged": false
+    },
+    {
+     "t": 16,
+     "type": "trawler",
+     "route": "w2_e2",
+     "name": "Saint Brannoc",
+     "captain": "",
+     "hail": "Saint Brannoc, eastbound.",
+     "damaged": false
+    },
+    {
+     "t": 30,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway. I've rounded this Head four thousand times. I know your light, keeper.",
+     "damaged": false
+    },
+    {
+     "t": 46,
+     "type": "trawler",
+     "route": "harbor_e2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake going east.",
+     "damaged": false
+    },
+    {
+     "t": 60,
+     "type": "ferry",
+     "route": "e2_w2",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star, westbound along the cliffs. Ooh, two lighthouses!",
+     "damaged": false
+    },
+    {
+     "t": 76,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater coming down past the Teeth.",
+     "damaged": false
+    },
+    {
+     "t": 92,
+     "type": "steamer",
+     "route": "e2_harbor",
+     "name": "SS Hesper",
+     "captain": "",
+     "hail": "Hesper inbound along the coast.",
+     "damaged": false
+    },
+    {
+     "t": 108,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Guillemot",
+     "captain": "",
+     "hail": "Guillemot inbound.",
+     "damaged": false
+    },
+    {
+     "t": 124,
+     "type": "trawler",
+     "route": "e2_w2",
+     "name": "Curlew",
+     "captain": "",
+     "hail": "Curlew, westbound.",
+     "damaged": false
+    },
+    {
+     "t": 140,
+     "type": "steamer",
+     "route": "w1_e1",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen, eastbound.",
+     "damaged": false
+    },
+    {
+     "t": 156,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Fulmar",
+     "captain": "",
+     "hail": "Fulmar inbound.",
+     "damaged": false
+    },
+    {
+     "t": 172,
+     "type": "ferry",
+     "route": "harbor_e2",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star going back out. Keep the real one shining!",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 3,
+     "on": "",
+     "who": "ianto",
+     "text": "The false one turns like yours. Don't chase it every time. Stay with your ships."
+    },
+    {
+     "t": 90,
+     "on": "",
+     "who": "board",
+     "text": "The Board advises the radio beacon will be commissioned at the close of the season, as planned."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "pryce",
+     "text": "Told you. I know your light."
+    }
+   ],
+   "hints": [],
+   "fog": [],
+   "foghorn": false,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "last_light",
+   "night": 12,
+   "title": "Last Light",
+   "date": "Friday, 20th October",
+   "briefing": "Last night of the season, keeper. And of course it's the worst one: a full gale, the Corleys out for one last wreck, and every boat in Porthkell at sea. Bring them home.",
+   "newThing": "finale",
+   "allowedWrecks": 2,
+   "haze": 1.3,
+   "storm": {
+    "enabled": true,
+    "cx": 0.45,
+    "cz": -0.55,
+    "rain": 0.8,
+    "lightningMin": 9,
+    "lightningMax": 15
+   },
+   "foghorn": true,
+   "finale": true,
+   "reefGroups": [
+    "teeth",
+    "widow",
+    "collar",
+    "hens",
+    "outer"
+   ],
+   "shoals": [
+    "longsands"
+   ],
+   "buoys": [
+    "collar",
+    "hen_bell",
+    "teeth_bell",
+    "fairway",
+    "widow"
+   ],
+   "wreckers": [
+    {
+     "sites": [
+      "corley",
+      "blackhen",
+      "westpoint"
+     ],
+     "start": 40,
+     "relight": 18,
+     "sweep": 18
+    }
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Last night, keeper! Auk's coming home, and she's staying home.",
+     "damaged": false
+    },
+    {
+     "t": 16,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake running for shelter.",
+     "damaged": false
+    },
+    {
+     "t": 30,
+     "type": "ferry",
+     "route": "e1_harbor",
+     "name": "Evening Star",
+     "captain": "dot",
+     "hail": "Evening Star! We've lost the lamps and we're taking water! Forty souls aboard, keeper!",
+     "damaged": true
+    },
+    {
+     "t": 46,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill in from the west.",
+     "damaged": false
+    },
+    {
+     "t": 60,
+     "type": "steamer",
+     "route": "n3_harbor",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen coming down past the Teeth.",
+     "damaged": false
+    },
+    {
+     "t": 76,
+     "type": "trawler",
+     "route": "harbor_n2",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk going back out. Someone has to stand by the Star.",
+     "damaged": false
+    },
+    {
+     "t": 92,
+     "type": "steamer",
+     "route": "w2_e2",
+     "name": "SS Penhallow",
+     "captain": "",
+     "hail": "Penhallow eastbound.",
+     "damaged": false
+    },
+    {
+     "t": 108,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Petrel",
+     "captain": "",
+     "hail": "Petrel behind the Hen.",
+     "damaged": false
+    },
+    {
+     "t": 124,
+     "type": "trawler",
+     "route": "e2_w2",
+     "name": "Dunlin",
+     "captain": "",
+     "hail": "Dunlin westbound.",
+     "damaged": false
+    },
+    {
+     "t": 140,
+     "type": "steamer",
+     "route": "w1_e1",
+     "name": "SS Hesper",
+     "captain": "",
+     "hail": "Hesper, far out.",
+     "damaged": false
+    },
+    {
+     "t": 156,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater coming down.",
+     "damaged": false
+    },
+    {
+     "t": 176,
+     "type": "steamer",
+     "route": "e2_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway, coming home for the last time on your light, keeper. Let's do it properly.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Everyone's out, keeper. Last night, and the worst one. Bring them home."
+    },
+    {
+     "t": -1,
+     "on": "firstFlare",
+     "who": "dot",
+     "text": "We can see your light! Keep it on us!"
+    },
+    {
+     "t": 38,
+     "on": "",
+     "who": "corley",
+     "text": "One last wreck, lads. The beacon won't light the cliffs for him."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "That's the gale blowing itself out. Dawn's coming."
+    }
+   ],
+   "hints": [],
+   "fog": [],
+   "drainScale": 1.0
   }
  ]
 }

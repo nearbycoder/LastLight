@@ -59,7 +59,14 @@ namespace LastLight.Sim
         int nextSpawn;
         int nextShipId = 1;
         readonly System.Random rng;
-        readonly List<(Vector2 c, float r)> obstacles = new List<(Vector2, float)>(64);
+        struct Obstacle
+        {
+            public Vector2 C;
+            public float R;          // bounding radius (circle obstacles: the radius)
+            public Vector2[] Poly;   // convex outline for sandbanks, null for circles
+        }
+
+        readonly List<Obstacle> obstacles = new List<Obstacle>(64);
 
         public int TotalShips => schedule.Length;
         public int SpawnedShips => nextSpawn;
@@ -334,7 +341,7 @@ namespace LastLight.Sim
                         if (light >= SimBeam.LitThreshold)
                         {
                             if (w.DouseProgress <= 0f) Emit(SimEventType.WreckerDousing, index: w.Index, pos: w.Site.Pos);
-                            w.DouseProgress += dt / (Beam.Focus > 0.5f ? 0.6f : 1.4f);
+                            w.DouseProgress += dt / (Beam.Focus > 0.5f ? 0.45f : 1.0f);
                         }
                         else w.DouseProgress = Mathf.Max(0f, w.DouseProgress - dt * 0.6f);
                         if (w.DouseProgress >= 1f)
@@ -499,7 +506,8 @@ namespace LastLight.Sim
             {
                 foreach (var w in Wreckers)
                 {
-                    if (FalseBeamAt(w, s.Pos) < 0.3f) continue;
+                    // A captain who has just seen the true light is not fooled; a doubtful one is.
+                    if (FalseBeamAt(w, s.Pos) < 0.3f || s.Confidence > 0.5f) continue;
                     SetState(s, ShipState.Lured);
                     s.LuredBy = w;
                     s.EverLured = true;
@@ -531,12 +539,12 @@ namespace LastLight.Sim
                     drift = Current * 2f + new Vector2(0f, -0.9f);
                     break;
                 case ShipState.Lured:
-                    desiredHeading = Geo.Bearing(s.LuredBy.Site.Hazard - s.Pos);
                     speedFactor = 0.9f;
+                    desiredHeading = Crab((s.LuredBy.Site.Hazard - s.Pos).normalized, st.Speed * speedFactor);
                     break;
                 default:
-                    desiredHeading = Geo.Bearing(SteerSailing(s));
                     speedFactor = s.Lit || s.InAura || !s.Inside ? 1f : 0.72f;
+                    desiredHeading = Crab(SteerSailing(s), st.Speed * speedFactor * (s.Damaged ? 0.7f : 1f));
                     break;
             }
             if (s.Damaged) speedFactor *= 0.7f;
@@ -553,57 +561,166 @@ namespace LastLight.Sim
             if (s.Active) CheckCollisions(s);
         }
 
+        /// <summary>The point `ahead` units along the route from the ship's position on its current leg.</summary>
+        static Vector2 Carrot(SimShip s, float ahead)
+        {
+            var pts = s.Route.Points;
+            int i = Mathf.Clamp(s.Waypoint, 1, pts.Length - 1);
+            var a = pts[i - 1];
+            var b = pts[i];
+            var ab = b - a;
+            float len = ab.magnitude;
+            float t = len > 1e-4f ? Mathf.Clamp01(Vector2.Dot(s.Pos - a, ab) / (len * len)) : 1f;
+            float remaining = ahead;
+            var p = a + ab * t;
+            float left = len * (1f - t);
+            while (remaining > left && i < pts.Length - 1)
+            {
+                remaining -= left;
+                p = pts[i];
+                i++;
+                left = Vector2.Distance(p, pts[i]);
+            }
+            if (i >= pts.Length - 1 && remaining > left)
+            {
+                // Past the end: keep going straight out (through-traffic leaving the map).
+                var dir = (pts[pts.Length - 1] - pts[pts.Length - 2]).normalized;
+                return pts[pts.Length - 1] + dir * (remaining - left);
+            }
+            return p + (pts[i] - p).normalized * remaining;
+        }
+
+        /// <summary>Heading that makes good the desired track through the water's current.</summary>
+        float Crab(Vector2 track, float speed)
+        {
+            if (Current.sqrMagnitude < 1e-4f) return Geo.Bearing(track);
+            var head = track * Mathf.Max(speed, 0.5f) - Current;
+            return Geo.Bearing(head);
+        }
+
+        static Vector2[] EllipsePoly(Shoal sh, float pad, int n = 16)
+        {
+            var pts = new Vector2[n];
+            float a = sh.Angle * Mathf.Deg2Rad;
+            var ax = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+            var ay = new Vector2(-ax.y, ax.x);
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)n * Mathf.PI * 2f;
+                pts[i] = sh.Pos + ax * Mathf.Cos(t) * (sh.Rx + pad) + ay * Mathf.Sin(t) * (sh.Rz + pad);
+            }
+            return pts;
+        }
+
         Vector2 SteerSailing(SimShip s)
         {
             var st = s.Stats;
-            var target = s.Route.Points[Mathf.Min(s.Waypoint, s.Route.Points.Length - 1)];
+            // Pure pursuit: aim at a point a look-ahead along the route, so ships round their
+            // waypoints smoothly and see hazards on the next leg in good time.
+            var target = Carrot(s, Mathf.Max(st.Lookahead * 0.8f, 12f));
             var toTarget = target - s.Pos;
             var goal = toTarget.sqrMagnitude > 1e-4f ? toTarget.normalized : s.Forward;
             var desired = goal;
 
             // Known obstacles: stacks always; reefs and (for deep hulls) shoals only once charted.
             obstacles.Clear();
-            float clearance = st.Radius + 2.2f;
-            foreach (var k in Map.Stacks) obstacles.Add((k.Pos, k.Radius + clearance));
-            foreach (var r in Reefs) if (r.Charted) obstacles.Add((r.Pos, r.Radius + clearance));
+            float clearance = st.Radius + 2.6f;
+            float memory = st.Lookahead * 2.5f + 10f;
+            foreach (var k in Map.Stacks) obstacles.Add(new Obstacle { C = k.Pos, R = k.Radius + clearance });
+            foreach (var r in Reefs)
+            {
+                float d2 = (r.Pos - s.Pos).sqrMagnitude;
+                // A captain who has seen a reef charted near his course remembers it until he is past.
+                if (r.Charted && d2 < memory * memory) s.KnownReefs.Add(r.Index);
+                else if (d2 > memory * memory * 1.6f) s.KnownReefs.Remove(r.Index);
+                if (r.Charted || s.KnownReefs.Contains(r.Index)) obstacles.Add(new Obstacle { C = r.Pos, R = r.Radius + clearance });
+            }
             if (st.DeepDraught)
-                foreach (var sh in Shoals)
-                    if (sh.Charted)
-                        foreach (var p in sh.Axis) obstacles.Add((p, sh.Def.Rz + clearance));
+                for (int i = 0; i < Shoals.Count; i++)
+                {
+                    var sh = Shoals[i];
+                    float d = Vector2.Distance(sh.Def.Pos, s.Pos) - sh.Def.Rx;
+                    if (sh.Charted && d < memory) s.KnownShoals.Add(i);
+                    else if (d > memory * 1.3f) s.KnownShoals.Remove(i);
+                    if (sh.Charted || s.KnownShoals.Contains(i))
+                        obstacles.Add(new Obstacle { C = sh.Def.Pos, R = sh.Def.Rx + clearance, Poly = EllipsePoly(sh.Def, clearance * 0.8f) });
+                }
 
             // If the waypoint itself sits inside a known hazard's buffer, move on to the next one.
             if (s.Waypoint < s.Route.Points.Length - 1)
-                foreach (var (c, R) in obstacles)
-                    if ((target - c).sqrMagnitude < R * R) { s.Waypoint++; break; }
+            {
+                var wp = s.Route.Points[s.Waypoint];
+                foreach (var o in obstacles)
+                    if (o.Poly != null ? Geo.PointInPolygon(o.Poly, wp) : (wp - o.C).sqrMagnitude < o.R * o.R) { s.Waypoint++; break; }
+            }
 
+            GroupObstacles();
+            s.SteerDebug = "";
             bool avoiding = false;
             for (int iter = 0; iter < 4; iter++)
             {
-                int hit = FirstHit(s.Pos, desired, st.Lookahead, toTarget.magnitude, -1);
+                int hit = FirstHit(s.Pos, desired, st.Lookahead, float.MaxValue, -1);
                 if (hit < 0) break;
                 avoiding = true;
-                var (oc, oR) = obstacles[hit];
-                var orel = oc - s.Pos;
-                float dist = orel.magnitude;
-                float half = Mathf.Asin(Mathf.Clamp01(oR / Mathf.Max(dist, 0.01f))) + 8f * Mathf.Deg2Rad;
-                if (dist < oR) half = Mathf.PI * 0.5f + 0.2f; // inside the buffer: turn away hard
-                float baseAng = Geo.Bearing(orel);
-                float a = baseAng + half, b = baseAng - half;
+                int grp = groupOf[hit];
+                float baseAng = Geo.Bearing(obstacles[hit].C - s.Pos);
+                // Angular extent of the whole group of overlapping hazards, as seen from the ship.
+                float maxA = -Mathf.PI, minA = Mathf.PI;
+                bool inside = false;
+                for (int i = 0; i < obstacles.Count; i++)
+                {
+                    if (groupOf[i] != grp) continue;
+                    var ob = obstacles[i];
+                    var rel = ob.C - s.Pos;
+                    float dist = rel.magnitude;
+                    if (ob.Poly == null)
+                    {
+                        if (dist < ob.R) { inside = true; continue; }
+                        float th = Geo.DeltaAngle(baseAng, Geo.Bearing(rel));
+                        float half = Mathf.Asin(Mathf.Clamp01(ob.R / Mathf.Max(dist, 0.01f)));
+                        maxA = Mathf.Max(maxA, th + half);
+                        minA = Mathf.Min(minA, th - half);
+                    }
+                    else
+                    {
+                        if (Geo.PointInPolygon(ob.Poly, s.Pos)) { inside = true; continue; }
+                        foreach (var v in ob.Poly)
+                        {
+                            float da = Geo.DeltaAngle(baseAng, Geo.Bearing(v - s.Pos));
+                            maxA = Mathf.Max(maxA, da);
+                            minA = Mathf.Min(minA, da);
+                        }
+                    }
+                }
+                if (inside || maxA < minA)
+                {
+                    maxA = Mathf.Max(maxA, Mathf.PI * 0.5f + 0.2f);
+                    minA = Mathf.Min(minA, -Mathf.PI * 0.5f - 0.2f);
+                }
+                float margin = (8f + 140f / st.TurnRate) * Mathf.Deg2Rad;   // slow turners give more room
+                float a = baseAng + maxA + margin;
+                float b = baseAng + minA - margin;
                 float goalAng = Geo.Bearing(goal);
                 // Cost of each side: how far it turns us from the goal, plus a penalty if that
                 // side runs straight into another known hazard.
-                float costA = Mathf.Abs(Geo.DeltaAngle(goalAng, a)) + (FirstHit(s.Pos, Geo.Dir(a), st.Lookahead * 1.4f, float.MaxValue, hit) >= 0 ? 1.2f : 0f);
-                float costB = Mathf.Abs(Geo.DeltaAngle(goalAng, b)) + (FirstHit(s.Pos, Geo.Dir(b), st.Lookahead * 1.4f, float.MaxValue, hit) >= 0 ? 1.2f : 0f);
+                float hitDist = Vector2.Distance(obstacles[hit].C, s.Pos);
+                int blockA = FirstHit(s.Pos, Geo.Dir(a), st.Lookahead * 1.2f, float.MaxValue, grp);
+                int blockB = FirstHit(s.Pos, Geo.Dir(b), st.Lookahead * 1.2f, float.MaxValue, grp);
+                float costA = Mathf.Abs(Geo.DeltaAngle(goalAng, a)) + (blockA >= 0 ? 1.2f : 0f);
+                float costB = Mathf.Abs(Geo.DeltaAngle(goalAng, b)) + (blockB >= 0 ? 1.2f : 0f);
                 int side = costA <= costB ? 1 : -1;
-                // Stick with the previous choice for the same obstacle unless it is clearly worse.
-                if (s.AvoidSide != 0 && s.AvoidObstacle == hit && side != s.AvoidSide)
+                // Commit: once a side is chosen for this group, hold it until the group is passed,
+                // unless that side is now blocked close at hand. Dithering is what runs ships aground.
+                int groupKey = GroupKey(grp);
+                if (s.AvoidSide != 0 && s.AvoidObstacle == groupKey && side != s.AvoidSide)
                 {
-                    float keep = s.AvoidSide > 0 ? costA : costB;
-                    float other = s.AvoidSide > 0 ? costB : costA;
-                    if (keep < other + 0.5f) side = s.AvoidSide;
+                    int block = s.AvoidSide > 0 ? blockA : blockB;
+                    bool blockedNear = block >= 0 && Vector2.Distance(obstacles[block].C, s.Pos) < hitDist + obstacles[block].R;
+                    if (!blockedNear) side = s.AvoidSide;
                 }
-                if (iter == 0) { s.AvoidSide = side; s.AvoidObstacle = hit; }
+                if (iter == 0) { s.AvoidSide = side; s.AvoidObstacle = groupKey; }
                 desired = Geo.Dir(side > 0 ? a : b);
+                if (iter == 0) s.SteerDebug = $"hit={hit} grp={grp} base={baseAng * Mathf.Rad2Deg:0} a={a * Mathf.Rad2Deg:0} b={b * Mathf.Rad2Deg:0} side={side} goal={goalAng * Mathf.Rad2Deg:0}";
             }
             if (!avoiding) { s.AvoidSide = 0; s.AvoidObstacle = -1; }
 
@@ -638,24 +755,85 @@ namespace LastLight.Sim
         }
 
         /// <summary>Index of the nearest known obstacle the ray (pos, dir) runs into, or -1.</summary>
-        int FirstHit(Vector2 pos, Vector2 dir, float lookahead, float targetDist, int exclude)
+        int FirstHit(Vector2 pos, Vector2 dir, float lookahead, float targetDist, int excludeGroup)
         {
             int hit = -1;
             float best = float.MaxValue;
             for (int i = 0; i < obstacles.Count; i++)
             {
-                if (i == exclude) continue;
-                var (c, R) = obstacles[i];
-                var rel = c - pos;
+                if (excludeGroup >= 0 && i < groupOf.Count && groupOf[i] == excludeGroup) continue;
+                var o = obstacles[i];
+                var rel = o.C - pos;
                 float t = Vector2.Dot(rel, dir);
-                if (t < -R || t > lookahead + R) continue;
-                if (t > targetDist + R && rel.sqrMagnitude > R * R) continue;
+                if (t < -o.R || t > lookahead + o.R) continue;
+                if (t > targetDist + o.R && rel.sqrMagnitude > o.R * o.R) continue;
                 float perp = Mathf.Abs(Geo.Cross(dir, rel));
-                if (perp >= R) continue;
-                float key = rel.sqrMagnitude < R * R ? -1f : t;
+                if (perp >= o.R) continue;
+                float key;
+                if (o.Poly == null) key = rel.sqrMagnitude < o.R * o.R ? -1f : t;
+                else
+                {
+                    if (Geo.PointInPolygon(o.Poly, pos)) key = -1f;
+                    else
+                    {
+                        float tHit = RayPolygon(pos, dir, o.Poly);
+                        if (tHit < 0f || tHit > lookahead || tHit > targetDist + 2f) continue;
+                        key = tHit;
+                    }
+                }
                 if (key < best) { best = key; hit = i; }
             }
             return hit;
+        }
+
+        readonly List<int> groupOf = new List<int>(64);
+
+        /// <summary>Union overlapping hazard buffers: a ship has to go round the lot.</summary>
+        void GroupObstacles()
+        {
+            groupOf.Clear();
+            for (int i = 0; i < obstacles.Count; i++) groupOf.Add(i);
+            for (int i = 0; i < obstacles.Count; i++)
+                for (int j = i + 1; j < obstacles.Count; j++)
+                {
+                    var a = obstacles[i];
+                    var b = obstacles[j];
+                    if ((a.C - b.C).sqrMagnitude >= (a.R + b.R) * (a.R + b.R)) continue;
+                    int ga = Root(i), gb = Root(j);
+                    if (ga != gb) groupOf[Mathf.Max(ga, gb)] = Mathf.Min(ga, gb);
+                }
+            for (int i = 0; i < obstacles.Count; i++) groupOf[i] = Root(i);
+        }
+
+        int Root(int i)
+        {
+            while (groupOf[i] != i) i = groupOf[i];
+            return i;
+        }
+
+        /// <summary>A stable id for a group across steps (its first member's centre, hashed).</summary>
+        int GroupKey(int grp)
+        {
+            var c = obstacles[grp].C;
+            return Mathf.RoundToInt(c.x * 7f) * 1000 + Mathf.RoundToInt(c.y * 7f);
+        }
+
+        /// <summary>Distance along the ray to the polygon outline, or -1.</summary>
+        static float RayPolygon(Vector2 pos, Vector2 dir, Vector2[] poly)
+        {
+            float best = float.MaxValue;
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                var a = poly[j];
+                var e = poly[i] - a;
+                float den = Geo.Cross(dir, e);
+                if (Mathf.Abs(den) < 1e-6f) continue;
+                var w = a - pos;
+                float t = Geo.Cross(w, e) / den;
+                float u = Geo.Cross(w, dir) / den;
+                if (t >= 0f && u >= 0f && u <= 1f && t < best) best = t;
+            }
+            return best == float.MaxValue ? -1f : best;
         }
 
         void AdvanceWaypoint(SimShip s)

@@ -81,8 +81,8 @@ namespace LastLight.Sim
                     var s = FindShip(w, t.Index);
                     if (s == null || !s.Active) return false;
                     return s.State != ShipState.Sailing || s.Confidence < 0.97f;
-                case TaskKind.Reef: return !w.Reefs[t.Index].Charted;
-                case TaskKind.Shoal: return !w.Shoals[t.Index].Charted;
+                case TaskKind.Reef: return w.Reefs[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
+                case TaskKind.Shoal: return w.Shoals[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
                 case TaskKind.Buoy: return !w.Buoys[t.Index].Burning || w.Buoys[t.Index].Charge < 0.5f;
                 case TaskKind.Wrecker: return w.Wreckers[t.Index].Burning;
                 case TaskKind.Idle: return false;
@@ -138,10 +138,11 @@ namespace LastLight.Sim
 
                 if (s.State == ShipState.Sailing || s.State == ShipState.Lost)
                 {
-                    var hazard = FirstHazardAhead(w, s, out float eta, out TaskKind kind, out Vector2 hpos);
-                    if (hazard >= 0)
+                    for (int mode = 0; mode < 2; mode++)
                     {
-                        float hs = 175f * (1f - Mathf.Clamp01((eta - 2f) / 9f));
+                        var hazard = FirstHazardAhead(w, s, mode == 1, out float eta, out TaskKind kind, out Vector2 hpos);
+                        if (hazard < 0) continue;
+                        float hs = 178f * (1f - Mathf.Clamp01((eta - 3f) / 11f));
                         Consider(ref best, new Task { Kind = kind, Index = hazard, Target = hpos, Score = hs, WantFocus = NeedFocus(w, hpos) });
                     }
                 }
@@ -161,10 +162,13 @@ namespace LastLight.Sim
             foreach (var wr in w.Wreckers)
             {
                 if (!wr.Burning) continue;
-                bool threat = false;
+                float threat = 0f;
                 foreach (var s in w.Ships)
-                    if (s.Active && s.Inside && Vector2.Distance(s.Pos, wr.Site.Pos) < SimWrecker.Range + 15f) { threat = true; break; }
-                Consider(ref best, new Task { Kind = TaskKind.Wrecker, Index = wr.Index, Target = wr.Site.Pos, Score = threat ? 185f : 60f, WantFocus = true });
+                {
+                    if (!s.Active || !s.Inside || Vector2.Distance(s.Pos, wr.Site.Pos) > SimWrecker.Range + 10f) continue;
+                    threat = Mathf.Max(threat, s.State == ShipState.Lured ? 1f : s.Confidence < 0.65f ? 0.8f : 0.35f);
+                }
+                Consider(ref best, new Task { Kind = TaskKind.Wrecker, Index = wr.Index, Target = wr.Site.Pos, Score = 45f + threat * 150f, WantFocus = true });
             }
 
             // Pre-charge buoys on busy channels when nothing is urgent.
@@ -203,7 +207,7 @@ namespace LastLight.Sim
         /// The first uncharted reef (or, for steamers, shoal) along the ship's intended path within
         /// its look-ahead horizon, and the time until the ship reaches it.
         /// </summary>
-        int FirstHazardAhead(SimWorld w, SimShip s, out float eta, out TaskKind kind, out Vector2 pos)
+        int FirstHazardAhead(SimWorld w, SimShip s, bool alongBow, out float eta, out TaskKind kind, out Vector2 pos)
         {
             eta = 0f;
             kind = TaskKind.None;
@@ -214,7 +218,7 @@ namespace LastLight.Sim
             path.Add(s.Pos);
             float acc = 0f;
             var cur = s.Pos;
-            if (s.State == ShipState.Lost || Vector2.Angle(s.Forward, (s.Route.Points[Mathf.Min(s.Waypoint, s.Route.Points.Length - 1)] - s.Pos)) > 25f)
+            if (alongBow || s.State == ShipState.Lost)
             {
                 // Off the planned line (lost, or swinging round something): follow the bow.
                 var v = s.Velocity.sqrMagnitude > 0.01f ? s.Velocity.normalized : s.Forward;
@@ -236,7 +240,8 @@ namespace LastLight.Sim
             for (int r = 0; r < w.Reefs.Count; r++)
             {
                 var reef = w.Reefs[r];
-                if (reef.Charted) continue;
+                if (s.KnownReefs.Contains(r)) continue;
+                if (reef.Charted && reef.ChartTimer > 6f) continue;
                 float along = AlongPath(reef.Pos, reef.Radius + s.Stats.Radius + 2.5f, horizon);
                 if (along >= 0f && along < bestDist) { bestDist = along; bestIndex = r; kind = TaskKind.Reef; pos = reef.Pos; }
             }
@@ -245,7 +250,8 @@ namespace LastLight.Sim
                 for (int k = 0; k < w.Shoals.Count; k++)
                 {
                     var sh = w.Shoals[k];
-                    if (sh.Charted) continue;
+                    if (s.KnownShoals.Contains(k)) continue;
+                    if (sh.Charted && sh.ChartTimer > 6f) continue;
                     foreach (var p in sh.Axis)
                     {
                         float along = AlongPath(p, sh.Def.Rz + s.Stats.Radius + 2.5f, horizon);

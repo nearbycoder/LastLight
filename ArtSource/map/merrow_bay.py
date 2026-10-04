@@ -60,7 +60,7 @@ ROUTES = [
     dict(id="harbor_n2", pts=[(-93, -22), (-80, 0), (-52, 28), (-30, 58), (-14, 96), (-8, 132)]),
     dict(id="harbor_e2", pts=[(-93, -22), (-78, 0), (-36, 22), (10, 30), (60, 24), (110, 28), (160, 24)]),
     # Through traffic
-    dict(id="e1_w1", pts=[(160, 78), (110, 86), (60, 90), (0, 96), (-60, 92), (-110, 84), (-160, 78)]),
+    dict(id="e1_w1", pts=[(160, 78), (110, 86), (60, 96), (0, 98), (-60, 92), (-110, 84), (-160, 78)]),
     dict(id="w1_e1", pts=[(-160, 90), (-100, 98), (-40, 100), (20, 92), (80, 92), (120, 84), (160, 78)]),
     dict(id="w2_e2", pts=[(-160, 32), (-112, 36), (-62, 34), (-20, 34), (40, 30), (80, 26), (120, 22), (160, 18)]),
     dict(id="e2_w2", pts=[(160, 14), (120, 18), (80, 22), (40, 32), (-20, 38), (-70, 40), (-112, 40), (-160, 38)]),
@@ -81,27 +81,26 @@ def on_leg(route, leg, t, offset=0.0):
 # Hidden reefs: awash, invisible in the dark, unknown to captains until charted by the beam.
 # Most sit on route legs (that is what makes them dangerous); a few are strays.
 REEFS = [
-    # The Merrow Teeth: a reef field across the north-east approach.
-    ("teeth", *on_leg("n3_harbor", 1, 0.30), 2.6),
-    ("teeth", *on_leg("n3_harbor", 1, 0.52, 1.5), 2.8),
-    ("teeth", *on_leg("n3_harbor", 1, 0.74, -1.0), 2.4),
+    # The Merrow Teeth: a reef field across the north-east approach, spaced so a charted ship
+    # can pick its way between them (the "hidden route").
+    ("teeth", *on_leg("n3_harbor", 1, 0.2), 2.6),
+    ("teeth", *on_leg("n3_harbor", 1, 0.5, 1.5), 2.8),
+    ("teeth", *on_leg("n3_harbor", 1, 0.8, -1.0), 2.4),
     ("teeth", *on_leg("e1_harbor", 2, 0.45), 2.4),
-    ("teeth", *on_leg("n3_e1", 2, 0.35), 2.3),
-    ("teeth", 60, 58, 2.2), ("teeth", 40, 70, 2.0), ("teeth", 74, 82, 2.2),
+    ("teeth", *on_leg("n3_e1", 2, 0.3), 2.3),
+    ("teeth", 34, 80, 2.2),
     # Widow's Ledge: off the east cliffs, on the coastal runs.
     ("widow", *on_leg("e2_harbor", 1, 0.5), 2.6),
-    ("widow", *on_leg("harbor_e2", 4, 0.62), 2.4),
-    ("widow", *on_leg("w2_e2", 5, 0.45), 2.2),
-    ("widow", *on_leg("e2_w2", 1, 0.5), 2.0),
+    ("widow", 70, 24, 2.4),                                   # across all four coastal lanes
+    ("widow", 100, 30, 2.2),
     # The Hen's Chicks: around Black Hen, across the north-west approaches.
     ("hens", *on_leg("n1_harbor", 1, 0.7), 2.4),
     ("hens", *on_leg("w1_harbor", 1, 0.5), 2.3),
     ("hens", *on_leg("harbor_n2", 2, 0.5), 2.2),
-    ("hens", *on_leg("w1_n3", 1, 0.45), 2.2),
+    ("hens", *on_leg("w1_n3", 1, 0.2), 2.2),
     # Gannet's Collar: close under the light, where ships round the Head.
-    ("collar", *on_leg("e2_harbor", 3, 0.3), 2.2),
+    ("collar", 21, 31, 2.4),                                  # across both coastal lanes
     ("collar", *on_leg("harbor_e2", 2, 0.45), 2.2),
-    ("collar", *on_leg("e2_w2", 3, 0.3), 1.9),
     # Outer ground: lonely heads on the through-lanes far out.
     ("outer", *on_leg("n2_harbor", 1, 0.3), 2.4),
     ("outer", *on_leg("e1_w1", 2, 0.5), 2.6),
@@ -187,6 +186,17 @@ def validate():
                 if _seg_dist(a, b, (st["x"], st["z"])) < st["r"] + 2:
                     crossed.add("STACK:" + st["id"])
         print(f"  {r['id']:12s} crosses {sorted(crossed)}")
+    for hid, g, hx, hz, hr in hazards:
+        for st in STACKS:
+            dx, dz = st["x"] - lx, st["z"] - lz
+            d = math.hypot(dx, dz)
+            rx, rz = hx - lx, hz - lz
+            if math.hypot(rx, rz) <= d:
+                continue
+            ang = abs((math.atan2(rz, rx) - math.atan2(dz, dx) + math.pi) % (2 * math.pi) - math.pi)
+            if ang < math.asin(min(1, st["r"] / d)) + 0.02:
+                print(f"  ! reef {hid} is in the beam shadow of {st['id']} (it could never be charted)")
+                problems += 1
     for b in BUOYS:
         # in a beam shadow?
         for st in STACKS:

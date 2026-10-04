@@ -68,7 +68,11 @@ namespace LastLight.Sim
         public SimWrecker LuredBy;
         public float Age, TimeSinceLit, FlareTimer = 6f;
         public int AvoidSide;          // sticky tangent choice while avoiding (-1, 0, +1)
+        /// <summary>Reefs/shoals this captain has seen charted near their course; remembered until passed.</summary>
+        public readonly System.Collections.Generic.HashSet<int> KnownReefs = new System.Collections.Generic.HashSet<int>();
+        public readonly System.Collections.Generic.HashSet<int> KnownShoals = new System.Collections.Generic.HashSet<int>();
         public int AvoidObstacle = -1;
+        public string SteerDebug = "";
         public string WreckCause = "";
         public float StateTime;        // seconds in the current state
 
@@ -138,7 +142,7 @@ namespace LastLight.Sim
         public WreckerSite Site => Sites[SiteIndex];
         public bool Burning => State == WreckerState.Burning;
 
-        public const float HalfAngle = 12f;
-        public const float Range = 85f;
+        public const float HalfAngle = 10f;
+        public const float Range = 78f;
     }
 }

@@ -30,6 +30,8 @@ namespace LastLight.EditorTools
             EnsureMaterial("LL_Ring", "LL/Ring");
             EnsureMaterial("LL_Foam", "LL/Foam");
             EnsureMaterial("LL_BeamCore", "LL/BeamCore");
+            EnsureMaterial("LL_ParticleLit", "LL/ParticleLit").enableInstancing = true;
+            EnsureMaterial("LL_ParticleAdd", "LL/ParticleAdd").enableInstancing = true;
 
             foreach (var path in new[] { "Assets/Settings/PC_Renderer.asset", "Assets/Settings/Mobile_Renderer.asset" })
             {
@@ -92,11 +94,23 @@ namespace LastLight.EditorTools
             feature.SetActive(true);
             EditorUtility.SetDirty(feature);
 
-            // SSAO does nothing for this look and costs a lot: switch it off.
-            foreach (var f in data.rendererFeatures.Where(f => f != null && f.GetType().Name == "ScreenSpaceAmbientOcclusion"))
+            // SSAO does nothing for this look and costs a lot. Remove it outright: a disabled feature
+            // still gets Create() in the player, where its stripped shaders make it throw.
+            var ssao = data.rendererFeatures.Where(f => f != null && f.GetType().Name == "ScreenSpaceAmbientOcclusion").ToList();
+            if (ssao.Count > 0)
             {
-                f.SetActive(false);
-                EditorUtility.SetDirty(f);
+                var so = new SerializedObject(data);
+                var features = so.FindProperty("m_RendererFeatures");
+                var map = so.FindProperty("m_RendererFeatureMap");
+                for (int i = features.arraySize - 1; i >= 0; i--)
+                {
+                    var obj = features.GetArrayElementAtIndex(i).objectReferenceValue;
+                    if (obj == null || !ssao.Contains(obj as ScriptableRendererFeature)) continue;
+                    features.DeleteArrayElementAtIndex(i);
+                    map.DeleteArrayElementAtIndex(i);
+                }
+                so.ApplyModifiedProperties();
+                foreach (var f in ssao) AssetDatabase.RemoveObjectFromAsset(f);
             }
             EditorUtility.SetDirty(data);
         }

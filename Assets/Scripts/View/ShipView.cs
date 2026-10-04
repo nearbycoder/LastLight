@@ -15,6 +15,7 @@ namespace LastLight.View
         readonly List<MeshRenderer> lamps = new List<MeshRenderer>();
         readonly List<Color> lampColors = new List<Color>();
         Light cabinLight;
+        ParticleSystem wake, smoke;
         MeshRenderer ring;
         Material ringMat;
         MeshRenderer lostMark;
@@ -94,6 +95,16 @@ namespace LastLight.View
                 // A smouldering glow on deck makes the damaged ship just findable.
                 AddLamp(hull, new Vector3(0.4f, 2.2f, st.Length * 0.1f), 1.6f, new Color(1.6f, 0.45f, 0.1f));
             }
+
+            // Wake from the stern, smoke from the funnel.
+            var wakeAnchor = model != null ? ModelLibrary.Find(model.transform, "fx_wake") : null;
+            var wakeHost = new GameObject("Wake").transform;
+            wakeHost.SetParent(transform, false);
+            wakeHost.localPosition = wakeAnchor != null ? new Vector3(0, 0.15f, transform.InverseTransformPoint(wakeAnchor.position).z) : new Vector3(0, 0.15f, -st.Length * 0.5f);
+            wake = FX.Wake(wakeHost, st.Radius * 1.2f);
+            var smokeAnchor = model != null ? ModelLibrary.Find(model.transform, "fx_smoke") : null;
+            if (smokeAnchor != null && Ship.Type != ShipType.Trawler)
+                smoke = FX.Smoke(smokeAnchor, Ship.Type == ShipType.Steamer ? 5f : 3f);
 
             float r = st.Length * 0.62f + 1.5f;
             ring = Glows.Ring("Confidence", transform, r, RingCalm, new Vector4(0.86f, 0.93f, 0.025f, 0), new Vector4(1, 0, 0, 0));
@@ -223,6 +234,13 @@ namespace LastLight.View
 
             UpdateRing(dt);
             UpdateLamps(t);
+            if (wake != null)
+            {
+                var em = wake.emission;
+                float sp = Ship.Resolved ? (Ship.State == ShipState.Arrived ? Ship.Stats.Speed * 0.5f * fade : 0f) : Ship.Speed;
+                em.rateOverTime = sp * 4.5f;
+            }
+            if (smoke != null && Ship.State == ShipState.Wrecked) { var em = smoke.emission; em.rateOverTime = 0f; }
         }
 
         void UpdateRing(float dt)

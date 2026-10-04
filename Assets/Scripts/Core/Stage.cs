@@ -16,7 +16,18 @@ namespace LastLight.Core
         public static ChromaticAberration Chroma { get; private set; }
         public static LensDistortion Lens { get; private set; }
 
+        /// <summary>In play the moon hangs north-west so its path lies across the bay; on the title it
+        /// rises north-east, beside the lighthouse. The camera swoop hides the move.</summary>
         public static readonly Vector3 MoonDirection = new Vector3(-0.3f, 0.48f, 0.82f).normalized;
+        public static readonly Vector3 MoonDirectionTitle = new Vector3(0.36f, 0.36f, 0.86f).normalized;
+
+        public static void MoonTowards(bool title, float seconds)
+        {
+            if (Moon == null) return;
+            var from = Moon.transform.rotation;
+            var to = Quaternion.LookRotation(-(title ? MoonDirectionTitle : MoonDirection), Vector3.up);
+            UI.Tween.Run(Moon, "moon", seconds, t => Moon.transform.rotation = Quaternion.Slerp(from, to, t), 0f, UI.Tween.EaseInOut);
+        }
         public static readonly Color MoonColor = new Color(0.62f, 0.72f, 0.92f);
         public const float MoonIntensity = 1.1f;
 

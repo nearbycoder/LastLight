@@ -23,7 +23,7 @@ namespace LastLight.View
         }
 
         public static readonly Pose PlayPose = new Pose(new Vector3(0f, 236f, -142f), new Vector3(0f, 0f, 42f), 30f);
-        public static readonly Pose TitlePose = new Pose(new Vector3(-26f, 13f, -16f), new Vector3(-60f, 24f, 140f), 46f);
+        public static readonly Pose TitlePose = new Pose(new Vector3(-52f, 9f, -20f), new Vector3(0f, 17f, 30f), 40f);
         public static readonly Pose EndingPose = new Pose(new Vector3(-30f, 16f, -24f), new Vector3(-20f, 20f, 120f), 44f);
 
         public Camera Cam { get; private set; }

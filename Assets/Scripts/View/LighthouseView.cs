@@ -72,6 +72,7 @@ namespace LastLight.View
             beamCoreMat = new Material(MaterialLibrary.BeamCoreTemplate);
             beamCore.sharedMaterial = beamCoreMat;
             beamCore.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            beamCore.enabled = false; // the volumetric pass draws the shaft; the cone read as two hard lines
         }
 
         /// <summary>Called every frame with the interpolated beam.</summary>
@@ -100,9 +101,9 @@ namespace LastLight.View
             }
             float spin = Mathf.Abs(Mathf.DeltaAngle(lastBearing * Mathf.Rad2Deg, deg));
             lastBearing = bearing;
-            Glows.SetColor(glare, new Color(2.2f, 1.6f, 0.9f) * power * (0.8f + facing * 5f));
-            glare.transform.localScale = Vector3.one * (14f + facing * 30f);
-            Glows.SetColor(glareCore, new Color(6f, 5f, 3.5f) * power * (1f + facing * 3f));
+            Glows.SetColor(glare, new Color(2.2f, 1.6f, 0.9f) * power * (0.8f + facing * 1.6f));
+            glare.transform.localScale = Vector3.one * (14f + facing * 9f);
+            Glows.SetColor(glareCore, new Color(6f, 5f, 3.5f) * power * (1f + facing * 1.2f));
             lanternLight.intensity = 9f * power;
             _ = spin;
         }

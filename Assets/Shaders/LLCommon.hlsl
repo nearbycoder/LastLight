@@ -116,7 +116,7 @@ float LLFalseBeams(float3 posWS)
         float4 fp = _LLFalsePos[k];
         if (fp.w <= 0.0) continue;
         float4 fd = _LLFalseDir[k];
-        float w = LLWedge(fp.xz, fd.xy, fd.z, fd.w, 85.0, posWS.xz);
+        float w = LLWedge(fp.xz, fd.xy, fd.z, fd.w, 78.0, posWS.xz);
         float dist = length(posWS.xz - fp.xz);
         float axis = fp.y * exp(-dist / 24.0);
         float sigma = 1.5 + dist * 0.07;

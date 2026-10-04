@@ -25,15 +25,17 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Extinction: 0.35
-    - _FogDensity: 0.11
+    - _BeamScatter: 1.7
+    - _Extinction: 0.25
+    - _FogDensity: 0.12
     - _FogExtinction: 1
-    - _HazeDensity: 0.01
-    - _HazeHeight: 9
+    - _HazeDensity: 0.022
+    - _HazeHeight: 6.5
+    - _HazeNoise: 0.8
     - _LanternGlow: 1
     - _ScatterGain: 1
     - _Steps: 28
     m_Colors:
-    - _AmbientScatter: {r: 0.049999982, g: 0.06999998, b: 0.09999997, a: 1}
+    - _AmbientScatter: {r: 0.03, g: 0.045, b: 0.07, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
