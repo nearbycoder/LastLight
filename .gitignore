@@ -1,0 +1,40 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Builds/
+/Screenshots/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+crashlytics-buildid.txt
+# IDEs
+.vs/
+.vscode/
+.idea/
+.consulo/
+# Python / tooling
+__pycache__/
+.venv/
+*.blend1
+*.blend2
+/ArtSource/_renders/
+/ArtSource/audio/_cache/
