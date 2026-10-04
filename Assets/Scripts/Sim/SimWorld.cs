@@ -121,12 +121,18 @@ namespace LastLight.Sim
         // ------------------------------------------------------------------ light
 
         /// <summary>True-beam intensity at a point on the sea, including stack shadows and fog.</summary>
-        public float BeamAt(Vector2 p)
+        public float BeamAt(Vector2 p) => BeamAt(p, 0f);
+
+        /// <summary>
+        /// The true beam at p. A point raised above the sea (a wrecker's lantern on a cliff top) is
+        /// shaded only by stacks that rise into its line of sight from the lens.
+        /// </summary>
+        public float BeamAt(Vector2 p, float height)
         {
             float i = SimBeam.Wedge(Beam.Origin, Beam.Direction, Beam.HalfAngle, Beam.Range, p);
             if (i <= 0f) return 0f;
             i *= Beam.Strength;
-            i *= Occlusion(Beam.Origin, p);
+            i *= Occlusion(Beam.Origin, p, height);
             if (i <= 0f) return 0f;
             if (Fog.Count > 0)
             {
@@ -137,8 +143,12 @@ namespace LastLight.Sim
             return i;
         }
 
-        /// <summary>1 = clear line of sight from the lens, 0 = in the shadow of a stack.</summary>
-        public float Occlusion(Vector2 origin, Vector2 p)
+        /// <summary>
+        /// 1 = clear line of sight from the lens, 0 = in the shadow of a stack. Stacks shadow the sea
+        /// below them; for a raised point (height above the sea) the ray from the lens must pass
+        /// below a stack's top to be blocked by it.
+        /// </summary>
+        public float Occlusion(Vector2 origin, Vector2 p, float height = 0f)
         {
             float vis = 1f;
             foreach (var s in Map.Stacks)
@@ -146,6 +156,7 @@ namespace LastLight.Sim
                 if ((p - s.Pos).sqrMagnitude < (s.Radius + 0.6f) * (s.Radius + 0.6f)) continue;
                 float d = Geo.SegmentDistance(origin, p, s.Pos, out float t);
                 if (t <= 0f || t >= 1f) continue;
+                if (height > 0f && Mathf.Lerp(Beam.Height, height, t) > s.Height) continue;
                 vis *= Geo.SmoothStep01(s.Radius * 0.75f, s.Radius * 1.05f, d);
                 if (vis <= 0f) return 0f;
             }
@@ -338,7 +349,7 @@ namespace LastLight.Sim
                         break;
                     case WreckerState.Burning:
                         Sweep(w, dt);
-                        float light = BeamAt(w.Site.Pos);
+                        float light = BeamAt(w.Site.Pos, w.Site.Height);
                         if (light >= SimBeam.LitThreshold)
                         {
                             if (w.DouseProgress <= 0f) Emit(SimEventType.WreckerDousing, index: w.Index, pos: w.Site.Pos);

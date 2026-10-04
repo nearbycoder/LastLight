@@ -59,7 +59,7 @@ namespace LastLight.UI
                 var r = track.rect;
                 Value = Mathf.InverseLerp(r.xMin, r.xMax, local.x);
                 Changed?.Invoke(value);
-                if (Time.unscaledTime - lastTick > 0.06f) { lastTick = Time.unscaledTime; Sfx.Play("ui_tick", 0.3f, 0.8f + value * 0.5f, 0, Bus.Ui, 0f); }
+                if (Unscaled.Time - lastTick > 0.06f) { lastTick = Unscaled.Time; Sfx.Play("ui_tick", 0.3f, 0.8f + value * 0.5f, 0, Bus.Ui, 0f); }
             }
         }
 
@@ -87,7 +87,7 @@ namespace LastLight.UI
         {
             if (knob == null) return;
             bool hot = currentSelectionState == SelectionState.Highlighted || currentSelectionState == SelectionState.Selected || currentSelectionState == SelectionState.Pressed;
-            knob.color = Color.Lerp(knob.color, hot ? UiKit.BrassBright : UiKit.Paper, Time.unscaledDeltaTime * 10f);
+            knob.color = Color.Lerp(knob.color, hot ? UiKit.BrassBright : UiKit.Paper, Unscaled.Delta * 10f);
         }
     }
 
@@ -143,7 +143,7 @@ namespace LastLight.UI
         void Update()
         {
             bool hot = currentSelectionState == SelectionState.Highlighted || currentSelectionState == SelectionState.Selected;
-            label.color = Color.Lerp(label.color, hot ? UiKit.BrassBright : UiKit.Paper, Time.unscaledDeltaTime * 10f);
+            label.color = Color.Lerp(label.color, hot ? UiKit.BrassBright : UiKit.Paper, Unscaled.Delta * 10f);
         }
     }
 }

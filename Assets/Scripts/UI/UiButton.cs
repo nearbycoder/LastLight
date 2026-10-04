@@ -102,14 +102,14 @@ namespace LastLight.UI
         void Update()
         {
             if (content == null) return;
-            hoverT = Mathf.MoveTowards(hoverT, hovered && IsInteractable() ? 1f : 0f, Time.unscaledDeltaTime * 7f);
+            hoverT = Mathf.MoveTowards(hoverT, hovered && IsInteractable() ? 1f : 0f, Unscaled.Delta * 7f);
             float e = Tween.EaseOutCubic(hoverT);
             content.anchoredPosition = new Vector2(Slide * e, 0);
             if (IsInteractable()) Label.color = Color.Lerp(Normal, Hover, e);
             var mc = Marker.color;
             mc.a = e;
             Marker.color = mc;
-            Marker.rectTransform.localScale = Vector3.one * (0.7f + 0.3f * e + 0.06f * Mathf.Sin(Time.unscaledTime * 5f) * e);
+            Marker.rectTransform.localScale = Vector3.one * (0.7f + 0.3f * e + 0.06f * Mathf.Sin(Unscaled.Time * 5f) * e);
         }
     }
 }

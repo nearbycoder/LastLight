@@ -86,7 +86,7 @@ namespace LastLight.View
 
         void LateUpdate()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Unscaled.Delta;
             if (blend < 1f)
             {
                 blend = Mathf.Min(1f, blend + dt / blendTime);
@@ -110,7 +110,7 @@ namespace LastLight.View
                 p.Position = Vector3.Lerp(p.Position, punchAt + (p.Position - p.LookAt) * 0.6f, 0.38f * k);
                 p.Fov *= 1f - 0.2f * k;
             }
-            Apply(p, Time.unscaledTime);
+            Apply(p, Unscaled.Time);
         }
 
         void Apply(Pose p, float time)

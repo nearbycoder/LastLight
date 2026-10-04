@@ -77,6 +77,7 @@ namespace LastLight.Core
                 game.StartEndingRunner();
                 game.Rig.Snap(CameraRig.EndingPose);
                 Stage.MoonTowards(true, 0.01f);   // the setting moon hangs beside the tower
+                game.Hud.ShowRadioOnly(radio);
             });
             yield return Wait(1.4f);
             Music.PlayTrack("music_dawn", 4f);

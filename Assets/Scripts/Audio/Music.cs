@@ -81,7 +81,7 @@ namespace LastLight.Audio
 
         void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Unscaled.Delta;
             float bus = Sfx.BusVolume(Bus.Music);
             foreach (var s in new[] { a, b })
             {

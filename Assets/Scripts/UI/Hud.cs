@@ -174,6 +174,7 @@ namespace LastLight.UI
             titleLabel.text = def.title;
             shownScore = 0;
             scoreLabel.text = "0";
+            foreach (Transform c in root) c.gameObject.SetActive(true);
             foreach (Transform c in manifest) Destroy(c.gameObject);
             manifestIcons.Clear();
             watchHulls.Clear();
@@ -220,7 +221,7 @@ namespace LastLight.UI
             {
                 bool lost = i < w.Wrecks;
                 var c = lost ? new Color(0.9f, 0.35f, 0.3f, 0.55f) : new Color(0.92f, 0.94f, 1f, 0.9f);
-                watchHulls[i].color = Color.Lerp(watchHulls[i].color, c, Time.unscaledDeltaTime * 6f);
+                watchHulls[i].color = Color.Lerp(watchHulls[i].color, c, Unscaled.Delta * 6f);
             }
             if (w.Wrecks > watchWrecksShown && w.Wrecks - 1 < watchHulls.Count)
                 Tween.Punch(watchHulls[w.Wrecks - 1].transform, 0.5f, 0.6f);
@@ -228,6 +229,22 @@ namespace LastLight.UI
         }
 
         public void Show(bool on, float time = 0.6f) => Tween.Fade(group, on ? 1f : 0f, time);
+
+        /// <summary>
+        /// The ending: only the radio panel, so the last calls can be read over the dawn scene.
+        /// The next <see cref="Bind"/> brings the rest of the HUD back.
+        /// </summary>
+        public void ShowRadioOnly(Radio radio)
+        {
+            runner = null;
+            if (this.radio != null) this.radio.Started -= OnRadio;
+            this.radio = radio;
+            radio.Started += OnRadio;
+            radioGroup.alpha = 0f;
+            HideHint(true);
+            foreach (Transform c in root) c.gameObject.SetActive(c == radioPanel);
+            Show(true, 0.5f);
+        }
 
         // ---------------------------------------------------------------- radio
 
@@ -273,7 +290,7 @@ namespace LastLight.UI
                 int now = (int)radioTyped;
                 radioText.text = radioFull.Substring(0, now) + "<color=#00000000>" + radioFull.Substring(now) + "</color>";
                 if (now / 3 != before / 3 && now < radioFull.Length && radioFull[now] != ' ') Sfx.Play("radio_tick", 0.12f, Random.Range(0.9f, 1.1f), -0.4f, Bus.Ui, 0.02f);
-                radioPulse.color = new Color(1, 0.8f, 0.5f, 0.18f + 0.12f * Mathf.Sin(Time.unscaledTime * 18f));
+                radioPulse.color = new Color(1, 0.8f, 0.5f, 0.18f + 0.12f * Mathf.Sin(Unscaled.Time * 18f));
                 if (radioTyped >= radioFull.Length && voice != null) voice.volume *= 0.5f;
             }
             else
@@ -406,7 +423,7 @@ namespace LastLight.UI
 
         void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Unscaled.Delta;
             UpdateRadio(dt);
             UpdateMarkers(dt);
             if (runner == null || runner.World == null) return;
@@ -436,8 +453,8 @@ namespace LastLight.UI
                     {
                         case ShipState.Arrived: c = new Color(1f, 0.86f, 0.55f, 1f); mc = new Color(1f, 0.86f, 0.55f, 1f); break;
                         case ShipState.Wrecked: c = new Color(0.9f, 0.35f, 0.3f, 0.75f); mc = UiKit.Danger; break;
-                        case ShipState.Lost: c = Color.Lerp(UiKit.Danger, Color.white, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 8f)); break;
-                        case ShipState.Lured: c = Color.Lerp(UiKit.Lure, Color.white, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 8f)); break;
+                        case ShipState.Lost: c = Color.Lerp(UiKit.Danger, Color.white, 0.5f + 0.5f * Mathf.Sin(Unscaled.Time * 8f)); break;
+                        case ShipState.Lured: c = Color.Lerp(UiKit.Lure, Color.white, 0.5f + 0.5f * Mathf.Sin(Unscaled.Time * 8f)); break;
                         default: c = new Color(0.92f, 0.94f, 1f, 0.95f); break;
                     }
                 }
@@ -454,7 +471,7 @@ namespace LastLight.UI
                 if (isReady && hornReadyFlash <= 0f) { hornReadyFlash = 1f; Tween.Punch(hornPanel, 0.12f, 0.35f); }
                 if (!isReady) hornReadyFlash = 0f;
                 hornFill.color = isReady ? UiKit.BrassBright : new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f);
-                hornIcon.color = isReady ? new Color(1f, 0.85f, 0.55f, 0.45f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f)) : new Color(1, 1, 1, 0.08f);
+                hornIcon.color = isReady ? new Color(1f, 0.85f, 0.55f, 0.45f + 0.15f * Mathf.Sin(Unscaled.Time * 3f)) : new Color(1, 1, 1, 0.08f);
                 hornKey.color = isReady ? UiKit.Paper : UiKit.Muted;
             }
 

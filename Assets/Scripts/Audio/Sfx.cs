@@ -89,7 +89,7 @@ namespace LastLight.Audio
         public static AudioSource Play(string id, float volume = 1f, float pitch = 1f, float pan = 0f, Bus bus = Bus.Sfx, float minGap = 0.03f)
         {
             var self = Instance;
-            float now = Time.unscaledTime;
+            float now = Unscaled.Time;
             if (self.lastPlayed.TryGetValue(id, out var last) && now - last < minGap) return null;
             var clip = Clip(id);
             if (clip == null) return null;
@@ -168,7 +168,7 @@ namespace LastLight.Audio
 
         void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Unscaled.Delta;
             if (duckRelease > 0f) duckRelease -= dt;
             else duckTarget = 1f;
             duck = Mathf.MoveTowards(duck, duckTarget, dt * (duckTarget < duck ? 6f : 0.8f));

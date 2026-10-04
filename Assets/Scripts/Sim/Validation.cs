@@ -55,7 +55,7 @@ namespace LastLight.Sim
             return errors;
         }
 
-        /// <summary>Hazards and buoys must be reachable by the beam (not in a stack's shadow, not off range).</summary>
+        /// <summary>Hazards, buoys and wreckers' lanterns must be reachable by the beam (not in a stack's shadow, not off range).</summary>
         public static List<string> Reachability(MapData map)
         {
             var errors = new List<string>();
@@ -70,6 +70,11 @@ namespace LastLight.Sim
             {
                 var p = new Vector2(b.x, b.z);
                 if (w.Occlusion(map.Lighthouse, p) < 0.5f) errors.Add($"buoy {b.id} is in a beam shadow");
+            }
+            foreach (var site in map.WreckerSites.Values)
+            {
+                if (w.Occlusion(map.Lighthouse, site.Pos, site.Height) < 0.5f) errors.Add($"wrecker site {site.Id} is in a beam shadow");
+                if (Vector2.Distance(site.Pos, map.Lighthouse) > SimBeam.FocusRange * 0.85f) errors.Add($"wrecker site {site.Id} is beyond the focused beam");
             }
             return errors;
         }

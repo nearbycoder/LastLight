@@ -54,7 +54,7 @@ namespace LastLight.UI
 
         void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = Unscaled.Delta;
             finished.Clear();
             for (int k = 0; k < items.Count; k++)
             {

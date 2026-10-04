@@ -28,6 +28,8 @@ namespace LastLight.Core
         public event Action<SimEvent> OnEvent;
         public KeeperControls Controls { get; } = new KeeperControls();
         public AutoKeeper Bot { get; } = new AutoKeeper();
+        /// <summary>Automation: adjusts the keeper's input each step (staging shots for the trailer).</summary>
+        public Func<SimWorld, KeeperInput, KeeperInput> InputFilter;
         public float Bearing { get; private set; }
         /// <summary>Milliseconds spent stepping the simulation last frame (profiling).</summary>
         public float StepMs { get; private set; }
@@ -102,6 +104,7 @@ namespace LastLight.Core
             while (accumulator >= StepTime && steps < 12)
             {
                 if (AutoPlay && !Attract) input = Bot.Decide(World, StepTime);
+                if (InputFilter != null) input = InputFilter(World, input);
                 foreach (var v in ships.Values) v.BeforeStep();
                 prevBearing = World.Beam.Bearing;
                 World.Step(StepTime, input);

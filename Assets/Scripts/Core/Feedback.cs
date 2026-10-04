@@ -308,7 +308,7 @@ namespace LastLight.Core
             // A short hit-pause after a wreck.
             if (hitPause > 0f)
             {
-                hitPause -= Time.unscaledDeltaTime;
+                hitPause -= Unscaled.Delta;
                 runner.TimeScale = hitPause > 0.2f ? 0.15f : Mathf.Lerp(1f, 0.15f, hitPause / 0.2f);
                 if (hitPause <= 0f) runner.TimeScale = 1f;
             }

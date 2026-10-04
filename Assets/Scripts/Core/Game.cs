@@ -417,7 +417,7 @@ namespace LastLight.Core
                 }
                 if (outcomeTimer >= 0f)
                 {
-                    outcomeTimer -= Time.unscaledDeltaTime;
+                    outcomeTimer -= Unscaled.Delta;
                     if ((outcomeTimer <= 0f && !Radio.Busy) || outcomeTimer < -6f) ShowResults();
                 }
             }
@@ -465,7 +465,7 @@ namespace LastLight.Core
 
         public void TourShowLogbook() => ShowLogbook(State.Title);
         public void TourShowSettings() => ShowSettings(State.Title);
-        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); title.Hide(0f); }
+        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); title.Hide(0f); if (results.Visible) results.Hide(0f); }
         public void TourBriefing(int night) => ShowBriefing(night);
         public void TourWatch() => ShowBriefing(NightWatch.Number);
         public void TourDip(float time, Action middle) => fader.Dip(time, middle);

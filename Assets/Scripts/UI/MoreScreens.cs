@@ -140,12 +140,12 @@ namespace LastLight.UI
             if (typed < full.Length)
             {
                 int before = (int)typed;
-                typed = Mathf.Min(full.Length, typed + Time.unscaledDeltaTime * 48f * SaveData.Current.textSpeed);
+                typed = Mathf.Min(full.Length, typed + Unscaled.Delta * 48f * SaveData.Current.textSpeed);
                 int now = (int)typed;
                 speech.text = full.Substring(0, now) + "<color=#00000000>" + full.Substring(now) + "</color>";
                 if (now / 3 != before / 3) Sfx.Play("radio_tick", 0.1f, UnityEngine.Random.Range(0.9f, 1.1f), 0, Bus.Ui, 0.02f);
             }
-            prompt.color = new Color(UiKit.Muted.r, UiKit.Muted.g, UiKit.Muted.b, 0.55f + 0.35f * Mathf.Sin(Time.unscaledTime * 2.5f));
+            prompt.color = new Color(UiKit.Muted.r, UiKit.Muted.g, UiKit.Muted.b, 0.55f + 0.35f * Mathf.Sin(Unscaled.Time * 2.5f));
             var kb = UnityEngine.InputSystem.Keyboard.current;
             var pad = UnityEngine.InputSystem.Gamepad.current;
             if (ready && ((kb != null && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)) || (pad != null && pad.buttonSouth.wasPressedThisFrame)))
@@ -359,7 +359,7 @@ namespace LastLight.UI
         void Update()
         {
             if (!Visible || lampShown >= lampCount) return;
-            lampTimer -= Time.unscaledDeltaTime;
+            lampTimer -= Unscaled.Delta;
             if (lampTimer > 0f) return;
             int i = lampShown++;
             lampTimer = 0.55f;
