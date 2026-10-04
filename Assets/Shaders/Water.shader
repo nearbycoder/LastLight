@@ -155,12 +155,12 @@ Shader "LL/Water"
                 // Moon path: a smooth glow where a calm sea would mirror the moon, broken up by
                 // sparse ripple sparkles inside it.
                 float3 Rflat = reflect(-V, float3(0, 1, 0));
-                float path = pow(saturate(dot(Rflat, moon.direction)), 14.0);
+                float path = pow(saturate(dot(Rflat, moon.direction)), 10.0);
                 float3 Hm = normalize(moon.direction + V);
                 float nhm = saturate(dot(N, Hm));
                 float sparkleNoise = LLSmooth(0.7, 0.92, LLNoise2(pos.xz * 2.6 + float2(t * 0.9, -t * 0.6)));
                 float sparkle = pow(nhm, 600.0) * 7.0 * sparkleNoise;
-                float3 moonGlint = moon.color * moonB * (path * (0.1 + wind * 0.12) + sparkle * (0.1 + path * 1.6));
+                float3 moonGlint = moon.color * moonB * (path * (0.1 + wind * 0.12) + sparkle * (0.025 + path * 1.9));
 
                 // Body colour: deep water, lighter on crests and in the wind patches.
                 float3 body = lerp(_DeepColor.rgb, _ShallowColor.rgb, saturate(i.crest * 0.7 + 0.2 + (wind - 0.5) * 0.5));
@@ -197,9 +197,13 @@ Shader "LL/Water"
                 uint count = GetAdditionalLightsCount();
                 LIGHT_LOOP_BEGIN(count)
                     Light l = GetAdditionalLight(lightIndex, pos);
+                    // A soft column where the calm sea would mirror the lamp, glittering with the
+                    // ripples inside it. (Ripple slopes alone are box-bounded: rectangular glints.)
                     float3 H = normalize(l.direction + V);
-                    float spec = pow(saturate(dot(N, H)), 60.0) * 2.5;
-                    lamps += l.color * l.distanceAttenuation * (spec + 0.04);
+                    float column = pow(saturate(dot(Rflat, l.direction)), 10.0);
+                    float glitter = pow(saturate(dot(N, H)), 60.0);
+                    float spec = column * (0.35 + glitter * 4.0);
+                    lamps += l.color * l.distanceAttenuation * (spec + 0.03);
                 LIGHT_LOOP_END
                 #endif
 
@@ -215,12 +219,15 @@ Shader "LL/Water"
                 float2 wq = float2(pos.x * 0.18 + pos.z * 0.05, pos.z * 0.45 - pos.x * 0.02);
                 float patches = LLSmooth(0.45, 0.8, LLNoise2(pos.xz * 0.025 + t * 0.03));
                 float streak = LLNoise2(wq + float2(t * 0.5, t * 0.2));
-                float caps = blow * patches * LLSmooth(0.7, 1.0, i.crest * 1.4 + streak * 0.55) * LLSmooth(0.4, 0.75, LLNoise2(pos.xz * 1.3 - t * 0.6));
-                foam = max(foam, caps * 0.75);
+                float lace = lerp(0.45, LLNoise2(wq * 2.2 - t * 0.6), detailFade);
+                float caps = blow * patches * LLSmooth(0.78, 1.05, i.crest * 1.4 + streak * 0.55) * LLSmooth(0.4, 0.7, lace);
+                foam = max(foam, caps * 0.7);
                 float flash = _LLFlash;
                 float3 col = body * (ambient * 1.4 + moon.color * moonB * 0.05 + flash * 0.5) + reflection * fresnel + moonGlint + beamLight + lamps;
                 float3 foamLight = ambient * 2.2 + moon.color * moonB * 0.18 + _LLBeamColor.rgb * beam * hot * 0.9 + _LLFalseColor.rgb * falseB * 0.7 + flash + lamps * 0.5;
-                col = lerp(col, _FoamColor.rgb * foamLight, foam * 0.8);
+                // Foam is white water: never darker than the sea it breaks on.
+                float3 foamCol = max(_FoamColor.rgb * foamLight, col * 1.5 + 0.015);
+                col = lerp(col, foamCol, foam * 0.8);
 
                 // Fade the far sea into the horizon haze.
                 float far = saturate((camDist - _FarFade.x) / (_FarFade.y - _FarFade.x));

@@ -59,7 +59,12 @@ namespace LastLight.Automation
             {
                 var (night, from, to) = scenes[i];
                 rec.Rolling = true;
-                g.TourBriefing(night);
+                if (i == 0) g.TourBriefing(night);
+                else
+                {
+                    g.TourDip(0.7f, () => g.TourBriefing(night));
+                    yield return Hold(0.7f);
+                }
                 yield return Hold(4.5f);
                 g.TourBegin();
                 yield return null;

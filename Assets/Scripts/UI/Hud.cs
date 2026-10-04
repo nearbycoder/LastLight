@@ -57,6 +57,7 @@ namespace LastLight.UI
             public Image Image;
             public Text Text;
             public Vector3 World;
+            public float Lift;
             public float Life, MaxLife;
             public bool EdgeClamp;
             public Color Color;
@@ -316,7 +317,16 @@ namespace LastLight.UI
 
         public void Flare(Vector2 pos) => AddMarker(new Vector3(pos.x, 1f, pos.y), SpriteFactory.ThinRing, new Color(1f, 0.35f, 0.25f, 1f), 70f, 6f, true);
 
-        public void FloatText(Vector3 world, string text, Color color) => AddMarker(world, null, color, 10f, 2.2f, false, text, 70f);
+        public void FloatText(Vector3 world, string text, Color color)
+        {
+            // Ships arriving together share a harbour mouth: stack their scores instead of overlapping.
+            float lift = 0f;
+            foreach (var other in markers)
+                if (other.Text != null && other.MaxLife - other.Life < 1.2f && (other.World - world).sqrMagnitude < 400f)
+                    lift = Mathf.Max(lift, other.Lift + 42f);
+            var m = AddMarker(world, null, color, 10f, 2.2f, false, text, 70f);
+            m.Lift = lift;
+        }
 
         void UpdateMarkers(float dt)
         {
@@ -343,7 +353,7 @@ namespace LastLight.UI
                     p.y = Mathf.Clamp(p.y, 70, H - 150);
                 }
                 float age = m.MaxLife - m.Life;
-                p.y += m.Rise * (age / m.MaxLife);
+                p.y += m.Rise * (age / m.MaxLife) + m.Lift;
                 m.Rt.anchorMin = m.Rt.anchorMax = Vector2.zero;
                 m.Rt.anchoredPosition = p;
                 float a = Mathf.Clamp01(m.Life / 0.6f) * Mathf.Clamp01(age / 0.25f);

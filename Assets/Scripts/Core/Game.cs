@@ -444,6 +444,7 @@ namespace LastLight.Core
         public void TourShowSettings() => ShowSettings(State.Title);
         public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); title.Hide(0f); }
         public void TourBriefing(int night) => ShowBriefing(night);
+        public void TourDip(float time, Action middle) => fader.Dip(time, middle);
         public void TourBegin() => BeginWatch();
         public void TourPause() => Pause();
         public void TourResume() => Resume();
