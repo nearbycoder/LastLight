@@ -197,7 +197,10 @@ def saturate(x, drive=1.5):
 def compress(x, threshold=0.5, ratio=3.0):
     a = np.abs(x)
     gain = np.where(a > threshold, (threshold + (a - threshold) / ratio) / np.maximum(a, 1e-9), 1.0)
-    gain = signal.lfilter([0.01], [1, -0.99], gain)
+    # Smooth the gain, starting settled on the first sample's gain: from rest at zero it would
+    # fade every sound in from silence, and click at the seam of every looped track.
+    zi = signal.lfilter_zi([0.01], [1, -0.99]) * gain[..., :1]
+    gain, _ = signal.lfilter([0.01], [1, -0.99], gain, zi=zi)
     return x * gain
 
 
@@ -237,16 +240,22 @@ def normalize(x, peak=0.89):
 
 
 def loopify(x, cross=1.0):
-    """Make a seamless loop by crossfading the tail into the head."""
+    """Make a seamless loop by crossfading the tail into the head. The fade is equal-power: tail
+    and head are unrelated material, and a linear fade would dip ~3 dB at every pass of the loop."""
     n = int(cross * SR)
     if x.ndim == 1:
         head, body, tail = x[:n], x[n:-n] if n > 0 else x, x[-n:]
-        f = np.linspace(0, 1, n)
-        return np.concatenate([tail * (1 - f) + head * f, body])
+        f = np.linspace(0, 1, n) * np.pi / 2
+        return np.concatenate([tail * np.cos(f) + head * np.sin(f), body])
     out = []
     for c in range(x.shape[0]):
         out.append(loopify(x[c], cross))
     return np.stack(out)
+
+
+# Clips the game plays on loop: their filtering has to wrap around the seam.
+LOOPS = {"amb_sea", "amb_wind", "amb_rain", "lens_whirr", "lens_focus", "radio_static",
+         "music_title", "music_night", "music_tension", "music_dawn"}
 
 
 def write(name, x, peak=0.89, sr=SR):
@@ -254,6 +263,13 @@ def write(name, x, peak=0.89, sr=SR):
     import subprocess
     import tempfile
     os.makedirs(OUT, exist_ok=True)
+    # Block DC and sub-audio drift (it thumps and wastes headroom). A looped clip is filtered
+    # with its own tail in front, so the filter is already settled where the loop wraps.
+    if name in LOOPS:
+        m = min(2 * SR, x.shape[-1])
+        x = highpass(np.concatenate([x[..., -m:], x], axis=-1), 12)[..., m:]
+    else:
+        x = highpass(x, 12)
     x = normalize(x, peak) if peak else x
     data = (np.clip(x, -1, 1) * 32767).astype(np.int16)
     if data.ndim == 2:

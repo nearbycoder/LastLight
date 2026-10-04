@@ -5,6 +5,7 @@ using LastLight.Core;
 using LastLight.Sim;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace LastLight.UI
@@ -34,7 +35,31 @@ namespace LastLight.UI
             Group.blocksRaycasts = true;
             Group.interactable = true;
             Tween.Fade(Group, 1f, 0.45f);
-            if (FirstSelected != null && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+            // With a pad in hand, start on the first item; with a mouse, nothing is highlighted
+            // until the pointer or a key asks for it.
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(Gamepad.current != null && FirstSelected != null ? FirstSelected.gameObject : null);
+        }
+
+        /// <summary>
+        /// Pad and keyboard navigation need something selected to move from: the first d-pad,
+        /// stick or arrow press on an open menu selects its first item.
+        /// </summary>
+        protected virtual void LateUpdate()
+        {
+            if (!Visible || FirstSelected == null || EventSystem.current == null) return;
+            var sel = EventSystem.current.currentSelectedGameObject;
+            if (sel != null && sel.activeInHierarchy && sel.transform.IsChildOf(Root)) return;
+            if (NavPressed()) EventSystem.current.SetSelectedGameObject(FirstSelected.gameObject);
+        }
+
+        static bool NavPressed()
+        {
+            var pad = Gamepad.current;
+            if (pad != null && (pad.dpad.ReadValue().sqrMagnitude > 0.25f || pad.leftStick.ReadValue().sqrMagnitude > 0.25f || pad.buttonSouth.wasPressedThisFrame))
+                return true;
+            var kb = Keyboard.current;
+            return kb != null && (kb.upArrowKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame);
         }
 
         public virtual void Hide(float time = 0.35f)
@@ -57,10 +82,11 @@ namespace LastLight.UI
 
     public sealed class TitleScreen : UiScreen
     {
-        public Action OnBegin, OnLogbook, OnSettings, OnQuit;
+        public Action OnBegin, OnWatch, OnLogbook, OnSettings, OnQuit;
         readonly List<Text> letters = new List<Text>();
+        readonly List<UiButton> items = new List<UiButton>();
         Text tagline, footer;
-        UiButton begin;
+        UiButton begin, watch;
         RectTransform menu;
 
         public static TitleScreen Create(Transform canvas)
@@ -96,21 +122,36 @@ namespace LastLight.UI
             bar.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(150, 62), new Vector2(560, 4));
 
             menu = UiKit.Rect("Menu", Root).Pin(new Vector2(0, 0.5f), new Vector2(0, 1), new Vector2(160, 20), new Vector2(560, 360));
-            begin = AddItem("Begin the watch", () => OnBegin?.Invoke(), 0);
-            AddItem("Keeper's logbook", () => OnLogbook?.Invoke(), 1);
-            AddItem("Settings", () => OnSettings?.Invoke(), 2);
-            AddItem("Quit", () => OnQuit?.Invoke(), 3);
+            begin = AddItem("Begin the watch", () => OnBegin?.Invoke());
+            watch = AddItem("Night Watch", () => OnWatch?.Invoke());
+            AddItem("Keeper's logbook", () => OnLogbook?.Invoke());
+            AddItem("Settings", () => OnSettings?.Invoke());
+            AddItem("Quit", () => OnQuit?.Invoke());
+            SetWatchUnlocked(false);
             FirstSelected = begin;
 
             footer = Label(Root, "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause", UiKit.Body, 22, new Color(0.65f, 0.7f, 0.76f, 0.85f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(1600, 40));
             footer.Shadowed();
         }
 
-        UiButton AddItem(string label, Action click, int i)
+        UiButton AddItem(string label, Action click)
         {
             var b = UiButton.Create(menu, label, UiKit.Heading, 46, click);
-            ((RectTransform)b.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -i * 70), new Vector2(560, 64));
+            items.Add(b);
             return b;
+        }
+
+        /// <summary>The Night Watch entry appears once the season is done; the menu closes up around it.</summary>
+        public void SetWatchUnlocked(bool on)
+        {
+            watch.gameObject.SetActive(on);
+            int row = 0;
+            foreach (var b in items)
+            {
+                if (!b.gameObject.activeSelf) continue;
+                ((RectTransform)b.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -row * 70), new Vector2(560, 64));
+                row++;
+            }
         }
 
         public void SetBeginLabel(string text) => begin.Label.text = text;
@@ -231,6 +272,7 @@ namespace LastLight.UI
                 int night = i + 1;
                 b.OnClick = () => OnPick?.Invoke(night);
                 b.SetInteractable(open);
+                if (open) FirstSelected = b;     // the latest night open
                 var content = b.transform.Find("Content");
                 var num = Label(content, UiKit.Roman(night), UiKit.Title, 42, open ? new Color(0.5f, 0.22f, 0.1f) : ink, TextAnchor.MiddleCenter, new Vector2(0, 0.5f), new Vector2(44, 0), new Vector2(90, 70));
                 num.rectTransform.pivot = new Vector2(0.5f, 0.5f);

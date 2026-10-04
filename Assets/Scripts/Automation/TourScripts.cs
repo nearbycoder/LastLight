@@ -20,6 +20,7 @@ namespace LastLight.Automation
             Tour.Scripts["ending"] = EndingTour;
             Tour.Scripts["input"] = InputTour;
             Tour.Scripts["video"] = Video;
+            Tour.Scripts["watch"] = Watch;
         }
 
         const int VideoFps = 30;
@@ -119,6 +120,19 @@ namespace LastLight.Automation
             g.TourShowSettings();
             yield return Tour.Wait(1.2f);
             yield return t.Shot("03_settings");
+            // The resolution setting really resizes the window.
+            var save = SaveData.Current;
+            int w0 = Screen.width, h0 = Screen.height;
+            save.fullscreen = false;
+            save.resWidth = 1280; save.resHeight = 720;
+            save.Apply();
+            yield return Tour.Wait(1.5f);
+            bool resized = Screen.width == 1280 && Screen.height == 720;
+            t.Log($"{(resized ? "PASS" : "FAIL")} resolution 1280x720 applied (screen {Screen.width}x{Screen.height})");
+            save.resWidth = w0; save.resHeight = h0;
+            save.Apply();
+            yield return Tour.Wait(1.5f);
+            t.Log($"restored {Screen.width}x{Screen.height}");
             g.TourHideAll();
             g.AutoPlay = true;
             int night = Game.Arg("-llNight2", 2);
@@ -137,6 +151,40 @@ namespace LastLight.Automation
             while (!g.ShowingResults && waited < 120f) { waited += Time.unscaledDeltaTime; yield return null; }
             yield return Tour.Wait(4f);
             yield return t.Shot("07_results");
+        }
+
+        /// <summary>
+        /// The Night Watch (run with -llFresh -llSeasonDone): the title with the watch unlocked, its
+        /// briefing, the watch under way, and its end. After a spell the keeper looks away from the
+        /// ships so the third wreck comes quickly.
+        /// </summary>
+        static IEnumerator Watch(Tour t)
+        {
+            var g = Game.Instance;
+            yield return Tour.Wait(6f);
+            yield return t.Shot("01_title_watch");
+            g.AutoPlay = true;
+            g.TourWatch();
+            yield return Tour.Wait(5f);
+            yield return t.Shot("02_watch_briefing");
+            g.TourBegin();
+            g.Runner.TimeScale = 3f;
+            while (g.Runner.World.Time < 150f) yield return null;
+            g.Runner.TimeScale = 1f;
+            yield return Tour.Wait(1f);
+            yield return t.Shot("03_watch_play");
+            g.Runner.Bot.Ignore = s => true;
+            g.Runner.TimeScale = 3f;
+            float waited = 0f;
+            while (g.Runner.World.Wrecks < 1 && waited < 120f) { waited += Time.unscaledDeltaTime; yield return null; }
+            g.Runner.TimeScale = 1f;
+            yield return Tour.Wait(1.5f);
+            yield return t.Shot("04_watch_wreck");
+            g.Runner.TimeScale = 3f;
+            waited = 0f;
+            while (!g.ShowingResults && waited < 240f) { waited += Time.unscaledDeltaTime; yield return null; }
+            yield return Tour.Wait(5f);
+            yield return t.Shot("05_watch_results");
         }
 
         /// <summary>Several nights fast-forwarded by the AutoKeeper, shots at chosen game times.</summary>
@@ -247,6 +295,79 @@ namespace LastLight.Automation
             t.Log($"{(Time.timeScale == 0f ? "PASS" : "FAIL")} escape pauses");
             yield return t.Shot("input_pause");
             t.Log(allOk ? "aim PASS" : "aim FAIL");
+
+            // ---- A gamepad, plugged in mid-game: menu navigation, stick aim, trigger, A, Start, B.
+            var pad = InputSystem.AddDevice<Gamepad>("TourPad");
+            yield return null;
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            string Selected() => es.currentSelectedGameObject != null ? es.currentSelectedGameObject.name : "nothing";
+            yield return PadPress(pad, GamepadButton.DpadDown);
+            string first = Selected();
+            yield return PadPress(pad, GamepadButton.DpadDown);
+            string second = Selected();
+            bool navOk = first != "nothing" && second != "nothing" && first != second;
+            t.Log($"{(navOk ? "PASS" : "FAIL")} the d-pad moves through the pause menu ({first} -> {second})");
+            yield return PadPress(pad, GamepadButton.DpadUp);
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Tour.Wait(0.5f);
+            t.Log($"{(Time.timeScale == 1f && !g.TourPaused ? "PASS" : "FAIL")} A on Resume resumes ({Selected()})");
+
+            bool padAim = true;
+            foreach (var stick in new[] { new Vector2(-0.7f, 0.7f), new Vector2(0.9f, 0.3f), new Vector2(0f, 1f) })
+            {
+                InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = stick });
+                yield return Tour.Wait(1.5f);
+                float err = Mathf.Abs(Geo.DeltaAngle(g.Runner.World.Beam.Bearing, Geo.Bearing(stick))) * Mathf.Rad2Deg;
+                padAim &= err < 4f;
+                t.Log($"{(err < 4f ? "PASS" : "FAIL")} right stick {stick} points the lens: error {err:0.0} deg");
+            }
+            InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = new Vector2(0f, 1f), rightTrigger = 1f });
+            yield return Tour.Wait(0.8f);
+            float padFocus = g.Runner.World.Beam.Focus;
+            t.Log($"{(padFocus > 0.9f ? "PASS" : "FAIL")} the right trigger focuses (focus {padFocus:0.00})");
+            yield return t.Shot("input_pad");
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            while (g.Runner.World.HornCooldown > 0f) yield return null;
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Tour.Wait(0.3f);
+            float padCd = g.Runner.World.HornCooldown;
+            t.Log($"{(padCd > 10f ? "PASS" : "FAIL")} A sounds the foghorn (cooldown {padCd:0.0})");
+            yield return PadPress(pad, GamepadButton.Start);
+            yield return Tour.Wait(0.5f);
+            bool padPaused = Time.timeScale == 0f;
+            yield return PadPress(pad, GamepadButton.East);
+            yield return Tour.Wait(0.5f);
+            t.Log($"{(padPaused && Time.timeScale == 1f ? "PASS" : "FAIL")} Start pauses and B resumes");
+            InputSystem.RemoveDevice(pad);
+
+            // ---- The turn-speed setting scales how fast the keys swing the lens.
+            var rates = new float[2];
+            var speeds = new[] { 0.5f, 1.25f };
+            for (int k = 0; k < 2; k++)
+            {
+                SaveData.Current.turnSpeed = speeds[k];
+                Key(UnityEngine.InputSystem.Key.D, true);
+                yield return Tour.Wait(0.4f);        // up to speed
+                float b0 = g.Runner.World.Beam.Bearing, t0 = g.Runner.World.Time;
+                yield return Tour.Wait(0.5f);
+                rates[k] = Mathf.Abs(Geo.DeltaAngle(b0, g.Runner.World.Beam.Bearing)) * Mathf.Rad2Deg / Mathf.Max(0.01f, g.Runner.World.Time - t0);
+                Key(UnityEngine.InputSystem.Key.D, false);
+                yield return Tour.Wait(0.5f);
+            }
+            SaveData.Current.turnSpeed = 1f;
+            bool scaled = rates[1] > rates[0] * 1.8f;
+            t.Log($"{(scaled ? "PASS" : "FAIL")} turn speed setting: {rates[0]:0} deg/s at 0.5, {rates[1]:0} deg/s at 1.25");
+            t.Log(navOk && padAim && padFocus > 0.9f && padCd > 10f && padPaused && scaled ? "gamepad PASS" : "gamepad FAIL");
+        }
+
+        static IEnumerator PadPress(Gamepad pad, GamepadButton button)
+        {
+            InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(button));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            yield return null;
+            yield return null;
         }
 
         /// <summary>One night played by the AutoKeeper with a shot every N seconds.</summary>

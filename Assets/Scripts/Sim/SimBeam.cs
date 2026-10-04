@@ -60,7 +60,8 @@ namespace LastLight.Sim
             }
             else
             {
-                float desired = Mathf.Clamp(input.Turn, -1f, 1f) * maxSpeed * 0.8f;
+                // Keys turn the lens at 80% of full speed, more or less with the turn-speed setting.
+                float desired = Mathf.Clamp(input.Turn, -1.25f, 1.25f) * maxSpeed * 0.8f;
                 AngularVelocity = Mathf.MoveTowards(AngularVelocity, desired, accelMax * dt);
             }
             Bearing = Geo.WrapAngle(Bearing + AngularVelocity * dt);

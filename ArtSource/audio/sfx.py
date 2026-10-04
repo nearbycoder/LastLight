@@ -375,7 +375,8 @@ def thunder(seed):
     x = rumble * env
     crack = bandpass(white(0.4), 400, 5000) * expdecay(0.4, 0.06) * (1.5 if seed % 2 else 0.6)
     x[:len(crack)] += crack
-    return reverb(x, 0.4, 4.0, 2.0, 2000, seed)
+    # The rumble's brown noise wanders; take out the sub-audio drift (a DC offset thumps on playback).
+    return highpass(reverb(x, 0.4, 4.0, 2.0, 2000, seed), 25)
 
 
 def wrecker_lit():

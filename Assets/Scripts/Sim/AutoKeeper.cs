@@ -10,7 +10,7 @@ namespace LastLight.Sim
     /// </summary>
     public sealed class AutoKeeper
     {
-        enum TaskKind { None, Ship, Reef, Shoal, Buoy, Wrecker, Idle }
+        enum TaskKind { None, Ship, Reef, Shoal, Buoy, Wrecker, Idle, Scout }
 
         struct Task
         {
@@ -25,7 +25,19 @@ namespace LastLight.Sim
         float commit;
         public float Skill = 1f;          // 0..1, lower = slower reactions (attract mode)
         public System.Func<SimShip, bool> Ignore;   // ships the keeper neglects (to stage a wreck for the reel)
-        float reaction;
+        public float AimError;            // degrees of hand wobble around the target (0 = perfect aim)
+        public float Hesitation;          // extra seconds before switching to a new task
+        public bool Blind;                // doesn't know where hidden hazards are until they're charted
+        float reaction, wobbleT, scoutDwell;
+        readonly HashSet<int> seenReefs = new HashSet<int>(), seenShoals = new HashSet<int>();
+        readonly Dictionary<int, float> scoutedAt = new Dictionary<int, float>();
+
+        /// <summary>
+        /// A deliberately sloppy keeper, as a rough stand-in for a new player when tuning: slow to
+        /// react, slow to change its mind, and a shaky hand. It still knows where the hidden reefs
+        /// are, which no player does, so treat its results as a difficulty curve, not a verdict.
+        /// </summary>
+        public static AutoKeeper Novice() => new AutoKeeper { Skill = 0f, AimError = 5f, Hesitation = 0.5f, Blind = true };
         readonly List<Vector2> path = new List<Vector2>(16);
 
         public string Describe() => current.Kind == TaskKind.None ? "-" : $"{current.Kind} {current.Index} ({current.Score:0})";
@@ -34,6 +46,18 @@ namespace LastLight.Sim
         {
             commit -= dt;
             reaction -= dt;
+            if (Blind)
+            {
+                // A blind keeper learns the hazards as the light (or lightning) reveals them.
+                for (int i = 0; i < w.Reefs.Count; i++) if (w.Reefs[i].Charted) seenReefs.Add(i);
+                for (int i = 0; i < w.Shoals.Count; i++) if (w.Shoals[i].Charted) seenShoals.Add(i);
+                // Sweeping ahead of a ship: after a couple of seconds on its course, move on.
+                if (current.Kind == TaskKind.Scout && Mathf.Abs(Geo.DeltaAngle(w.Beam.Bearing, Geo.Bearing(current.Target - w.Beam.Origin))) < w.Beam.HalfAngle)
+                {
+                    scoutDwell += dt;
+                    if (scoutDwell > 2f) { scoutedAt[current.Index] = w.Time; scoutDwell = 0f; commit = 0f; reaction = 0f; current.Kind = TaskKind.None; }
+                }
+            }
             var input = new KeeperInput { HasTarget = true, TargetBearing = w.Beam.Bearing };
 
             if (!StillValid(w, current) || commit <= 0f || reaction <= 0f)
@@ -42,7 +66,7 @@ namespace LastLight.Sim
                 bool keep = StillValid(w, current) && commit > 0f && best.Score < current.Score * 1.25f + 10f;
                 if (!keep)
                 {
-                    if (best.Kind != current.Kind || best.Index != current.Index) commit = 0.6f;
+                    if (best.Kind != current.Kind || best.Index != current.Index) commit = 0.6f + Hesitation;
                     current = best;
                 }
                 reaction = Mathf.Lerp(0.6f, 0.05f, Skill);
@@ -56,6 +80,12 @@ namespace LastLight.Sim
             {
                 input.TargetBearing = Geo.Bearing(current.Target - w.Beam.Origin);
                 input.Focus = current.WantFocus;
+                if (AimError > 0f)
+                {
+                    wobbleT += dt;
+                    float n = Mathf.PerlinNoise(wobbleT * 0.7f, 0.3f) * 2f - 1f + (Mathf.PerlinNoise(wobbleT * 2.3f, 5.1f) * 2f - 1f) * 0.4f;
+                    input.TargetBearing += n * AimError * Mathf.Deg2Rad * 1.6f;
+                }
             }
 
             // Foghorn when more than one ship is in trouble, or a ship is lost in fog.
@@ -87,6 +117,9 @@ namespace LastLight.Sim
                 case TaskKind.Buoy: return !w.Buoys[t.Index].Burning || w.Buoys[t.Index].Charge < 0.5f;
                 case TaskKind.Wrecker: return w.Wreckers[t.Index].Burning;
                 case TaskKind.Idle: return false;
+                case TaskKind.Scout:
+                    var sc = FindShip(w, t.Index);
+                    return sc != null && sc.Active && sc.State == ShipState.Sailing;
                 default: return false;
             }
         }
@@ -97,6 +130,11 @@ namespace LastLight.Sim
             {
                 var s = FindShip(w, t.Index);
                 if (s != null) { t.Target = Lead(w, s); t.WantFocus = NeedFocus(w, s.Pos); }
+            }
+            if (t.Kind == TaskKind.Scout)
+            {
+                var s = FindShip(w, t.Index);
+                if (s != null) { t.Target = ScoutPoint(w, s); t.WantFocus = NeedFocus(w, t.Target); }
             }
             return t;
         }
@@ -113,6 +151,14 @@ namespace LastLight.Sim
         {
             float d = Vector2.Distance(p, w.Beam.Origin);
             return d > SimBeam.WideRange * 0.8f || w.FogAt(p) > 0.25f || (w.Fog.Count > 0 && w.BeamAt(p) < 0.4f && d > 50f);
+        }
+
+        /// <summary>A point swept back and forth along the ship's course ahead, where reefs would be.</summary>
+        static Vector2 ScoutPoint(SimWorld w, SimShip s)
+        {
+            float reach = s.Stats.Lookahead + s.Stats.Speed * 6f;
+            float d = 10f + reach * (0.5f + 0.5f * Mathf.Sin(w.Time * 1.5f + s.Id));
+            return SimWorld.CourseAhead(s, d);
         }
 
         /// <summary>Aim slightly ahead of a moving ship.</summary>
@@ -138,6 +184,16 @@ namespace LastLight.Sim
                     score = s.InAura ? 0f : 130f * (1f - Mathf.Clamp01((timeLeft - 1.5f) / 5f));
                 }
                 Consider(ref best, new Task { Kind = TaskKind.Ship, Index = s.Id, Target = Lead(w, s), Score = score, WantFocus = NeedFocus(w, s.Pos) });
+
+                if (Blind && s.State == ShipState.Sailing && s.Inside)
+                {
+                    // Not knowing where the rocks are, light the water ahead of each ship in turn.
+                    scoutedAt.TryGetValue(s.Id, out float last);
+                    float since = last > 0f ? w.Time - last : 99f;
+                    float sc = 25f + 95f * Mathf.Clamp01((since - 1f) / 7f);
+                    var p = ScoutPoint(w, s);
+                    Consider(ref best, new Task { Kind = TaskKind.Scout, Index = s.Id, Target = p, Score = sc, WantFocus = NeedFocus(w, p) });
+                }
 
                 if (s.State == ShipState.Sailing || s.State == ShipState.Lost)
                 {
@@ -244,6 +300,7 @@ namespace LastLight.Sim
             {
                 var reef = w.Reefs[r];
                 if (s.KnownReefs.Contains(r)) continue;
+                if (Blind && !seenReefs.Contains(r)) continue;
                 if (reef.Charted && reef.ChartTimer > 6f) continue;
                 float along = AlongPath(reef.Pos, reef.Radius + s.Stats.Radius + 2.5f, horizon);
                 if (along >= 0f && along < bestDist) { bestDist = along; bestIndex = r; kind = TaskKind.Reef; pos = reef.Pos; }
@@ -254,6 +311,7 @@ namespace LastLight.Sim
                 {
                     var sh = w.Shoals[k];
                     if (s.KnownShoals.Contains(k)) continue;
+                    if (Blind && !seenShoals.Contains(k)) continue;
                     if (sh.Charted && sh.ChartTimer > 6f) continue;
                     foreach (var p in sh.Axis)
                     {

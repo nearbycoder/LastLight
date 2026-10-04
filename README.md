@@ -12,7 +12,7 @@ Gannet Head Light is being decommissioned at the end of the season. You have twe
 |---|---|
 | ![Sea fret: fog banks drift across the bay](docs/media/fog.jpg) | ![False Light: a wrecker's lantern imitates the beam](docs/media/false_light.jpg) |
 | ![Dawn results: three lamps](docs/media/results.jpg) | ![The ending: dawn behind the tower](docs/media/ending.jpg) |
-| ![The keeper's logbook: nights kept and nights still sealed](docs/media/logbook.jpg) | |
+| ![The keeper's logbook: nights kept and nights still sealed](docs/media/logbook.jpg) | ![Night Watch: the endless mode, with its tally and wreck allowance](docs/media/night_watch.jpg) |
 
 Built in Unity 6000.6.2f1 (URP). Every model is scripted in Blender 4.5, and every sound and
 note of music is synthesized in Python. There are no stock or sampled assets.
@@ -38,7 +38,8 @@ startup on this machine. The binary can also be run directly.
 | Space or right mouse | Foghorn (14 s cooldown) |
 | A / D or ← / → | Turn the lens directly from the keyboard |
 | Esc or P | Pause, or back out of a menu |
-| Gamepad | Right or left stick aims, either trigger focuses, A sounds the foghorn, Start pauses |
+| Arrow keys / Tab, Enter | Move through and choose menu items |
+| Gamepad | Right or left stick aims, either trigger focuses, A sounds the foghorn, Start pauses; in menus the d-pad or stick moves, A chooses and B goes back |
 
 ## Rules
 
@@ -85,6 +86,12 @@ idea, and the later nights combine them:
 | 10 | Two Lights | Wreckers moving between sites, with fog |
 | 11 | The Mimic | A false light that copies your sweep |
 | 12 | Last Light | The finale, then dawn and the ending |
+| ∞ | Night Watch | Unlocked after night 12: every hazard out, ships without end, fog and wreckers; the third wreck ends the watch |
+
+**Night Watch** is an endless score attack generated fresh each time (`NightWatch.Generate`).
+Ships arrive every 22 s at first and every 7 s after half an hour. Three lamps mark 12, 35 and
+70 ships brought home, and the longest watch, most ships and best score are saved. The HUD
+swaps the manifest for a running tally, a clock, and a hull for each wreck the Board allows.
 
 | Vessel | Character |
 |---|---|
@@ -99,7 +106,9 @@ the harbourmaster speak on the radio with typed text and synthesized gibberish v
 and settings are saved in PlayerPrefs.
 
 Settings: master, music, effects, radio and ambience volumes, text speed, fog and haze quality
-(volumetric step count), screen shake, hints, and windowed or fullscreen.
+(volumetric step count), screen shake, hints, lens turn speed for the keys (the mouse aims
+directly, so it needs none), windowed or fullscreen, and resolution (native, or any desktop mode
+from 1280×720 up; in fullscreen it sets the render size, which also helps slower GPUs).
 
 ## Project layout
 
@@ -167,12 +176,32 @@ Tools/build.sh                 # build through the resident editor
   - every route is safe for every hull that sails it once its hazards are charted (42
     route and hull pairs);
   - the AutoKeeper bot wins every night in the pure simulation.
-- The latest report: the bot wins all twelve nights. It earns three lamps on ten of them, two
-  on nights 11 and 12, and one on night 9, where it loses a ship to the wreckers. That's the
-  intended difficulty: the wrecker nights are the hardest.
-- `Tools/tour.sh <ui|nights|ending|input> <outdir>` plays the built game with scripted input,
+  - the generated Night Watch is well formed, and the bot keeps it for at least ten minutes.
+- The latest report: the bot wins all twelve nights, with three lamps on nine of them and two
+  on nights 9, 11 and 12, and never loses a ship. It keeps the Night Watch for 16 to 19 minutes
+  (57 to 79 ships home).
+- The report also plays every night with a **novice keeper** (`AutoKeeper.Novice`): it reacts
+  slowly, hesitates before switching, has a shaky hand, and doesn't know where the hidden
+  reefs are, so it has to find them by sweeping the water ahead of each ship. It wins all
+  twelve nights but earns fewer lamps as the season goes on: 9/9 over three runs on nights
+  1 to 3, 6 to 8 on nights 4 to 6, 3/9 on nights 7 to 9 with a wreck a run, and 5 to 6 on
+  nights 10 to 12. That's the curve intended, but the novice still sees every ship's
+  confidence at once and never misreads the screen, so it's an approximation of a player and
+  not a stand-in for playtesting.
+- `Tools/tour.sh <ui|nights|ending|input|watch> <outdir>` plays the built game with scripted input,
   saves screenshots and reports any console errors and frame times. The `input` tour drives the
-  real mouse and keyboard path in the player.
+  real mouse and keyboard path in the player, then plugs in a simulated gamepad (Input System
+  virtual device) and checks menu navigation with the d-pad and A, stick aiming, trigger
+  focus, the A foghorn, and pause and resume with Start and B. It also checks that the turn
+  speed setting scales the keyboard swing. The `ui` tour checks that the resolution setting
+  resizes the window. The `watch` tour (`-llFresh -llSeasonDone`) runs a whole Night Watch.
+- `Tools/.venv/bin/python Tools/audio_check.py` measures every synthesized clip, since nobody
+  has listened to them: clipping and true peak, EBU R128 loudness, DC offset, clicks at the
+  start or end of one-shots, and the seams of looped clips. It found real faults and they're
+  fixed: a click every time the tension layer and the dawn music looped (the compressor
+  started from silence), a 3 dB dip at each pass of the ambience loops (linear crossfades),
+  and DC offset in the thunder. All 73 clips pass. Music sits around −15 LUFS, voices around
+  −11 and effects between −21 and −10.
 - `Tools/record.sh [out.mp4]` records a four-minute gameplay reel with sound (the title, five
   nights played by the bot, the results and the ending) to `Builds/LastLight_gameplay.mp4`.
   Time is stepped at a fixed 30 fps, so the video is smooth however busy the GPU is.
@@ -196,12 +225,18 @@ in front.
 
 ## Known gaps
 
-- **Not playtested by a human.** Balance comes from the bot's reports, and feel was judged
-  from screenshots and scripted input. Expect the drain rates and ship schedules to need tuning.
-- **Gamepad support is untested.** It's implemented through the Input System, but no gamepad
-  was connected during development.
-- **Night Watch,** the endless mode planned as a stretch goal in `docs/PLAN.md`, isn't built.
-- The settings screen has no resolution picker or beam-sensitivity slider, which the plan
-  listed. Fullscreen uses the desktop resolution, and windowed mode uses the size passed on
-  the command line.
-- Fog nights on High may dip below 60 fps on weaker GPUs. Medium is the safer choice there.
+- **Not playtested by a person.** Balance comes from the expert bot and the novice model
+  (see Validation), and feel was judged from screenshots, video and scripted input. Nobody has
+  held the controls, so the drain rates, ship schedules and the Night Watch ramp may still
+  need tuning once someone does.
+- **No one has listened to the audio.** Every clip passes the measurements in
+  `Tools/audio_check.py`, and the mix was judged from levels and spectrograms, but whether the
+  music and the gibberish voices are pleasant is untested.
+- **Gamepad tested with a simulated device only.** The `input` tour drives a virtual Input
+  System gamepad through menus and play and every check passes, but no physical controller has
+  been tried; button layouts and stick dead zones on real hardware are unverified.
+- In the Night Watch, steamers threading the narrow water between Widow's Ledge and the Teeth
+  can still run onto a reef that was charted late. That ends most of the bot's watches. It's
+  arguably fair (chart ahead of the slow ships) but may feel abrupt.
+- Fog nights on High may dip below 60 fps on weaker GPUs. Medium, or a lower resolution in
+  fullscreen, is the safer choice there.

@@ -20,6 +20,10 @@ namespace LastLight.UI
         Text nightLabel, titleLabel, scoreLabel;
         RectTransform manifest;
         readonly List<(Image icon, Image mark, SpawnDef def)> manifestIcons = new List<(Image, Image, SpawnDef)>();
+        // The Night Watch strip: ships home and the clock, and a hull for each wreck the Board allows.
+        Text watchText;
+        readonly List<Image> watchHulls = new List<Image>();
+        int watchWrecksShown;
         // Radio
         RectTransform radioPanel;
         CanvasGroup radioGroup;
@@ -166,13 +170,16 @@ namespace LastLight.UI
             runner = r;
             this.radio = radio;
             var def = r.Def;
-            nightLabel.text = UiKit.Spaced("NIGHT " + UiKit.Roman(def.night));
+            nightLabel.text = UiKit.Spaced(def.endless ? "ENDLESS" : "NIGHT " + UiKit.Roman(def.night));
             titleLabel.text = def.title;
             shownScore = 0;
             scoreLabel.text = "0";
             foreach (Transform c in manifest) Destroy(c.gameObject);
             manifestIcons.Clear();
-            var sched = r.World.Schedule;
+            watchHulls.Clear();
+            watchText = null;
+            var sched = def.endless ? new SpawnDef[0] : r.World.Schedule;
+            if (def.endless) BuildWatchStrip(def);
             float w = 66f, gap = 10f;
             float total = sched.Length * w + (sched.Length - 1) * gap;
             for (int i = 0; i < sched.Length; i++)
@@ -190,6 +197,34 @@ namespace LastLight.UI
             HideHint(true);
             foreach (var m in markers) if (m.Rt != null) Destroy(m.Rt.gameObject);
             markers.Clear();
+        }
+
+        void BuildWatchStrip(MissionDef def)
+        {
+            int allowed = def.allowedWrecks + 1;
+            for (int i = 0; i < allowed; i++)
+            {
+                var hull = UiKit.Image("Hull", manifest, SpriteFactory.Ship("trawler"), new Color(0.92f, 0.94f, 1f, 0.9f));
+                hull.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-250 + i * 64, 0), new Vector2(56, 22));
+                watchHulls.Add(hull);
+            }
+            watchText = UiKit.Text("Tally", manifest, "", UiKit.BodyBold, 26, UiKit.Paper, TextAnchor.MiddleLeft).Shadowed();
+            watchText.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0, 0.5f), new Vector2(-40, 0), new Vector2(420, 40));
+            watchWrecksShown = 0;
+        }
+
+        void UpdateWatchStrip(SimWorld w)
+        {
+            watchText.text = $"{w.Arrivals} <size=19><color=#C9A35A>HOME</color></size>     {UiKit.Clock(w.Time)}";
+            for (int i = 0; i < watchHulls.Count; i++)
+            {
+                bool lost = i < w.Wrecks;
+                var c = lost ? new Color(0.9f, 0.35f, 0.3f, 0.55f) : new Color(0.92f, 0.94f, 1f, 0.9f);
+                watchHulls[i].color = Color.Lerp(watchHulls[i].color, c, Time.unscaledDeltaTime * 6f);
+            }
+            if (w.Wrecks > watchWrecksShown && w.Wrecks - 1 < watchHulls.Count)
+                Tween.Punch(watchHulls[w.Wrecks - 1].transform, 0.5f, 0.6f);
+            watchWrecksShown = w.Wrecks;
         }
 
         public void Show(bool on, float time = 0.6f) => Tween.Fade(group, on ? 1f : 0f, time);
@@ -384,6 +419,8 @@ namespace LastLight.UI
                 int step = Mathf.Max(1, (w.Score - shownScore) / 8);
                 if (scoreAnim > 1f) { scoreAnim = 0f; shownScore = Mathf.Min(w.Score, shownScore + step); scoreLabel.text = shownScore.ToString(); }
             }
+
+            if (watchText != null) UpdateWatchStrip(w);
 
             // Manifest states.
             int spawned = w.SpawnedShips;

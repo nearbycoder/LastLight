@@ -156,6 +156,13 @@ namespace LastLight.UI
             return sb.ToString();
         }
 
+        /// <summary>Minutes and seconds, "14:32".</summary>
+        public static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.FloorToInt(seconds));
+            return $"{s / 60}:{s % 60:00}";
+        }
+
         public static string Roman(int n)
         {
             string[] r = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII" };

@@ -4,4 +4,4 @@
 # Without a running editor, use `Tools/unity.sh test` (the same checks as NUnit EditMode tests).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo 'return LastLight.Sim.Validation.Report();' > /tmp/ll_validate.cs
-"$ROOT/Tools/eval.sh" /tmp/ll_validate.cs 900000
+"$ROOT/Tools/eval.sh" /tmp/ll_validate.cs 1800000

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run a C# file in the resident editor and print its return value.  Tools/eval.sh file.cs [timeout_ms]
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-unity command eval_file --project-path "$ROOT" --format json -- --file "$1" --timeout "${2:-120000}" 2>&1 | python3 -c "
+T="${2:-120000}"
+unity command eval_file --project-path "$ROOT" --format json --timeout $(( T / 1000 + 30 )) -- --file "$1" --timeout "$T" 2>&1 | python3 -c "
 import json,sys
 raw=sys.stdin.read()
 try:

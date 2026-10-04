@@ -14,7 +14,8 @@ namespace LastLight.Core
     /// Entry point and game flow: title, logbook, briefing, the watch, pause, dawn results and the
     /// ending. Built automatically after the scene loads; everything else is created from code.
     /// Command-line switches (also read from Temp/ll_boot.txt in the editor):
-    ///   -llNight N   jump straight into night N      -llAuto   the AutoKeeper plays
+    ///   -llNight N   jump straight into night N (13: the Night Watch; -llSeed S fixes its ships)
+    ///   -llAuto      the AutoKeeper plays
     ///   -llFresh     ignore and don't write the save -llTour d screenshot tour (see Tour)
     /// </summary>
     public sealed class Game : MonoBehaviour
@@ -47,6 +48,17 @@ namespace LastLight.Core
         int previousBest;
         Ending ending;
         ParticleSystem rainFx;
+        MissionDef watchDef;
+
+        bool Watching => Night == NightWatch.Number;
+
+        /// <summary>The night's mission; the Night Watch is generated afresh for each watch.</summary>
+        MissionDef DefFor(int night, bool fresh)
+        {
+            if (night != NightWatch.Number) return MissionLibrary.All[Mathf.Clamp(night, 1, MissionLibrary.All.Count) - 1];
+            if (fresh || watchDef == null) watchDef = NightWatch.Generate(World.Map, Arg("-llSeed", UnityEngine.Random.Range(1, 100000)));
+            return watchDef;
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -64,7 +76,7 @@ namespace LastLight.Core
             int hz = Mathf.RoundToInt((float)Screen.currentResolution.refreshRateRatio.value);
             Application.targetFrameRate = Arg("-llFps", Mathf.Max(60, hz));
             Time.timeScale = 1f;
-            SaveData.Current.Apply();
+            SaveData.Current.Apply(display: !HasArg("-screen-width"));
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
             Rig = Stage.BuildCamera();
@@ -92,6 +104,7 @@ namespace LastLight.Core
             fader = Fader.Create(menus.transform);
 
             title.OnBegin = () => ShowBriefing(SaveData.Current.unlocked);
+            title.OnWatch = () => ShowBriefing(NightWatch.Number);
             title.OnLogbook = () => ShowLogbook(State.Title);
             title.OnSettings = () => ShowSettings(State.Title);
             title.OnQuit = Quit;
@@ -112,7 +125,8 @@ namespace LastLight.Core
             results.OnNext = () =>
             {
                 results.Hide();
-                if (Night >= 12) StartEnding();
+                if (Watching) ShowBriefing(NightWatch.Number);
+                else if (Night >= 12) StartEnding();
                 else ShowBriefing(Night + 1);
             };
             results.OnRetry = () => { results.Hide(); RestartNight(); };
@@ -124,8 +138,8 @@ namespace LastLight.Core
             int night = Arg("-llNight", 0);
             if (night > 0)
             {
-                Night = Mathf.Clamp(night, 1, MissionLibrary.All.Count);
-                StartRunner(MissionLibrary.All[Night - 1], false);
+                Night = night == NightWatch.Number ? night : Mathf.Clamp(night, 1, MissionLibrary.All.Count);
+                StartRunner(DefFor(Night, true), false);
                 Rig.Snap(CameraRig.PlayPose);
                 Stage.MoonTowards(false, 0.01f);
                 BeginWatch();
@@ -148,6 +162,7 @@ namespace LastLight.Core
             Stage.MoonTowards(true, moveCamera ? 3f : 0.01f);
             var save = SaveData.Current;
             title.SetBeginLabel(save.unlocked > 1 || save.lamps[0] > 0 ? $"Continue: night {UiKit.Roman(save.unlocked)}" : "Begin the watch");
+            title.SetWatchUnlocked(save.WatchUnlocked);
             title.Show();
             Music.PlayTrack("music_title", 3f);
             ShaderGlobals.DawnAmount = 0f;
@@ -183,15 +198,15 @@ namespace LastLight.Core
         void ShowBriefing(int night)
         {
             title.Hide();
-            Night = Mathf.Clamp(night, 1, MissionLibrary.All.Count);
-            var def = MissionLibrary.All[Night - 1];
+            Night = night == NightWatch.Number ? night : Mathf.Clamp(night, 1, MissionLibrary.All.Count);
+            var def = DefFor(Night, true);
             float bearing = Runner != null ? Runner.Bearing : 0f;
             StartRunner(def, true);
             Runner.SetInitialBearing(bearing);
             Current = State.Briefing;
             Rig.BlendTo(CameraRig.PlayPose, 3.2f);
             Stage.MoonTowards(false, 3.2f);
-            briefing.Setup(def);
+            briefing.Setup(def, Watching ? SaveData.Current : null);
             briefing.Show();
             Music.PlayTrack("music_night", 4f);
             Music.SetTension(0f);
@@ -253,19 +268,20 @@ namespace LastLight.Core
 
         void BeginWatch()
         {
+            if (Current == State.Playing) return;   // a pad's A can both submit the button and start the briefing
             briefing.Hide();
             Current = State.Playing;
             Runner.Holding = false;
             Hud.Show(true, 1f);
             Sfx.Play("ui_begin", 0.7f);
-            previousBest = SaveData.Current.best[Night - 1];
+            previousBest = Watching ? SaveData.Current.watchBest : SaveData.Current.best[Night - 1];
         }
 
         void RestartNight()
         {
             fader.Dip(0.5f, () =>
             {
-                var def = MissionLibrary.All[Night - 1];
+                var def = DefFor(Night, true);
                 StartRunner(def, false);
                 Rig.Snap(CameraRig.PlayPose);
                 Music.PlayTrack("music_night", 1f);
@@ -301,11 +317,14 @@ namespace LastLight.Core
                 recorded = true;
                 var names = new List<string>();
                 foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
-                if (won) SaveData.Current.RecordNight(Night, w.Lamps, w.Score, names);
+                if (Watching) SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names);
+                else if (won) SaveData.Current.RecordNight(Night, w.Lamps, w.Score, names);
             }
             Hud.Show(false, 1.2f);
-            results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won);
+            if (Watching) results.SetupWatch(w, previousBest);
+            else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won);
             results.Show();
+            if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
             Music.PlayTrack(won ? "music_dawn" : "music_title", 2.5f);
             if (won)
                 Tween.Run(this, "dawn", 6f, t =>
@@ -373,6 +392,8 @@ namespace LastLight.Core
             var kb = Keyboard.current;
             var pad = Gamepad.current;
             bool back = (kb != null && (kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame)) || (pad != null && pad.startButton.wasPressedThisFrame);
+            // B backs out of menus (but never pauses: it's too easy to hit mid-watch).
+            if (pad != null && pad.buttonEast.wasPressedThisFrame && Current != State.Playing) back = true;
             if (back)
             {
                 if (Current == State.Playing) Pause();
@@ -446,6 +467,7 @@ namespace LastLight.Core
         public void TourShowSettings() => ShowSettings(State.Title);
         public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); title.Hide(0f); }
         public void TourBriefing(int night) => ShowBriefing(night);
+        public void TourWatch() => ShowBriefing(NightWatch.Number);
         public void TourDip(float time, Action middle) => fader.Dip(time, middle);
         public void TourBegin() => BeginWatch();
         /// <summary>The AutoKeeper leaves this ship to its fate (stages a wreck for captures).</summary>
@@ -455,5 +477,6 @@ namespace LastLight.Core
         public void TourEnding() => StartEnding();
         public void TourTitle() => ShowTitle();
         public bool ShowingResults => Current == State.Results;
+        public bool TourPaused => Current == State.Paused;
     }
 }

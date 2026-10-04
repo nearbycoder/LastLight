@@ -362,8 +362,8 @@ namespace LastLight.View
             if (fireGlow == null)
             {
                 var local = new Vector3(0.3f, 2.6f, Ship.Stats.Length * 0.08f);
-                fireGlow = Glows.Glow("Fire", hull, local, 4.6f, Color.black);
-                fireLight = Glows.PointLight("Fire Light", hull, local + Vector3.up, new Color(1f, 0.48f, 0.18f), 0f, 26f + Ship.Stats.Length);
+                fireGlow = Glows.Glow("Fire", hull, local, 6.5f + Ship.Stats.Length * 0.15f, Color.black);
+                fireLight = Glows.PointLight("Fire Light", hull, local + Vector3.up * 2f, new Color(1f, 0.48f, 0.18f), 0f, 34f + Ship.Stats.Length);
                 fireSmoke = FX.Smoke(fireGlow.transform, 10f);
                 var main = fireSmoke.main;
                 main.startColor = new Color(0.1f, 0.09f, 0.085f, 1f);
@@ -371,7 +371,7 @@ namespace LastLight.View
             float flick = 0.7f + 0.3f * Mathf.PerlinNoise(t * 9f, bobSeed) + 0.15f * Mathf.PerlinNoise(t * 31f, 2f);
             float fire = Mathf.Clamp01(sinkT * 8f) * Mathf.Clamp01((1.7f - sinkT) / 0.7f) * fade;
             Glows.SetColor(fireGlow, new Color(3.6f, 1.25f, 0.3f) * fire * flick);
-            fireLight.intensity = 14f * fire * flick;
+            fireLight.intensity = 22f * fire * flick;
             fireLight.enabled = fire > 0.01f;
             if (fireSmoke == null) return;
             var em = fireSmoke.emission;

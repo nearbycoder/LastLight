@@ -34,6 +34,7 @@ namespace LastLight.Sim
         public RadioCue[] radio = new RadioCue[0];
         public HintCue[] hints = new HintCue[0];
         public bool finale;
+        public bool endless;         // Night Watch: ships without end; the watch ends at the wreck allowance
     }
 
     [Serializable]

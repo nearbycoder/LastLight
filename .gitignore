@@ -38,3 +38,6 @@ __pycache__/
 *.blend2
 /ArtSource/_renders/
 /ArtSource/audio/_cache/
+
+# Mono crash dumps (a killed editor leaves these in the project root)
+mono_crash.*

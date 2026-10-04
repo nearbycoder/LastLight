@@ -52,6 +52,7 @@ namespace LastLight.Sim
         public Vector2 Current;
         public float Rain;
         public bool Frozen;              // stop ships (used by the ending)
+        public static bool DebugSteering;   // fill SimShip.SteerDebug (allocates; for traces only)
         public bool ShipsDone => nextSpawn >= schedule.Length && !Ships.Exists(s => s.Active);
 
         readonly SpawnDef[] schedule;
@@ -669,9 +670,11 @@ namespace LastLight.Sim
                 // Angular extent of the whole group of overlapping hazards, as seen from the ship.
                 float maxA = -Mathf.PI, minA = Mathf.PI;
                 bool inside = false;
+                int members = 0;
                 for (int i = 0; i < obstacles.Count; i++)
                 {
                     if (groupOf[i] != grp) continue;
+                    members++;
                     var ob = obstacles[i];
                     var rel = ob.C - s.Pos;
                     float dist = rel.magnitude;
@@ -713,7 +716,8 @@ namespace LastLight.Sim
                 int side = costA <= costB ? 1 : -1;
                 // Commit: once a side is chosen for this group, hold it until the group is passed,
                 // unless that side is now blocked close at hand. Dithering is what runs ships aground.
-                int groupKey = GroupKey(grp);
+                // A newly charted reef joining the group makes it a new problem: choose afresh.
+                int groupKey = GroupKey(grp) * 31 + members;
                 if (s.AvoidSide != 0 && s.AvoidObstacle == groupKey && side != s.AvoidSide)
                 {
                     int block = s.AvoidSide > 0 ? blockA : blockB;
@@ -722,7 +726,7 @@ namespace LastLight.Sim
                 }
                 if (iter == 0) { s.AvoidSide = side; s.AvoidObstacle = groupKey; }
                 desired = Geo.Dir(side > 0 ? a : b);
-                if (iter == 0) s.SteerDebug = $"hit={hit} grp={grp} base={baseAng * Mathf.Rad2Deg:0} a={a * Mathf.Rad2Deg:0} b={b * Mathf.Rad2Deg:0} side={side} goal={goalAng * Mathf.Rad2Deg:0}";
+                if (DebugSteering) s.SteerDebug += $"[{iter}] hit {obstacles[hit].C} r{obstacles[hit].R:0.0} grp {obstacles[grp].C} a={a * Mathf.Rad2Deg:0} b={b * Mathf.Rad2Deg:0} side={side} goal={goalAng * Mathf.Rad2Deg:0} ";
             }
             if (!avoiding) { s.AvoidSide = 0; s.AvoidObstacle = -1; }
 
@@ -915,11 +919,15 @@ namespace LastLight.Sim
             }
         }
 
-        /// <summary>Lamps earned: 1 survived, 2 no wrecks, 3 no wrecks and nobody ever lost or lured.</summary>
+        /// <summary>
+        /// Lamps earned: 1 survived, 2 no wrecks, 3 no wrecks and nobody ever lost or lured. On the
+        /// Night Watch they mark how many ships came home before the watch ended.
+        /// </summary>
         public int Lamps
         {
             get
             {
+                if (Mission.endless) return NightWatch.LampsFor(Arrivals);
                 if (Outcome != MissionOutcome.Won) return 0;
                 if (Wrecks > 0) return 1;
                 foreach (var s in Ships) if (!s.SteadyHand) return 2;

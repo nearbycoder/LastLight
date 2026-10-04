@@ -72,12 +72,12 @@ namespace LastLight.View
         float PunchEnvelope()
         {
             if (punchT >= PunchTime) return 0f;
-            float rise = Mathf.Clamp01(punchT / 0.35f);
-            float fall = Mathf.Clamp01((PunchTime - punchT) / 2.2f);
+            float rise = Mathf.Clamp01(punchT / 0.45f);
+            float fall = Mathf.Clamp01((PunchTime - punchT) / 2.4f);
             return punchAmount * rise * rise * (3f - 2f * rise) * fall * fall * (3f - 2f * fall);
         }
 
-        const float PunchTime = 4.2f;
+        const float PunchTime = 5.2f;
         Vector3 punchAt;
         float punchAmount, punchT = PunchTime;
 
@@ -105,9 +105,10 @@ namespace LastLight.View
             float k = PunchEnvelope();
             if (k > 0f)
             {
-                p.LookAt = Vector3.Lerp(p.LookAt, punchAt, 0.3f * k);
-                p.Position = Vector3.Lerp(p.Position, punchAt + (p.Position - p.LookAt) * 0.75f, 0.2f * k);
-                p.Fov *= 1f - 0.12f * k;
+                // Lean in on the wreck: look towards it, close the distance, narrow the lens.
+                p.LookAt = Vector3.Lerp(p.LookAt, punchAt, 0.5f * k);
+                p.Position = Vector3.Lerp(p.Position, punchAt + (p.Position - p.LookAt) * 0.6f, 0.38f * k);
+                p.Fov *= 1f - 0.2f * k;
             }
             Apply(p, Time.unscaledTime);
         }

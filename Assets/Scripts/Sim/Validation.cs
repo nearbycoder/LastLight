@@ -21,30 +21,37 @@ namespace LastLight.Sim
         public static List<string> DataIntegrity(MapData map, List<MissionDef> missions)
         {
             var errors = new List<string>();
+            if (missions.Count != 12) errors.Add($"expected 12 nights, found {missions.Count}");
+            for (int i = 0; i < missions.Count; i++)
+            {
+                if (missions[i].night != i + 1) errors.Add($"{missions[i].id}: night number {missions[i].night} out of order");
+                errors.AddRange(MissionErrors(map, missions[i]));
+            }
+            return errors;
+        }
+
+        /// <summary>Every route, hull type, reef group, buoy, sandbank and wrecker site a mission names exists.</summary>
+        public static List<string> MissionErrors(MapData map, MissionDef m)
+        {
+            var errors = new List<string>();
             var groups = new HashSet<string>();
             foreach (var r in map.Reefs) groups.Add(r.group);
             var buoys = new HashSet<string>();
             foreach (var b in map.Buoys) buoys.Add(b.id);
             var shoals = new HashSet<string>();
             foreach (var s in map.Shoals) shoals.Add(s.Id);
-            if (missions.Count != 12) errors.Add($"expected 12 nights, found {missions.Count}");
-            for (int i = 0; i < missions.Count; i++)
+            if (m.ships == null || m.ships.Length == 0) errors.Add($"{m.id}: no ships");
+            foreach (var s in m.ships ?? new SpawnDef[0])
             {
-                var m = missions[i];
-                if (m.night != i + 1) errors.Add($"{m.id}: night number {m.night} out of order");
-                if (m.ships == null || m.ships.Length == 0) errors.Add($"{m.id}: no ships");
-                foreach (var s in m.ships ?? new SpawnDef[0])
-                {
-                    if (!map.Routes.ContainsKey(s.route)) errors.Add($"{m.id}: ship {s.name} has unknown route {s.route}");
-                    if (s.type != "trawler" && s.type != "steamer" && s.type != "ferry") errors.Add($"{m.id}: ship {s.name} has unknown type {s.type}");
-                }
-                foreach (var g in m.reefGroups ?? new string[0]) if (!groups.Contains(g)) errors.Add($"{m.id}: unknown reef group {g}");
-                foreach (var b in m.buoys ?? new string[0]) if (!buoys.Contains(b)) errors.Add($"{m.id}: unknown buoy {b}");
-                foreach (var s in m.shoals ?? new string[0]) if (!shoals.Contains(s)) errors.Add($"{m.id}: unknown shoal {s}");
-                foreach (var w in m.wreckers ?? new WreckerDef[0])
-                    foreach (var site in w.sites) if (!map.WreckerSites.ContainsKey(site)) errors.Add($"{m.id}: unknown wrecker site {site}");
-                if (m.allowedWrecks < 0 || m.allowedWrecks >= (m.ships?.Length ?? 0)) errors.Add($"{m.id}: odd wreck allowance {m.allowedWrecks}");
+                if (!map.Routes.ContainsKey(s.route)) errors.Add($"{m.id}: ship {s.name} has unknown route {s.route}");
+                if (s.type != "trawler" && s.type != "steamer" && s.type != "ferry") errors.Add($"{m.id}: ship {s.name} has unknown type {s.type}");
             }
+            foreach (var g in m.reefGroups ?? new string[0]) if (!groups.Contains(g)) errors.Add($"{m.id}: unknown reef group {g}");
+            foreach (var b in m.buoys ?? new string[0]) if (!buoys.Contains(b)) errors.Add($"{m.id}: unknown buoy {b}");
+            foreach (var s in m.shoals ?? new string[0]) if (!shoals.Contains(s)) errors.Add($"{m.id}: unknown shoal {s}");
+            foreach (var w in m.wreckers ?? new WreckerDef[0])
+                foreach (var site in w.sites) if (!map.WreckerSites.ContainsKey(site)) errors.Add($"{m.id}: unknown wrecker site {site}");
+            if (m.allowedWrecks < 0 || m.allowedWrecks >= (m.ships?.Length ?? 0)) errors.Add($"{m.id}: odd wreck allowance {m.allowedWrecks}");
             return errors;
         }
 
@@ -117,13 +124,24 @@ namespace LastLight.Sim
         }
 
         /// <summary>The AutoKeeper plays a night to the end.</summary>
-        public static NightResult PlayNight(MapData map, MissionDef def, int seed = 7)
+        public static NightResult PlayNight(MapData map, MissionDef def, int seed = 7, AutoKeeper bot = null)
         {
             var w = new SimWorld(map, def, seed);
-            var bot = new AutoKeeper();
+            bot ??= new AutoKeeper();
             for (int i = 0; i < 60 * 900 && w.Outcome == MissionOutcome.Running; i++)
                 w.Step(Dt, bot.Decide(w, Dt));
             return new NightResult { Def = def, Outcome = w.Outcome, Lamps = w.Lamps, Wrecks = w.Wrecks, Arrivals = w.Arrivals, Total = w.TotalShips, Score = w.Score, Time = w.Time };
+        }
+
+        /// <summary>The AutoKeeper keeps the Night Watch until the third wreck (or the time limit).</summary>
+        public static NightResult PlayWatch(MapData map, int seed, float limit = 1800f, float skill = 1f)
+        {
+            var def = NightWatch.Generate(map, seed);
+            var w = new SimWorld(map, def, seed);
+            var bot = new AutoKeeper { Skill = skill };
+            for (int i = 0; i < 60 * limit && w.Outcome == MissionOutcome.Running; i++)
+                w.Step(Dt, bot.Decide(w, Dt));
+            return new NightResult { Def = def, Outcome = w.Outcome, Lamps = w.Lamps, Wrecks = w.Wrecks, Arrivals = w.Arrivals, Total = w.SpawnedShips, Score = w.Score, Time = w.Time };
         }
 
         /// <summary>One-line summary of everything, for Tools/validate.sh.</summary>
@@ -148,6 +166,26 @@ namespace LastLight.Sim
                 sb.Append($"{(r.Outcome == MissionOutcome.Won ? "PASS" : "FAIL")} night {m.night,2} {m.title,-18} {r.Outcome,-7} lamps {r.Lamps}  home {r.Arrivals}/{r.Total}  wrecks {r.Wrecks}  score {r.Score}  ({r.Time:0}s)\n");
             }
             sb.Append($"{won}/{missions.Count} nights won by the AutoKeeper\n");
+            sb.Append("     a novice keeper (slow, shaky, finds reefs only by sweeping; see AutoKeeper.Novice), three runs a night:\n");
+            foreach (var m in missions)
+            {
+                int wins = 0, lamps = 0, wrecks = 0;
+                foreach (int seed in new[] { 7, 8, 9 })
+                {
+                    var novice = AutoKeeper.Novice();
+                    novice.AimError += (seed - 7) * 1.5f;      // a shakier hand each run
+                    var r = PlayNight(map, m, seed, novice);
+                    if (r.Outcome == MissionOutcome.Won) wins++;
+                    lamps += r.Lamps;
+                    wrecks += r.Wrecks;
+                }
+                sb.Append($"     night {m.night,2} {m.title,-18} won {wins}/3  lamps {lamps}/9  wrecks {wrecks}\n");
+            }
+            foreach (int seed in new[] { 1, 2, 3 })
+            {
+                var r = PlayWatch(map, seed);
+                sb.Append($"     night watch (seed {seed}): {(r.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {r.Time / 60f:0.0} min, {r.Arrivals} home of {r.Total}, {r.Wrecks} wrecks, lamps {r.Lamps}, score {r.Score}\n");
+            }
             return sb.ToString();
         }
     }

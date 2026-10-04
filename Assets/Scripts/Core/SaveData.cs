@@ -18,10 +18,13 @@ namespace LastLight.Core
         public List<string> homeNames = new List<string>();
         public bool endingSeen;
         public bool tutorialSeen;
+        public int watchBest, watchShips, watchSeconds;   // Night Watch records
 
         // Settings
         public float master = 0.9f, music = 0.75f, sfx = 1f, radio = 1f, ambience = 0.9f;
         public bool fullscreen = true;
+        public int resWidth, resHeight;          // 0 = the desktop's own resolution
+        public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
         public int quality = 2;                  // 0 low, 1 medium, 2 high
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
@@ -48,6 +51,18 @@ namespace LastLight.Core
                         current.lamps = new[] { 3, 3, 2, 3, 1, 3, 2, 0, 0, 0, 0, 0 };
                         current.best = new[] { 610, 790, 880, 1210, 820, 1560, 1490, 0, 0, 0, 0, 0 };
                         current.shipsHome = 43;
+                    }
+                    // ... or with the season finished and the Night Watch open.
+                    if (Game.HasArg("-llSeasonDone"))
+                    {
+                        current.unlocked = 12;
+                        current.lamps = new[] { 3, 3, 3, 3, 2, 3, 3, 2, 1, 3, 2, 2 };
+                        current.best = new[] { 610, 790, 1000, 1210, 1150, 1600, 1700, 1650, 1150, 1800, 1900, 2250 };
+                        current.shipsHome = 97;
+                        current.endingSeen = true;
+                        current.watchBest = 9600;
+                        current.watchShips = 57;
+                        current.watchSeconds = 954;
                     }
                     return current;
                 }
@@ -87,6 +102,22 @@ namespace LastLight.Core
             Save();
         }
 
+        /// <summary>The Night Watch opens once the last night has been kept.</summary>
+        public bool WatchUnlocked => endingSeen || lamps[11] > 0;
+
+        public void RecordWatch(int score, int ships, float seconds, IEnumerable<string> names)
+        {
+            watchBest = Mathf.Max(watchBest, score);
+            watchShips = Mathf.Max(watchShips, ships);
+            watchSeconds = Mathf.Max(watchSeconds, Mathf.RoundToInt(seconds));
+            foreach (var n in names)
+            {
+                shipsHome++;
+                if (!homeNames.Contains(n)) homeNames.Add(n);
+            }
+            Save();
+        }
+
         public int TotalLamps
         {
             get
@@ -98,7 +129,9 @@ namespace LastLight.Core
         }
 
         /// <summary>Push audio/video preferences into the running game.</summary>
-        public void Apply()
+        /// <param name="display">Also apply the window mode and resolution (skipped at startup
+        /// when the size was given on the command line, as the dev scripts do).</param>
+        public void Apply(bool display = true)
         {
             Sfx.Master = master;
             Sfx.MusicVolume = music;
@@ -106,10 +139,13 @@ namespace LastLight.Core
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
             if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
-            if (!Application.isEditor)
+            if (display && !Application.isEditor)
             {
                 var mode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
-                if (Screen.fullScreenMode != mode) Screen.fullScreenMode = mode;
+                var native = Screen.currentResolution;
+                int w = resWidth > 0 ? resWidth : fullscreen ? native.width : Mathf.Min(1600, native.width);
+                int h = resHeight > 0 ? resHeight : fullscreen ? native.height : Mathf.Min(900, native.height);
+                if (Screen.fullScreenMode != mode || Screen.width != w || Screen.height != h) Screen.SetResolution(w, h, mode);
             }
         }
     }

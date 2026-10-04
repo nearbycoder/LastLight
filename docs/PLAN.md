@@ -42,7 +42,7 @@ first one runs out of confidence.
 
 **Meta loop:** 12 nights unlock in sequence. A logbook stores the best lamps and score for each
 night. Finishing night 12 plays the ending and unlocks **Night Watch**, an endless score-attack
-mode (stretch goal, see the milestones).
+mode (a stretch goal, since built: see `NightWatch.cs` and the README).
 
 ---
 
@@ -473,7 +473,7 @@ Unity maps them onto shared project materials at load. Each model is render-chec
 7. **M6 Polish:** VFX, post, transitions, camera, juice, balance via the bot and manual play, perf.
    **Commit.**
 8. **M7 Ship:** README, Linux build in `Builds/`, final screenshot tour. **Commit.**
-9. *(Stretch)* Night Watch endless mode.
+9. *(Stretch)* Night Watch endless mode. **Built** (`Assets/Scripts/Sim/NightWatch.cs`).
 
 ## 17. Risks and mitigations
 

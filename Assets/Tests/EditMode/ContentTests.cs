@@ -50,6 +50,26 @@ namespace LastLight.Tests
         }
 
         [Test]
+        public void TheNightWatchIsWellFormed([Values(1, 2, 3)] int seed)
+        {
+            var def = NightWatch.Generate(map, seed);
+            var errors = Validation.MissionErrors(map, def);
+            Assert.IsEmpty(errors, string.Join("\n", errors));
+            Assert.IsTrue(def.endless);
+            Assert.Greater(def.ships.Length, 200, "an hour of ships");
+            for (int i = 1; i < def.ships.Length; i++)
+                Assert.GreaterOrEqual(def.ships[i].t, def.ships[i - 1].t, "ships are scheduled in order");
+        }
+
+        [Test]
+        public void TheBotKeepsTheNightWatchForTenMinutes([Values(1, 2, 3)] int seed)
+        {
+            var r = Validation.PlayWatch(map, seed);
+            Assert.GreaterOrEqual(r.Time, 600f, $"watch {seed} ended at {r.Time:0}s with {r.Arrivals} home");
+            Assert.GreaterOrEqual(r.Lamps, 1);
+        }
+
+        [Test]
         public void TheBeamFormulaMatchesTheDocumentedShape()
         {
             var beam = new SimBeam { Origin = UnityEngine.Vector2.zero, Height = 19f, Bearing = 0f };

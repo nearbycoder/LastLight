@@ -87,13 +87,17 @@ namespace LastLight.UI
             ["wrecker"] = ("NEW: FALSE LIGHTS", "Wreckers lure ships with lanterns. Hold your beam on one to douse it.", "lantern"),
             ["mimic"] = ("NEW: THE MIMIC", "A false light that turns like yours. Stay on your ships.", "twin"),
             ["finale"] = ("THE LAST NIGHT", "Everyone is out. Bring them all home.", "lamp"),
+            ["watch"] = ("ENDLESS", "Every hazard out, ships without end. The third wreck ends the watch.", "lamp"),
         };
 
-        public void Setup(MissionDef def)
+        /// <summary>Fill the card for a night; `watch` carries the Night Watch records.</summary>
+        public void Setup(MissionDef def, SaveData watch = null)
         {
-            number.text = UiKit.Spaced("NIGHT " + UiKit.Roman(def.night) + " OF XII");
+            number.text = UiKit.Spaced(def.endless ? "AFTER THE SEASON" : "NIGHT " + UiKit.Roman(def.night) + " OF XII");
             title.text = def.title;
             date.text = def.date;
+            if (def.endless && watch != null && watch.watchShips > 0)
+                date.text = $"Longest watch {UiKit.Clock(watch.watchSeconds)}  ·  {watch.watchShips} ships home  ·  best {watch.watchBest:N0}";
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
@@ -159,6 +163,19 @@ namespace LastLight.UI
         public Action OnBack;
         RectTransform panel;
 
+        /// <summary>"Native" first, then the desktop's modes from 1280x720 up, smallest first.</summary>
+        static List<Vector2Int> Resolutions()
+        {
+            var list = new List<Vector2Int> { Vector2Int.zero };
+            foreach (var r in Screen.resolutions)
+            {
+                var v = new Vector2Int(r.width, r.height);
+                if (v.x >= 1280 && v.y >= 720 && !list.Contains(v)) list.Add(v);
+            }
+            list.Sort((a, b) => a == Vector2Int.zero ? -1 : b == Vector2Int.zero ? 1 : (a.x * a.y).CompareTo(b.x * b.y));
+            return list;
+        }
+
         public static SettingsScreen Create(Transform canvas)
         {
             var s = canvas.gameObject.AddComponent<SettingsScreen>();
@@ -171,7 +188,7 @@ namespace LastLight.UI
         {
             var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.72f));
             dim.rectTransform.Fill();
-            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(980, 960));
+            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(980, 1040));
             var bg = UiKit.Image("Bg", panel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
             bg.rectTransform.Fill();
             Label(panel, "Settings", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
@@ -182,7 +199,7 @@ namespace LastLight.UI
             void Row(string label, Component control)
             {
                 // Label and control share a centre line.
-                float y = -200 - row * 64;
+                float y = -196 - row * 60;
                 var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-170, y), new Vector2(380, 50));
                 l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
@@ -198,7 +215,12 @@ namespace LastLight.UI
             Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }));
             Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
             Row("Hints", UiStepper.Create(panel, new[] { "Off", "On" }, save.hints ? 1 : 0, i => save.hints = i == 1));
+            Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
+            var sizes = Resolutions();
+            int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
+            var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
+            Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }));
             var back = UiButton.Create(panel, "Done", UiKit.Heading, 44, () => { SaveData.Current.Save(); OnBack?.Invoke(); }, TextAnchor.MiddleCenter);
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
             FirstSelected = back;
@@ -233,7 +255,7 @@ namespace LastLight.UI
             var dim = UiKit.Image("Dim", Root, null, new Color(0.01f, 0.02f, 0.04f, 0.5f));
             dim.rectTransform.Fill();
             card = UiKit.Rect("Card", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(1000, 860));
-            var bg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.97f), true);
+            var bg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 1f), true);
             bg.rectTransform.Fill();
             heading = Label(card, "", UiKit.BodyBold, 26, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(800, 40));
             title = Label(card, "", UiKit.Title, 84, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(900, 100));
@@ -275,7 +297,36 @@ namespace LastLight.UI
             stats.text = $"Ships home  <b>{w.Arrivals} / {w.TotalShips}</b>          Wrecked  <b>{w.Wrecks}</b>          Steady hands  <b>{w.SteadyArrivals}</b>";
             scoreLine.text = won ? w.Score.ToString("N0") : "";
             best.text = won && w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : (previousBest > 0 ? $"best {previousBest:N0}" : "");
-            lampCount = w.Lamps;
+            string[] captions = { "The light kept", "No ship lost", "A steady hand" };
+            for (int i = 0; i < 3; i++) lampCaptions[i].text = captions[i];
+            ResetLamps(w.Lamps);
+            next.gameObject.SetActive(won && (hasNext || finale));
+            next.Label.text = finale ? "Dawn" : "Next night";
+            retry.Label.text = won ? "Play again" : "Try again";
+            FirstSelected = won && (hasNext || finale) ? next : retry;
+        }
+
+        /// <summary>The end of a Night Watch: how long it lasted, and lamps for ships brought home.</summary>
+        public void SetupWatch(SimWorld w, int previousBest)
+        {
+            heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH");
+            title.text = "The watch ends";
+            verdict.text = w.Arrivals == 0 ? "Not one ship home. The Board will hear of it."
+                : w.Arrivals == 1 ? $"One ship home in {UiKit.Clock(w.Time)}." : $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}.";
+            stats.text = $"Ships home  <b>{w.Arrivals}</b>          Wrecked  <b>{w.Wrecks}</b>          Watch kept  <b>{UiKit.Clock(w.Time)}</b>";
+            scoreLine.text = w.Score.ToString("N0");
+            best.text = w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : previousBest > 0 ? $"best {previousBest:N0}" : "";
+            var m = NightWatch.Milestones;
+            for (int i = 0; i < 3; i++) lampCaptions[i].text = $"{m[i]} ships home";
+            ResetLamps(w.Lamps);
+            next.gameObject.SetActive(false);
+            retry.Label.text = "Keep watch again";
+            FirstSelected = retry;
+        }
+
+        void ResetLamps(int count)
+        {
+            lampCount = count;
             lampShown = 0;
             lampTimer = 1.0f;
             for (int i = 0; i < 3; i++)
@@ -286,15 +337,21 @@ namespace LastLight.UI
                 var glow = lamps[i].transform.parent.GetChild(lamps[i].transform.GetSiblingIndex() - 1).GetComponent<Image>();
                 glow.color = new Color(1f, 0.75f, 0.35f, 0f);
             }
-            next.gameObject.SetActive(won && (hasNext || finale));
-            next.Label.text = finale ? "Dawn" : "Next night";
-            retry.Label.text = won ? "Play again" : "Try again";
-            FirstSelected = won && (hasNext || finale) ? next : retry;
+        }
+
+        /// <summary>Space the visible buttons evenly along the bottom of the card.</summary>
+        void LayoutButtons()
+        {
+            var shown = new List<UiButton>();
+            foreach (var b in new[] { next, retry, logbook }) if (b.gameObject.activeSelf) shown.Add(b);
+            for (int i = 0; i < shown.Count; i++)
+                ((RectTransform)shown[i].transform).anchoredPosition = new Vector2((i - (shown.Count - 1) * 0.5f) * 300f, 50f);
         }
 
         public override void Show()
         {
             base.Show();
+            LayoutButtons();
             card.localScale = Vector3.one * 0.94f;
             Tween.Scale(card, 0.94f, 1f, 0.6f, 0f, Tween.EaseOutBack);
         }
