@@ -54,35 +54,38 @@ namespace LastLight.UI
             speech.lineSpacing = 1.15f;
             speech.Shadowed(0.7f, 2f);
 
-            newCard = UiKit.Rect("New", card).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -500), new Vector2(760, 110));
-            var nbg = UiKit.Image("Bg", newCard, SpriteFactory.Rounded, new Color(1f, 0.85f, 0.55f, 0.08f), true);
+            newCard = UiKit.Rect("New", card).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -490), new Vector2(700, 124));
+            var nbg = UiKit.Image("Bg", newCard, SpriteFactory.Rounded, new Color(0.02f, 0.03f, 0.045f, 0.72f), true);
             nbg.rectTransform.Fill();
+            var edge = UiKit.Image("Edge", newCard, null, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.85f));
+            edge.rectTransform.Stretch(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 14), new Vector2(4, -14));
             newIcon = UiKit.Image("Icon", newCard, SpriteFactory.Lamp, UiKit.BrassBright);
             newIcon.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(62, 0), new Vector2(66, 66));
-            newTitle = Label(newCard, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(120, -28), new Vector2(620, 30));
+            newTitle = Label(newCard, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(124, -30), new Vector2(560, 30));
             newTitle.rectTransform.pivot = new Vector2(0, 0.5f);
-            newText = Label(newCard, "", UiKit.BodyMedium, 27, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(120, -68), new Vector2(620, 40));
-            newText.rectTransform.pivot = new Vector2(0, 0.5f);
+            newText = Label(newCard, "", UiKit.BodyMedium, 27, UiKit.Paper, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(124, -50), new Vector2(556, 66));
+            newText.rectTransform.pivot = new Vector2(0, 1);
+            newText.lineSpacing = 0.95f;
 
             var start = UiButton.Create(card, "Begin the watch", UiKit.Heading, 46, () => { if (ready) OnStart?.Invoke(); });
             ((RectTransform)start.transform).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(22, 40), new Vector2(520, 64));
             FirstSelected = start;
-            prompt = Label(card, "click, or press Space", UiKit.Italic, 22, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(22, 10), new Vector2(520, 30));
+            prompt = Label(card, "click, or press Space", UiKit.Italic, 24, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(330, 72), new Vector2(360, 30));
             prompt.rectTransform.pivot = new Vector2(0, 0.5f);
         }
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
         {
             ["aim"] = ("TONIGHT", "Move the mouse to turn the light.", "mouse"),
-            ["chart"] = ("NEW: HIDDEN REEFS", "Sweep the light ahead of a ship to chart the rocks.", "ring"),
-            ["buoy"] = ("NEW: BUOYS", "Light a buoy and it guides ships for a while.", "lamp"),
-            ["shoal"] = ("NEW: STEAMERS AND SANDBANKS", "Deep hulls run aground on shoals. Chart the sands for them.", "ring"),
+            ["chart"] = ("NEW: HIDDEN REEFS", "Sweep the light ahead of a ship to chart the rocks.", "reef"),
+            ["buoy"] = ("NEW: BUOYS", "Light a buoy and it guides ships for a while.", "buoy"),
+            ["shoal"] = ("NEW: STEAMERS AND SANDBANKS", "Deep hulls run aground on shoals. Chart the sands for them.", "steamer"),
             ["fog"] = ("NEW: SEA FRET", "Fog swallows the light. Hold to focus, Space for the horn.", "lmb"),
-            ["ferry"] = ("NEW: THE FERRY", "The Evening Star carries passengers. Worth the most, lost the hardest.", "ring"),
-            ["damaged"] = ("NEW: DAMAGED SHIPS", "No lamps. Find them by their flares, then light them home.", "ring"),
-            ["storm"] = ("NEW: STORM", "The current pushes ships ashore. Lightning shows the rocks.", "ring"),
-            ["wrecker"] = ("NEW: FALSE LIGHTS", "Wreckers lure ships with lanterns. Hold your beam on one to douse it.", "lmb"),
-            ["mimic"] = ("NEW: THE MIMIC", "A false light that turns like yours. Stay on your ships.", "ring"),
+            ["ferry"] = ("NEW: THE FERRY", "The Evening Star carries passengers. Worth the most, lost the hardest.", "ferry"),
+            ["damaged"] = ("NEW: DAMAGED SHIPS", "No lamps. Find them by their flares, then light them home.", "flare"),
+            ["storm"] = ("NEW: STORM", "The current pushes ships ashore. Lightning shows the rocks.", "storm"),
+            ["wrecker"] = ("NEW: FALSE LIGHTS", "Wreckers lure ships with lanterns. Hold your beam on one to douse it.", "lantern"),
+            ["mimic"] = ("NEW: THE MIMIC", "A false light that turns like yours. Stay on your ships.", "twin"),
             ["finale"] = ("THE LAST NIGHT", "Everyone is out. Bring them all home.", "lamp"),
         };
 
@@ -103,10 +106,16 @@ namespace LastLight.UI
                 {
                     "mouse" => SpriteFactory.Mouse(""),
                     "lmb" => SpriteFactory.Mouse("left"),
-                    "ring" => SpriteFactory.ThinRing,
-                    _ => SpriteFactory.Lamp,
+                    "steamer" or "ferry" => SpriteFactory.Ship(n.icon),
+                    "lamp" => SpriteFactory.Lamp,
+                    _ => SpriteFactory.Icon(n.icon),
                 };
-                newIcon.rectTransform.sizeDelta = n.icon == "mouse" || n.icon == "lmb" ? new Vector2(46, 62) : new Vector2(66, 66);
+                newIcon.rectTransform.sizeDelta = n.icon switch
+                {
+                    "mouse" or "lmb" => new Vector2(46, 62),
+                    "steamer" or "ferry" => new Vector2(96, 38),
+                    _ => new Vector2(70, 70),
+                };
             }
             else newCard.gameObject.SetActive(false);
         }
@@ -162,16 +171,22 @@ namespace LastLight.UI
         {
             var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.72f));
             dim.rectTransform.Fill();
-            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 860));
-            Label(panel, "Settings", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(800, 100)).Shadowed();
+            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(980, 960));
+            var bg = UiKit.Image("Bg", panel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
+            bg.rectTransform.Fill();
+            Label(panel, "Settings", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
+            var rule = UiKit.Image("Rule", panel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f));
+            rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -146), new Vector2(620, 3));
             var save = SaveData.Current;
             int row = 0;
             void Row(string label, Component control)
             {
-                float y = -150 - row * 62;
-                var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-190, y), new Vector2(380, 50));
+                // Label and control share a centre line.
+                float y = -200 - row * 64;
+                var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-170, y), new Vector2(380, 50));
+                l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
-                ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(200, y), new Vector2(380, 46));
+                ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(210, y), new Vector2(380, 46));
                 row++;
             }
             Row("Master volume", UiSlider.Create(panel, save.master, v => { save.master = v; save.Apply(); }));
@@ -185,7 +200,7 @@ namespace LastLight.UI
             Row("Hints", UiStepper.Create(panel, new[] { "Off", "On" }, save.hints ? 1 : 0, i => save.hints = i == 1));
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
             var back = UiButton.Create(panel, "Done", UiKit.Heading, 44, () => { SaveData.Current.Save(); OnBack?.Invoke(); }, TextAnchor.MiddleCenter);
-            ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(300, 60));
+            ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
             FirstSelected = back;
         }
     }
@@ -218,7 +233,7 @@ namespace LastLight.UI
             var dim = UiKit.Image("Dim", Root, null, new Color(0.01f, 0.02f, 0.04f, 0.5f));
             dim.rectTransform.Fill();
             card = UiKit.Rect("Card", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(1000, 860));
-            var bg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.8f), true);
+            var bg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.97f), true);
             bg.rectTransform.Fill();
             heading = Label(card, "", UiKit.BodyBold, 26, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(800, 40));
             title = Label(card, "", UiKit.Title, 84, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(900, 100));
@@ -237,7 +252,7 @@ namespace LastLight.UI
             stats.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -470), new Vector2(900, 120));
             stats.lineSpacing = 1.3f;
             scoreLine = Label(card, "", UiKit.Heading, 54, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(900, 70));
-            best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -668), new Vector2(900, 32));
+            best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
             next = UiButton.Create(card, "Next night", UiKit.Heading, 42, () => OnNext?.Invoke(), TextAnchor.MiddleCenter);
             ((RectTransform)next.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-300, 50), new Vector2(300, 60));
             retry = UiButton.Create(card, "Try again", UiKit.Heading, 42, () => OnRetry?.Invoke(), TextAnchor.MiddleCenter);

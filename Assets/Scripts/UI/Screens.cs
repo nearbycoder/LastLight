@@ -161,30 +161,56 @@ namespace LastLight.UI
 
         void Build()
         {
-            var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.55f));
+            var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.6f));
             dim.rectTransform.Fill();
-            page = UiKit.Rect("Page", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -10), new Vector2(1240, 900));
-            var paper = UiKit.Image("Paper", page, SpriteFactory.Paper, Color.white, true);
+            page = UiKit.Rect("Book", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(1320, 960));
+            // Leather boards just proud of the pages, then the open spread.
+            var cover = UiKit.Image("Cover", page, SpriteFactory.Rounded, new Color(0.2f, 0.09f, 0.06f), true);
+            cover.rectTransform.Fill(-18f);
+            var coverShadow = cover.gameObject.AddComponent<Shadow>();
+            coverShadow.effectColor = new Color(0, 0, 0, 0.55f);
+            coverShadow.effectDistance = new Vector2(10, -14);
+            var paper = UiKit.Image("Pages", page, SpriteFactory.BookSpread, Color.white);
             paper.rectTransform.Fill();
-            var shadow = paper.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0, 0, 0, 0.5f);
-            shadow.effectDistance = new Vector2(8, -10);
-            Label(page, "Keeper's Log", UiKit.Title, 64, UiKit.PaperInk, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -78), new Vector2(900, 80));
-            Label(page, "Gannet Head Light  ·  Merrow Bay  ·  the last season", UiKit.Italic, 24, new Color(0.35f, 0.28f, 0.2f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -138), new Vector2(900, 34));
-            var rule = UiKit.Image("Rule", page, SpriteFactory.Bar, new Color(0.35f, 0.26f, 0.16f, 0.7f));
-            rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -168), new Vector2(980, 3));
+
+            // Left page: the title block. Right page: the season's tally.
+            Centered(Label(page, "Keeper's Log", UiKit.Title, 62, UiKit.PaperInk, TextAnchor.MiddleCenter, new Vector2(0.25f, 1), new Vector2(0, -44), new Vector2(560, 76)));
+            Centered(Label(page, "Gannet Head Light  ·  Merrow Bay", UiKit.Italic, 23, new Color(0.38f, 0.3f, 0.21f), TextAnchor.MiddleCenter, new Vector2(0.25f, 1), new Vector2(0, -118), new Vector2(560, 32)));
+            Centered(Label(page, "The last season", UiKit.Title, 40, UiKit.PaperInk, TextAnchor.MiddleCenter, new Vector2(0.75f, 1), new Vector2(0, -56), new Vector2(560, 60)));
+            summary = Centered(Label(page, "", UiKit.Italic, 23, new Color(0.38f, 0.3f, 0.21f), TextAnchor.MiddleCenter, new Vector2(0.75f, 1), new Vector2(0, -118), new Vector2(560, 32)));
+            for (int side = 0; side < 2; side++)
+            {
+                var rule = UiKit.Image("Rule", page, SpriteFactory.Bar, new Color(0.35f, 0.26f, 0.16f, 0.65f));
+                rule.rectTransform.Pin(new Vector2(side == 0 ? 0.25f : 0.75f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -164), new Vector2(500, 3));
+            }
             for (int i = 0; i < 12; i++)
             {
                 int col = i / 6, row = i % 6;
-                var e = UiKit.Rect("Entry" + i, page).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(col == 0 ? -282 : 282, -192 - row * 100), new Vector2(540, 92));
+                var e = UiKit.Rect("Entry" + i, page).Pin(new Vector2(col == 0 ? 0.25f : 0.75f, 1), new Vector2(0.5f, 1), new Vector2(0, -184 - row * 104), new Vector2(540, 96));
+                // A faint ruled line under each entry, as in a ledger.
+                var line = UiKit.Image("Ruling", page, null, new Color(0.35f, 0.42f, 0.55f, 0.16f));
+                line.rectTransform.Pin(new Vector2(col == 0 ? 0.25f : 0.75f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -184 - row * 104 - 100), new Vector2(520, 2));
                 entries.Add(e);
             }
-            summary = Label(page, "", UiKit.BodyMedium, 24, new Color(0.3f, 0.24f, 0.17f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(1000, 36));
-            var back = UiButton.Create(page, "Back", UiKit.Heading, 38, () => OnBack?.Invoke(), TextAnchor.MiddleCenter);
+            // The red margin line down each page.
+            for (int side = 0; side < 2; side++)
+            {
+                var margin = UiKit.Image("Margin", page, null, new Color(0.7f, 0.25f, 0.2f, 0.18f));
+                margin.rectTransform.Pin(new Vector2(side == 0 ? 0.25f : 0.75f, 1), new Vector2(0.5f, 1), new Vector2(-180, -176), new Vector2(2, 620));
+            }
+            var back = UiButton.Create(page, "Close the book", UiKit.Heading, 36, () => OnBack?.Invoke(), TextAnchor.MiddleCenter);
             back.Normal = UiKit.PaperInk;
             back.Hover = new Color(0.55f, 0.3f, 0.1f);
             back.Label.GetComponent<Shadow>().enabled = false;
-            ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(240, 54));
+            ((RectTransform)back.transform).Pin(new Vector2(0.75f, 0), new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(320, 54));
+            var hint = Label(page, "Choose a night to keep again", UiKit.Italic, 21, new Color(0.38f, 0.3f, 0.21f, 0.8f), TextAnchor.MiddleCenter, new Vector2(0.25f, 0), new Vector2(0, 52), new Vector2(500, 30));
+            hint.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        }
+
+        static Text Centered(Text t)
+        {
+            t.rectTransform.pivot = new Vector2(0.5f, t.rectTransform.pivot.y);
+            return t;
         }
 
         public void Refresh(List<MissionDef> missions, SaveData save)
@@ -195,7 +221,7 @@ namespace LastLight.UI
                 foreach (Transform c in e) Destroy(c.gameObject);
                 bool open = i < missions.Count && i + 1 <= save.unlocked;
                 var m = i < missions.Count ? missions[i] : null;
-                var ink = open ? UiKit.PaperInk : new Color(0.45f, 0.38f, 0.3f, 0.55f);
+                var ink = open ? UiKit.PaperInk : new Color(0.4f, 0.33f, 0.25f, 0.7f);
                 var b = UiButton.Create(e, "", UiKit.Heading, 30, null);
                 ((RectTransform)b.transform).Fill();
                 b.Slide = 8f;
@@ -206,23 +232,36 @@ namespace LastLight.UI
                 b.OnClick = () => OnPick?.Invoke(night);
                 b.SetInteractable(open);
                 var content = b.transform.Find("Content");
-                var num = Label(content, UiKit.Roman(night), UiKit.Title, 42, open ? new Color(0.45f, 0.25f, 0.1f) : ink, TextAnchor.MiddleCenter, new Vector2(0, 0.5f), new Vector2(44, 0), new Vector2(90, 70));
+                var num = Label(content, UiKit.Roman(night), UiKit.Title, 42, open ? new Color(0.5f, 0.22f, 0.1f) : ink, TextAnchor.MiddleCenter, new Vector2(0, 0.5f), new Vector2(44, 0), new Vector2(90, 70));
                 num.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                var title = Label(content, open && m != null ? m.title : "sealed", UiKit.Heading, 34, ink, TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(100, 13), new Vector2(300, 44));
-                title.rectTransform.pivot = new Vector2(0, 0.5f);
-                var date = Label(content, open && m != null ? m.date : "", UiKit.Italic, 19, new Color(ink.r, ink.g, ink.b, ink.a * 0.75f), TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(101, -21), new Vector2(300, 28));
-                date.rectTransform.pivot = new Vector2(0, 0.5f);
-                for (int k = 0; k < 3; k++)
+                if (open && m != null)
                 {
-                    bool lit = save.lamps[i] > k;
-                    var lamp = UiKit.Image("Lamp", content, lit ? SpriteFactory.Lamp : SpriteFactory.LampEmpty, lit ? new Color(0.78f, 0.5f, 0.12f) : new Color(0.45f, 0.38f, 0.3f, open ? 0.5f : 0.25f));
-                    lamp.rectTransform.Pin(new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-96 + k * 32, 10), new Vector2(34, 34));
+                    var title = Label(content, m.title, UiKit.Heading, 34, ink, TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(104, 13), new Vector2(300, 44));
+                    title.rectTransform.pivot = new Vector2(0, 0.5f);
+                    var date = Label(content, m.date, UiKit.Italic, 19, new Color(ink.r, ink.g, ink.b, 0.7f), TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(105, -21), new Vector2(300, 28));
+                    date.rectTransform.pivot = new Vector2(0, 0.5f);
+                    bool played = save.lamps[i] > 0 || save.best[i] > 0;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        bool lit = save.lamps[i] > k;
+                        var lamp = UiKit.Image("Lamp", content, lit ? SpriteFactory.Lamp : SpriteFactory.LampEmpty, lit ? new Color(0.78f, 0.5f, 0.12f) : new Color(0.42f, 0.35f, 0.27f, played ? 0.55f : 0.35f));
+                        lamp.rectTransform.Pin(new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-96 + k * 32, 10), new Vector2(34, 34));
+                    }
+                    if (save.best[i] > 0)
+                        Label(content, save.best[i].ToString("N0"), UiKit.BodyMedium, 19, new Color(0.35f, 0.28f, 0.2f), TextAnchor.MiddleCenter, new Vector2(1, 0.5f), new Vector2(-64, -22), new Vector2(120, 26));
+                    else
+                        Label(content, "not yet kept", UiKit.Italic, 18, new Color(0.38f, 0.3f, 0.21f, 0.75f), TextAnchor.MiddleCenter, new Vector2(1, 0.5f), new Vector2(-64, -22), new Vector2(140, 26));
                 }
-                if (save.best[i] > 0)
-                    Label(content, save.best[i].ToString("N0"), UiKit.BodyMedium, 19, new Color(0.35f, 0.28f, 0.2f), TextAnchor.MiddleCenter, new Vector2(1, 0.5f), new Vector2(-64, -22), new Vector2(120, 26));
-                _ = num; _ = title; _ = date;
+                else
+                {
+                    var title = Label(content, "sealed", UiKit.Italic, 28, ink, TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(104, 0), new Vector2(300, 44));
+                    title.rectTransform.pivot = new Vector2(0, 0.5f);
+                    var seal = UiKit.Image("Seal", content, SpriteFactory.WaxSeal, new Color(1f, 1f, 1f, 0.92f));
+                    seal.rectTransform.Pin(new Vector2(1, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-64, 0), new Vector2(58, 58));
+                    seal.rectTransform.localEulerAngles = new Vector3(0, 0, (i * 37) % 40 - 20);
+                }
             }
-            summary.text = $"Lamps lit  {save.TotalLamps} / 36          Ships brought home  {save.shipsHome}";
+            summary.text = $"{save.TotalLamps} of 36 lamps lit  ·  {save.shipsHome} ships brought home";
         }
 
         public override void Show()
@@ -250,8 +289,13 @@ namespace LastLight.UI
 
         void Build()
         {
-            var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.62f));
+            var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.5f));
             dim.rectTransform.Fill();
+            // A pool of shadow behind the menu, so it reads even over the beam.
+            var pool = UiKit.Image("Pool", Root, SpriteFactory.Glow, new Color(0, 0.008f, 0.016f, 0.9f));
+            pool.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(1500, 1100));
+            var core = UiKit.Image("PoolCore", Root, SpriteFactory.Glow, new Color(0, 0.008f, 0.016f, 0.8f));
+            core.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(1000, 860));
             Label(Root, "The light burns on", UiKit.Italic, 28, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(800, 40));
             Label(Root, "Paused", UiKit.Title, 96, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 175), new Vector2(800, 120)).Shadowed(0.8f, 3f);
             var items = new (string, Action)[]

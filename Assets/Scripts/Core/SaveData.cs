@@ -39,7 +39,18 @@ namespace LastLight.Core
             {
                 if (current != null) return current;
                 current = new SaveData();
-                if (Game.HasArg("-llFresh")) return current;
+                if (Game.HasArg("-llFresh"))
+                {
+                    // Tours can start mid-season (seven nights kept) to show a filled-in logbook.
+                    if (Game.HasArg("-llSampleSave"))
+                    {
+                        current.unlocked = 8;
+                        current.lamps = new[] { 3, 3, 2, 3, 1, 3, 2, 0, 0, 0, 0, 0 };
+                        current.best = new[] { 610, 790, 880, 1210, 820, 1560, 1490, 0, 0, 0, 0, 0 };
+                        current.shipsHome = 43;
+                    }
+                    return current;
+                }
                 var json = PlayerPrefs.GetString(Key, "");
                 if (!string.IsNullOrEmpty(json))
                 {

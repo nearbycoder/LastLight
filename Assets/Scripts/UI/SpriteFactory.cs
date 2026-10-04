@@ -199,6 +199,75 @@ namespace LastLight.UI
             }
         }, 1.3f)));
 
+        /// <summary>Icons for the briefing's "new tonight" card, drawn as line art.</summary>
+        public static Sprite Icon(string name) => Cached("icon_" + name, () => Make(Raster(96, 96, (x, y) =>
+        {
+            switch (name)
+            {
+                case "reef":
+                {
+                    // A rock just breaking the surface, with swell lines either side.
+                    float rock = Polygon(x, y, new[] { new Vector2(30, 40), new Vector2(42, 66), new Vector2(52, 58), new Vector2(60, 72), new Vector2(70, 40) });
+                    float w1 = Mathf.Abs(y - 36f - 3.5f * Mathf.Sin(x * 0.32f)) - 2.2f;
+                    float w2 = Mathf.Abs(y - 24f - 3.5f * Mathf.Sin(x * 0.32f + 1.6f)) - 2.2f;
+                    w1 = Mathf.Max(w1, Box(x, y, 48, 36, 40, 10));
+                    w2 = Mathf.Max(w2, Box(x, y, 48, 24, 32, 10));
+                    return Union(Mathf.Max(rock, -(y - 40f)), Union(w1, w2));
+                }
+                case "buoy":
+                {
+                    float body = Polygon(x, y, new[] { new Vector2(34, 30), new Vector2(62, 30), new Vector2(52, 62), new Vector2(44, 62) });
+                    float cage = Mathf.Abs(Box(x, y, 48, 70, 7, 7, 2)) - 1.8f;
+                    float lamp = Circle(x, y, 48, 70, 3.2f);
+                    float sea = Mathf.Max(Mathf.Abs(y - 24f - 3f * Mathf.Sin(x * 0.3f)) - 2.2f, Box(x, y, 48, 24, 38, 8));
+                    float rays = Union(Box(x, y, 48, 87, 1.6f, 5), Union(Box(x, y, 33, 72, 5, 1.6f), Box(x, y, 63, 72, 5, 1.6f)));
+                    return Union(Union(body, cage), Union(Union(lamp, sea), rays));
+                }
+                case "storm":
+                    return Polygon(x, y, new[] { new Vector2(56, 88), new Vector2(30, 46), new Vector2(46, 46), new Vector2(36, 8), new Vector2(68, 56), new Vector2(51, 56), new Vector2(66, 88) });
+                case "flare":
+                {
+                    // A falling flare under its smoke trail.
+                    float star = Circle(x, y, 48, 40, 7f);
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float a = k * Mathf.PI / 4f;
+                        var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                        float along = (x - 48) * d.x + (y - 40) * d.y, across = Mathf.Abs(-(x - 48) * d.y + (y - 40) * d.x);
+                        star = Union(star, Mathf.Max(across - (k % 2 == 0 ? 2.2f : 1.4f), Mathf.Abs(along - 18f) - (k % 2 == 0 ? 6f : 3.5f)));
+                    }
+                    float trail = Mathf.Max(Mathf.Abs(x - 48f - 4f * Mathf.Sin(y * 0.18f)) - 1.6f, Box(x, y, 48, 76, 6, 12));
+                    return Union(star, trail);
+                }
+                case "lantern":
+                {
+                    // The wrecker's lantern.
+                    float glass = Mathf.Abs(Box(x, y, 48, 46, 13, 17, 3)) - 2f;
+                    float top = Polygon(x, y, new[] { new Vector2(33, 64), new Vector2(63, 64), new Vector2(48, 76) });
+                    float ring = Mathf.Abs(Circle(x, y, 48, 81, 4.5f)) - 1.6f;
+                    float flame = Circle(x, y, 48, 44, 5f);
+                    float base_ = Box(x, y, 48, 26, 16, 3, 1);
+                    return Union(Union(glass, top), Union(Union(ring, flame), base_));
+                }
+                case "twin":
+                {
+                    // Two beams from one point, turning together.
+                    var o = new Vector2(48, 16);
+                    float Wedge(float ang)
+                    {
+                        var d = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+                        float px = x - o.x, py = y - o.y;
+                        float along = px * d.x + py * d.y, across = Mathf.Abs(-px * d.y + py * d.x);
+                        return Mathf.Max(Mathf.Max(across - along * 0.26f, -along + 4f), along - 66f);
+                    }
+                    float a = Mathf.Abs(Wedge(1.95f)) - 1.6f, b = Wedge(1.19f);
+                    return Union(Union(a, b), Circle(x, y, o.x, o.y, 6f));
+                }
+                default:
+                    return Mathf.Abs(Circle(x, y, 48, 48, 30)) - 2f;
+            }
+        }, 1.3f)));
+
         /// <summary>A key cap outline for hints.</summary>
         public static Sprite KeyCap => Cached("keycap", () => Make(Raster(64, 64, (x, y) => Mathf.Abs(Box(x, y, 32, 33, 28, 27, 9)) - 2.2f), new Vector4(20, 20, 20, 20)));
 
@@ -239,6 +308,66 @@ namespace LastLight.UI
             tex.Apply();
             return Make(tex, new Vector4(60, 60, 60, 60));
         });
+
+        /// <summary>
+        /// The logbook lying open: two parchment pages with a shaded gutter, the page edges of the
+        /// block showing at the sides, foxing and a little wear. Drawn at 1024x744 (the page's aspect).
+        /// </summary>
+        public static Sprite BookSpread => Cached("bookSpread", () =>
+        {
+            const int W = 1024, H = 744;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var px = new Color32[W * H];
+            var baseCol = new Color(0.9f, 0.85f, 0.74f);
+            var edgeCol = new Color(0.6f, 0.5f, 0.36f);
+            for (int y = 0; y < H; y++)
+                for (int x = 0; x < W; x++)
+                {
+                    float u = x / (float)W, v = y / (float)H;
+                    float half = u < 0.5f ? u * 2f : (1f - u) * 2f;          // 0 at the outer edge, 1 at the gutter
+                    // The pages bow up from the spine: a dip of shadow at the gutter, a lit crest just beside it.
+                    float gutter = Mathf.Exp(-(1f - half) * (1f - half) * 900f);
+                    float crest = Mathf.Exp(-Mathf.Pow((1f - half - 0.06f) * 14f, 2f));
+                    float n = Mathf.PerlinNoise(u * 7f, v * 5f) * 0.55f + Mathf.PerlinNoise(u * 48f, v * 36f) * 0.28f + Mathf.PerlinNoise(u * 170f, v * 130f) * 0.17f;
+                    var c = baseCol * (0.86f + n * 0.17f);
+                    // Foxed, darker edges and corners.
+                    float outer = Mathf.Min(u, 1f - u);
+                    float wear = Mathf.SmoothStep(0f, 0.09f, Mathf.Min(outer, Mathf.Min(v, 1f - v)) + (Mathf.PerlinNoise(u * 13f, v * 13f) - 0.5f) * 0.03f);
+                    c = Color.Lerp(edgeCol, c, 0.3f + 0.7f * wear);
+                    float fox = Mathf.PerlinNoise(u * 11f + 3f, v * 8f + 7f);
+                    if (fox > 0.74f) c *= 1f - (fox - 0.74f) * 0.35f;
+                    c *= 1f - gutter * 0.42f;
+                    c += new Color(0.03f, 0.025f, 0.015f) * crest;
+                    // The block of pages showing at the outer edges: a few fine lines.
+                    if (outer < 0.012f)
+                    {
+                        float line = Mathf.Abs(Mathf.Sin(outer * W * 1.6f));
+                        c *= 0.82f + 0.18f * line;
+                    }
+                    c.a = Mathf.Clamp01(Mathf.Min(outer * W, Mathf.Min(y + 0.5f, H - y - 0.5f)) * 0.8f);
+                    px[y * W + x] = c;
+                }
+            tex.SetPixels32(px);
+            tex.Apply();
+            return Make(tex);
+        });
+
+        /// <summary>A red wax seal pressed over a sealed night: a blobby disc with a stamped ring.</summary>
+        public static Sprite WaxSeal => Cached("waxSeal", () => Make(Raster(96, 96, (x, y) =>
+        {
+            float a = Mathf.Atan2(y - 48, x - 48);
+            float r = 36f + 3.2f * Mathf.Sin(a * 7f + 1.3f) + 1.8f * Mathf.Sin(a * 13f);
+            return Circle(x, y, 48, 48, r);
+        }, 1.4f, (x, y) =>
+        {
+            float d = Mathf.Sqrt((x - 48) * (x - 48) + (y - 48) * (y - 48));
+            float ring = Mathf.Abs(d - 22f) < 2.2f ? 0.72f : 1f;                  // the stamped ring
+            float star = d < 13f && (Mathf.Abs(x - 48) < 2.2f || Mathf.Abs(y - 48) < 2.2f) ? 0.72f : 1f;
+            float shade = 1.08f - (y - 48) / 48f * -0.18f - d / 48f * 0.25f;     // lit from above
+            var c = new Color(0.62f, 0.13f, 0.1f) * ring * star * shade;
+            c.a = 1f;
+            return c;
+        })));
 
         /// <summary>A radio portrait medallion: a brass ring around a dark disc.</summary>
         public static Sprite Medallion => Cached("medallion", () => Make(Raster(128, 128, (x, y) => Circle(x, y, 64, 64, 60), 1.3f,

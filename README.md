@@ -12,6 +12,7 @@ Gannet Head Light is being decommissioned at the end of the season. You have twe
 |---|---|
 | ![Sea fret: fog banks drift across the bay](docs/media/fog.jpg) | ![False Light: a wrecker's lantern imitates the beam](docs/media/false_light.jpg) |
 | ![Dawn results: three lamps](docs/media/results.jpg) | ![The ending: dawn behind the tower](docs/media/ending.jpg) |
+| ![The keeper's logbook: nights kept and nights still sealed](docs/media/logbook.jpg) | |
 
 Built in Unity 6000.6.2f1 (URP). Every model is scripted in Blender 4.5, and every sound and
 note of music is synthesized in Python. There are no stock or sampled assets.
