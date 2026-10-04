@@ -207,6 +207,8 @@ namespace LastLight.Core
             Radio.Clear();
             Runner = MissionRunner.Begin(def, World, AutoPlay);
             Runner.Holding = holding;
+            int neglect = Arg("-llNeglect", -1);
+            if (neglect >= 0 && neglect < def.ships.Length) TourNeglect(def.ships[neglect].name);
             Hud.ClearBindings();
             Hud.Bind(Runner, Radio);
             feedback = new Feedback(Runner, Hud, Radio);
@@ -446,6 +448,8 @@ namespace LastLight.Core
         public void TourBriefing(int night) => ShowBriefing(night);
         public void TourDip(float time, Action middle) => fader.Dip(time, middle);
         public void TourBegin() => BeginWatch();
+        /// <summary>The AutoKeeper leaves this ship to its fate (stages a wreck for captures).</summary>
+        public void TourNeglect(string ship) { if (Runner != null) Runner.Bot.Ignore = s => s.Name == ship; }
         public void TourPause() => Pause();
         public void TourResume() => Resume();
         public void TourEnding() => StartEnding();

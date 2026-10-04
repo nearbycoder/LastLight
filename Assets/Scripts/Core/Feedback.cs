@@ -23,6 +23,7 @@ namespace LastLight.Core
         readonly HashSet<string> hintSeen = new HashSet<string>();
         float swept;               // total beam rotation, for the "aim" hint
         float focusHeld;
+        float swingPeak, lastBrake = -9f;
         float hitPause;
         float thunderAt = -1f;
         public static Sfx.Loop Whirr, Focus, Sea, Wind, Rain, Static;
@@ -126,6 +127,7 @@ namespace LastLight.Core
                 }
                 case SimEventType.ShipLit:
                     Sfx.PlayAt("ship_lit", pos3, 0.4f, e.Ship.Type == ShipType.Steamer ? 0.8f : e.Ship.Type == ShipType.Ferry ? 1.12f : 1f, 0.15f);
+                    if (!e.Ship.Damaged) Sfx.PlayAt("ship_answer", pos3, 0.3f, Random.Range(0.95f, 1.05f), 0.15f);
                     break;
                 case SimEventType.ShipLost:
                     Sfx.PlayAt("ship_lost", pos3, 0.75f);
@@ -161,9 +163,13 @@ namespace LastLight.Core
                     var s = e.Ship;
                     Sfx.PlayAt("wreck", pos3, 1f);
                     Sfx.Duck(0.5f, 1.2f);
-                    FX.Splash(pos3, s.Type == ShipType.Trawler ? 0.8f : 1.2f);
+                    float size = s.Type == ShipType.Trawler ? 0.8f : 1.2f;
+                    FX.Splash(pos3, size);
+                    FX.Impact(pos3, size);
                     FX.Debris(pos3, s.Velocity, true);
+                    hud.FloatText(new Vector3(e.Pos.x, 4f, e.Pos.y), s.Name, UiKit.Danger);
                     Shake(0.55f);
+                    if (SaveData.Current.shake && CameraRig.Instance != null) CameraRig.Instance.Punch(pos3, 1f);
                     hitPause = 0.35f;
                     radio.React(e, w);
                     if (First("wreck")) Cue("firstWreck");
@@ -260,6 +266,17 @@ namespace LastLight.Core
             float speed = Mathf.Abs(w.Beam.AngularVelocity) * Mathf.Rad2Deg;
             Whirr.Set(Mathf.Clamp01(speed / 160f) * 0.55f + 0.06f, 0.7f + Mathf.Clamp01(speed / 200f) * 0.7f);
             Focus.Set(w.Beam.Focus * 0.35f, 0.9f + w.Beam.Focus * 0.2f);
+            swingPeak = Mathf.Max(swingPeak, speed);
+            if (speed < 25f)
+            {
+                if (swingPeak > 110f && w.Time - lastBrake > 0.4f)
+                {
+                    float v = 0.22f + 0.3f * Mathf.InverseLerp(110f, 200f, swingPeak);
+                    Sfx.Play("lens_brake", v, Random.Range(0.93f, 1.05f), 0f);
+                    lastBrake = w.Time;
+                }
+                swingPeak = 0f;
+            }
             Static.Set(radio.Busy ? 0.08f : 0f);
             swept += speed * dt;
             if (swept > 90f) Dismiss("aim");

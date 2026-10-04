@@ -166,15 +166,19 @@ Tools/build.sh                 # build through the resident editor
   - every route is safe for every hull that sails it once its hazards are charted (42
     route and hull pairs);
   - the AutoKeeper bot wins every night in the pure simulation.
-- The latest report: the bot wins all twelve nights. It earns three lamps on nine of them, two
-  on night 12, and one on nights 9 and 11, where it loses one ship each. That's the intended
-  difficulty: the wrecker nights are the hardest.
+- The latest report: the bot wins all twelve nights. It earns three lamps on ten of them, two
+  on nights 11 and 12, and one on night 9, where it loses a ship to the wreckers. That's the
+  intended difficulty: the wrecker nights are the hardest.
 - `Tools/tour.sh <ui|nights|ending|input> <outdir>` plays the built game with scripted input,
   saves screenshots and reports any console errors and frame times. The `input` tour drives the
   real mouse and keyboard path in the player.
 - `Tools/record.sh [out.mp4]` records a four-minute gameplay reel with sound (the title, five
   nights played by the bot, the results and the ending) to `Builds/LastLight_gameplay.mp4`.
   Time is stepped at a fixed 30 fps, so the video is smooth however busy the GPU is.
+- `Tools/burst.sh <night> '<condition>' <frames> <gap> <name>` plays a night in the resident
+  editor until a C# condition over the world holds, then captures a run of frames. For example,
+  `LL_EXTRA="-llNeglect 0" Tools/burst.sh 5 'w.Wrecks > 0' 6 0.5 wreck` has the bot ignore the
+  first ship so that it strikes a reef, and captures the wreck.
 
 ## Performance
 

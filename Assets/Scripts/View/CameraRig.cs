@@ -61,6 +61,26 @@ namespace LastLight.View
 
         public void Shake(float amount) => trauma = Mathf.Min(1f, trauma + amount);
 
+        /// <summary>A brief push of the view towards something dramatic on the water, then back.</summary>
+        public void Punch(Vector3 at, float amount)
+        {
+            punchAt = at;
+            punchAmount = amount;
+            punchT = 0f;
+        }
+
+        float PunchEnvelope()
+        {
+            if (punchT >= PunchTime) return 0f;
+            float rise = Mathf.Clamp01(punchT / 0.35f);
+            float fall = Mathf.Clamp01((PunchTime - punchT) / 2.2f);
+            return punchAmount * rise * rise * (3f - 2f * rise) * fall * fall * (3f - 2f * fall);
+        }
+
+        const float PunchTime = 4.2f;
+        Vector3 punchAt;
+        float punchAmount, punchT = PunchTime;
+
         /// <summary>A gentle pull of the view towards where the beam points (play view only).</summary>
         public void SetLookBias(Vector3 bias) => lookOffset = Vector3.Lerp(lookOffset, bias, 0.05f);
 
@@ -80,7 +100,16 @@ namespace LastLight.View
             }
             else current = to;
             trauma = Mathf.Max(0f, trauma - dt * 1.4f);
-            Apply(current, Time.unscaledTime);
+            punchT += Time.deltaTime;
+            var p = current;
+            float k = PunchEnvelope();
+            if (k > 0f)
+            {
+                p.LookAt = Vector3.Lerp(p.LookAt, punchAt, 0.3f * k);
+                p.Position = Vector3.Lerp(p.Position, punchAt + (p.Position - p.LookAt) * 0.75f, 0.2f * k);
+                p.Fov *= 1f - 0.12f * k;
+            }
+            Apply(p, Time.unscaledTime);
         }
 
         void Apply(Pose p, float time)

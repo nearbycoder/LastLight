@@ -34,7 +34,8 @@ namespace LastLight.Sim
         public const float MaxSpeedWide = 200f;   // deg/s
         public const float MaxSpeedFocus = 115f;  // deg/s
         public const float Accel = 1150f;         // deg/s^2
-        public const float Stiffness = 9.5f;      // 1/s, how hard the lens chases the aim
+        public const float SpringOmega = 11f;     // rad/s, natural frequency of the lens on its aim
+        public const float SpringDamping = 0.6f;  // < 1: big swings overshoot ~2.5 deg and settle
         public const float LitThreshold = 0.25f;
 
         public float HalfAngle => Mathf.Lerp(WideHalfDeg, FocusHalfDeg, Focus) * Mathf.Deg2Rad;
@@ -47,17 +48,21 @@ namespace LastLight.Sim
         {
             Focus = Mathf.MoveTowards(Focus, input.Focus ? 1f : 0f, dt / 0.18f);
             float maxSpeed = Mathf.Lerp(MaxSpeedWide, MaxSpeedFocus, Focus) * Mathf.Deg2Rad;
-            float desired;
+            float accelMax = Accel * Mathf.Deg2Rad;
             if (input.HasTarget)
             {
+                // A heavy lens on a spring: it builds up speed, coasts, and settles with a slight
+                // overshoot instead of stopping dead on the aim.
                 float diff = Geo.DeltaAngle(Bearing, input.TargetBearing);
-                desired = Mathf.Clamp(diff * Stiffness, -maxSpeed, maxSpeed);
+                float accel = SpringOmega * SpringOmega * diff - 2f * SpringDamping * SpringOmega * AngularVelocity;
+                AngularVelocity += Mathf.Clamp(accel, -accelMax, accelMax) * dt;
+                AngularVelocity = Mathf.Clamp(AngularVelocity, -maxSpeed, maxSpeed);
             }
             else
             {
-                desired = Mathf.Clamp(input.Turn, -1f, 1f) * maxSpeed * 0.8f;
+                float desired = Mathf.Clamp(input.Turn, -1f, 1f) * maxSpeed * 0.8f;
+                AngularVelocity = Mathf.MoveTowards(AngularVelocity, desired, accelMax * dt);
             }
-            AngularVelocity = Mathf.MoveTowards(AngularVelocity, desired, Accel * Mathf.Deg2Rad * dt);
             Bearing = Geo.WrapAngle(Bearing + AngularVelocity * dt);
         }
 

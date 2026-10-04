@@ -10,6 +10,7 @@ namespace LastLight.View
         static readonly int BeamDir = Shader.PropertyToID("_LLBeamDir");
         static readonly int BeamParams = Shader.PropertyToID("_LLBeamParams");
         static readonly int BeamColor = Shader.PropertyToID("_LLBeamColor");
+        static readonly int BeamTrail = Shader.PropertyToID("_LLBeamTrail");
         static readonly int Occluders = Shader.PropertyToID("_LLOccluders");
         static readonly int OccluderCount = Shader.PropertyToID("_LLOccluderCount");
         static readonly int FogBanks = Shader.PropertyToID("_LLFogBanks");
@@ -47,7 +48,14 @@ namespace LastLight.View
             Shader.SetGlobalVector(BeamDir, new Vector4(dir.x, dir.y, Mathf.Cos(half), Mathf.Cos(half * 0.55f)));
             Shader.SetGlobalVector(BeamParams, new Vector4(beam.Range, beam.Strength * flicker, beam.Focus, beam.FogExtinction));
             Shader.SetGlobalVector(BeamColor, (Vector4)(BeamTint * BeamBrightness));
+            float w = beam.AngularVelocity;
+            var lag = Geo.Dir(bearing - w * TrailLag);
+            float trail = TrailStrength * Mathf.Clamp01((Mathf.Abs(w) * Mathf.Rad2Deg - 30f) / 150f);
+            Shader.SetGlobalVector(BeamTrail, new Vector4(lag.x, lag.y, 0f, trail));
         }
+
+        public static float TrailLag = 0.07f;      // seconds of swing the afterglow lags behind
+        public static float TrailStrength = 0.35f;
 
         public static void PushWorld(SimWorld w, float time)
         {

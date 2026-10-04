@@ -14,7 +14,8 @@ namespace LastLight.View
         Transform hull;
         readonly List<MeshRenderer> lamps = new List<MeshRenderer>();
         readonly List<Color> lampColors = new List<Color>();
-        Light cabinLight;
+        Light cabinLight, catchLight;
+        float catchAge = 9f, catchStrength;
         ParticleSystem wake, smoke;
         readonly MeshRenderer[] course = new MeshRenderer[7];
         float courseShow;
@@ -25,6 +26,10 @@ namespace LastLight.View
         float prevHeading, curHeading;
         float fade = 1f;
         float sinkT;
+        MeshRenderer fireGlow;
+        Light fireLight;
+        ParticleSystem fireSmoke;
+        bool gulped;
         float litPulse;
         int dockIndex;
         float shownConfidence = 1f;
@@ -107,6 +112,10 @@ namespace LastLight.View
             var smokeAnchor = model != null ? ModelLibrary.Find(model.transform, "fx_smoke") : null;
             if (smokeAnchor != null && Ship.Type != ShipType.Trawler)
                 smoke = FX.Smoke(smokeAnchor, Ship.Type == ShipType.Steamer ? 5f : 3f);
+
+            // Rim flash when the beam catches the ship: a warm light just off the bow, towards the tower.
+            catchLight = Glows.PointLight("Catch", transform, new Vector3(0, st.Length * 0.35f + 3f, 0), new Color(1f, 0.82f, 0.55f), 0f, st.Length * 2.4f + 8f);
+            catchLight.enabled = false;
 
             float r = st.Length * 0.62f + 1.5f;
             ring = Glows.Ring("Confidence", transform, r, RingCalm, new Vector4(0.86f, 0.93f, 0.025f, 0), new Vector4(1, 0, 0, 0));
@@ -195,7 +204,24 @@ namespace LastLight.View
             curHeading = Ship.Heading;
         }
 
-        public void OnLit() => litPulse = 1f;
+        /// <summary>The beam has just found this ship (after a spell in the dark).</summary>
+        public void OnLit()
+        {
+            litPulse = 1f;
+            catchAge = 0f;
+            // A rescue (lost ship found) or a nervous ship gets the bigger answer.
+            catchStrength = Ship.State == ShipState.Lost || Ship.Confidence < 0.4f ? 1.4f : 1f;
+            FX.CatchRing(transform.position, Ship.Stats.Length * 0.62f + 1.5f, catchStrength);
+        }
+
+        // Two quick flashes of the white lamps, the captain answering the light.
+        float AnswerBlink()
+        {
+            float a = catchAge - 0.3f;
+            if (a < 0f || a > 0.75f) return 0f;
+            float phase = Mathf.Repeat(a, 0.32f) / 0.32f;
+            return a > 0.64f ? 0f : Mathf.Sin(Mathf.Clamp01(phase / 0.55f) * Mathf.PI);
+        }
 
         /// <summary>Interpolated render; alpha is the fraction into the next sim step.</summary>
         public void Render(float alpha)
@@ -229,8 +255,9 @@ namespace LastLight.View
             float sinkDepth = 0f;
             if (Ship.State == ShipState.Wrecked)
             {
-                roll += sinkT * 14f;
-                pitch += sinkT * 7f;
+                float lurch = Mathf.Exp(-sinkT * 7f) * Mathf.Sin(sinkT * 38f) * 9f;
+                roll += sinkT * 16f + lurch;
+                pitch += sinkT * 5f + sinkT * sinkT * 4f - lurch * 0.4f;
                 sinkDepth = sinkT * sinkT * 1.6f;
             }
             transform.position = new Vector3(p.x, h * 0.85f - sinkDepth, p.y);
@@ -305,13 +332,50 @@ namespace LastLight.View
 
         void UpdateLamps(float t)
         {
-            float dim = fade * (Ship.State == ShipState.Wrecked ? Mathf.Clamp01(1f - sinkT * 0.6f) : 1f);
+            bool wrecked = Ship.State == ShipState.Wrecked;
+            float dim = fade;
+            catchAge += Time.deltaTime;
+            float blink = Ship.Resolved ? 0f : AnswerBlink() * catchStrength;
             for (int i = 0; i < lamps.Count; i++)
             {
+                var c = lampColors[i];
                 float flicker = Ship.Damaged ? 0.6f + 0.4f * Mathf.PerlinNoise(t * 6f, i) : 1f;
-                Glows.SetColor(lamps[i], lampColors[i] * dim * flicker);
+                if (wrecked)
+                {
+                    // The lamps die one by one, sputtering first.
+                    float outAt = 0.15f + Mathf.Repeat(i * 0.618f + bobSeed, 1f) * 0.85f;
+                    flicker *= sinkT > outAt ? 0f : sinkT > outAt - 0.18f ? (Mathf.PerlinNoise(t * 24f, i * 1.7f) > 0.42f ? 1f : 0.1f) : 1f;
+                }
+                bool white = c.r > 1.8f && c.g > 1.8f;
+                float answer = white ? 1f + blink * 2.6f : Ship.Damaged ? 1f + blink * 1.2f : 1f;
+                Glows.SetColor(lamps[i], c * dim * flicker * answer);
             }
-            if (cabinLight != null) cabinLight.intensity = 3.5f * dim;
+            if (cabinLight != null) cabinLight.intensity = 3.5f * dim * (wrecked ? (sinkT < 0.45f ? Mathf.PerlinNoise(t * 18f, 3f) : 0f) : 1f);
+            if (wrecked) UpdateFire(t);
+            float flash = catchAge < 1.6f && !Ship.Resolved ? Mathf.Exp(-catchAge * 3.2f) * Mathf.Clamp01(catchAge * 25f) : 0f;
+            catchLight.enabled = flash > 0.01f;
+            if (catchLight.enabled) catchLight.intensity = 14f * flash * catchStrength * fade;
+        }
+
+        void UpdateFire(float t)
+        {
+            if (fireGlow == null)
+            {
+                var local = new Vector3(0.3f, 2.6f, Ship.Stats.Length * 0.08f);
+                fireGlow = Glows.Glow("Fire", hull, local, 4.6f, Color.black);
+                fireLight = Glows.PointLight("Fire Light", hull, local + Vector3.up, new Color(1f, 0.48f, 0.18f), 0f, 26f + Ship.Stats.Length);
+                fireSmoke = FX.Smoke(fireGlow.transform, 10f);
+                var main = fireSmoke.main;
+                main.startColor = new Color(0.1f, 0.09f, 0.085f, 1f);
+            }
+            float flick = 0.7f + 0.3f * Mathf.PerlinNoise(t * 9f, bobSeed) + 0.15f * Mathf.PerlinNoise(t * 31f, 2f);
+            float fire = Mathf.Clamp01(sinkT * 8f) * Mathf.Clamp01((1.7f - sinkT) / 0.7f) * fade;
+            Glows.SetColor(fireGlow, new Color(3.6f, 1.25f, 0.3f) * fire * flick);
+            fireLight.intensity = 14f * fire * flick;
+            fireLight.enabled = fire > 0.01f;
+            if (fireSmoke == null) return;
+            var em = fireSmoke.emission;
+            em.rateOverTime = sinkT < 1.9f ? 10f : 0f;
         }
 
         void AnimateResolved(float dt)
@@ -319,7 +383,18 @@ namespace LastLight.View
             if (Ship.State == ShipState.Wrecked)
             {
                 sinkT += dt * 0.32f;
-                if (sinkT > 2.6f) Finished = true;
+                if (!gulped && sinkT > 1.85f)
+                {
+                    gulped = true;
+                    FX.Gulp(transform.position, Ship.Stats.Length / 10f);
+                    LastLight.Audio.Sfx.PlayAt("wreck_sink", transform.position, 0.6f);
+                }
+                if (sinkT > 2.6f)
+                {
+                    // Let the last smoke drift off after the hull is gone.
+                    if (fireSmoke != null) { fireSmoke.transform.SetParent(null, true); Destroy(fireSmoke.gameObject, 9f); fireSmoke = null; }
+                    Finished = true;
+                }
                 return;
             }
             // Arrived: sail on into the harbour basin, or out to sea, and fade.

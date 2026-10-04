@@ -33,8 +33,9 @@ namespace LastLight.Automation
 
         /// <summary>
         /// A gameplay reel recorded with <see cref="Recorder"/>: the title, then stretches of five
-        /// nights played by the AutoKeeper at real speed (each opening on its briefing card), the
-        /// dawn results and the ending. Spans between scenes are fast-forwarded off camera.
+        /// nights played by the AutoKeeper at real speed (each opening on its briefing card, one with
+        /// a staged wreck), the dawn results and the ending. Spans between scenes are fast-forwarded
+        /// off camera.
         /// </summary>
         static IEnumerator Video(Tour t)
         {
@@ -54,10 +55,11 @@ namespace LastLight.Automation
                 yield break;
             }
 
-            (int night, float from, float to)[] scenes = { (2, 0f, 36f), (5, 24f, 50f), (8, 34f, 56f), (9, 28f, 58f), (12, 48f, 74f) };
+            // On night 5 the keeper leaves the first trawler to its fate: it strikes the uncharted Teeth.
+            (int night, float from, float to, int neglect)[] scenes = { (2, 0f, 36f, -1), (5, 0f, 34f, 0), (8, 34f, 56f, -1), (9, 28f, 58f, -1), (12, 48f, 74f, -1) };
             for (int i = 0; i < scenes.Length; i++)
             {
-                var (night, from, to) = scenes[i];
+                var (night, from, to, neglect) = scenes[i];
                 rec.Rolling = true;
                 if (i == 0) g.TourBriefing(night);
                 else
@@ -68,6 +70,7 @@ namespace LastLight.Automation
                 yield return Hold(4.5f);
                 g.TourBegin();
                 yield return null;
+                if (neglect >= 0) g.TourNeglect(g.Runner.Def.ships[neglect].name);
                 if (from > 0f)
                 {
                     rec.Rolling = false;

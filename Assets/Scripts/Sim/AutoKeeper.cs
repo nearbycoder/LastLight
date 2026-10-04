@@ -24,6 +24,7 @@ namespace LastLight.Sim
         Task current;
         float commit;
         public float Skill = 1f;          // 0..1, lower = slower reactions (attract mode)
+        public System.Func<SimShip, bool> Ignore;   // ships the keeper neglects (to stage a wreck for the reel)
         float reaction;
         readonly List<Vector2> path = new List<Vector2>(16);
 
@@ -79,7 +80,7 @@ namespace LastLight.Sim
             {
                 case TaskKind.Ship:
                     var s = FindShip(w, t.Index);
-                    if (s == null || !s.Active) return false;
+                    if (s == null || !s.Active || Ignored(s)) return false;
                     return s.State != ShipState.Sailing || s.Confidence < 0.97f;
                 case TaskKind.Reef: return w.Reefs[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
                 case TaskKind.Shoal: return w.Shoals[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
@@ -99,6 +100,8 @@ namespace LastLight.Sim
             }
             return t;
         }
+
+        bool Ignored(SimShip s) => Ignore != null && Ignore(s);
 
         static SimShip FindShip(SimWorld w, int id)
         {
@@ -121,7 +124,7 @@ namespace LastLight.Sim
 
             foreach (var s in w.Ships)
             {
-                if (!s.Active) continue;
+                if (!s.Active || Ignored(s)) continue;
                 bool soon = s.Inside || w.Map.InBounds(s.Pos, 12f);
                 if (!soon) continue;
 
@@ -191,7 +194,7 @@ namespace LastLight.Sim
             {
                 SimShip low = null;
                 foreach (var s in w.Ships)
-                    if (s.Active && s.Inside && (low == null || s.Confidence < low.Confidence)) low = s;
+                    if (s.Active && s.Inside && !Ignored(s) && (low == null || s.Confidence < low.Confidence)) low = s;
                 if (low != null)
                     best = new Task { Kind = TaskKind.Ship, Index = low.Id, Target = Lead(w, low), Score = 5f, WantFocus = NeedFocus(w, low.Pos) };
             }

@@ -214,6 +214,50 @@ namespace LastLight.View
             Burst(ps, count, 2.5f);
         }
 
+        /// <summary>A hull striking rock: a flash that lights the spray, shattered lamps, a red shock ring.</summary>
+        public static void Impact(Vector3 pos, float scale)
+        {
+            var go = new GameObject("Impact");
+            go.transform.SetParent(Root, false);
+            go.transform.position = new Vector3(pos.x, 5f, pos.z);
+            go.AddComponent<FlashFx>().Range = 46f * scale;
+            Sparks(new Vector3(pos.x, 2.5f, pos.z), new Color(3f, 1.3f, 0.4f), (int)(60 * scale));
+            for (int i = 0; i < 2; i++)
+            {
+                var r = Glows.Ring("Shock", Root, 1f, Color.black, new Vector4(0.9f, 0.985f, 0.02f, 0), new Vector4(1, 0, 0, 0));
+                r.transform.position = new Vector3(pos.x, 0.32f, pos.z);
+                var fx = r.gameObject.AddComponent<RingFx>();
+                fx.From = 3f * scale;
+                fx.To = (30f + i * 16f) * scale;
+                fx.Time = 1.8f + i * 0.9f;
+                fx.Delay = i * 0.18f;
+                fx.Color = new Color(2.4f, 0.35f, 0.2f) * (1.3f - i * 0.6f);
+            }
+        }
+
+        /// <summary>The last of a ship going under: a gulp of foam and bubbles.</summary>
+        public static void Gulp(Vector3 pos, float scale)
+        {
+            FoamRing(pos, 1.5f * scale, 9f * scale, 3f);
+            var ps = System("Gulp", null, Lit, 80);
+            ps.transform.position = new Vector3(pos.x, 0.2f, pos.z);
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.4f * scale, 1.1f * scale);
+            main.startColor = new Color(0.9f, 0.95f, 1f, 1f);
+            main.gravityModifier = 0.8f;
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 2f * scale;
+            shape.rotation = new Vector3(-90, 0, 0);
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            col.color = Fade(Color.white, 0.8f, 0f, 0.05f);
+            Burst(ps, (int)(30 * scale), 2.5f);
+        }
+
         /// <summary>A ring of white water spreading on the sea.</summary>
         public static void FoamRing(Vector3 pos, float from, float to, float time)
         {
@@ -251,6 +295,22 @@ namespace LastLight.View
             fx.To = 22f;
             fx.Time = 1.6f;
             fx.Color = new Color(1.4f, 1.1f, 0.6f);
+        }
+
+        /// <summary>The beam finding a ship: a warm double ripple out from the hull.</summary>
+        public static void CatchRing(Vector3 pos, float radius, float strength)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                var r = Glows.Ring("Catch", Root, 1f, Color.black, new Vector4(0.86f, 0.97f, 0.03f, 0), new Vector4(1, 0, 0, 0));
+                r.transform.position = new Vector3(pos.x, 0.3f, pos.z);
+                var fx = r.gameObject.AddComponent<RingFx>();
+                fx.From = radius * (0.9f + i * 0.2f);
+                fx.To = radius * (2.4f + i * 0.9f);
+                fx.Time = 0.9f + i * 0.35f;
+                fx.Delay = i * 0.12f;
+                fx.Color = new Color(1.7f, 1.3f, 0.75f) * strength * (1f - i * 0.45f);
+            }
         }
 
         public static void ChartPing(Vector3 pos, float radius)
@@ -332,6 +392,25 @@ namespace LastLight.View
             float r = Mathf.Lerp(From, To, e);
             transform.localScale = new Vector3(r * 2f, 1f, r * 2f);
             mat.SetColor("_Color", Color * (Delay > 0f ? 0f : (1f - k) * Mathf.Clamp01(k * 12f)));
+        }
+    }
+
+    /// <summary>A short, hot flash of light that fades out and removes itself.</summary>
+    public sealed class FlashFx : MonoBehaviour
+    {
+        public float Range = 40f, Intensity = 60f, Time = 1.4f;
+        public Color Color = new Color(1f, 0.62f, 0.32f);
+        Light light;
+        float t;
+
+        void Start() => light = Glows.PointLight("Flash", transform, Vector3.zero, Color, Intensity, Range);
+
+        void Update()
+        {
+            t += UnityEngine.Time.deltaTime;
+            float k = t / Time;
+            if (k >= 1f) { Destroy(gameObject); return; }
+            light.intensity = Intensity * Mathf.Exp(-k * 4.5f) * (0.85f + 0.15f * Mathf.PerlinNoise(t * 30f, 0.5f));
         }
     }
 

@@ -202,7 +202,42 @@ def ship_lit():
     d = 1.2
     f = note_freq("B5")
     x = fm_bell(f, d, 2.0, 1.4, 0.45) * 0.6 + fm_bell(f * 1.5, d, 2.0, 0.8, 0.3) * 0.3
-    return reverb(x, 0.35, 1.8, 0.6)
+    # A soft swell of warm air under the bell: the light washing over the deck.
+    t = t_axis(d)
+    swell = bandpass(pink(d), 300, 2400) * adsr(len(t), 0.06, 0.25, 0.25, 0.7) * 0.22
+    swell += sine(f * 0.25, d) * adsr(len(t), 0.03, 0.3, 0.2, 0.7) * 0.18
+    return reverb(x + swell, 0.35, 1.8, 0.6)
+
+
+def wreck_sink():
+    """The hull going under: a timber groan, then a deep gulp and bubbles."""
+    d = 4.0
+    out = seconds(d)
+    groan_f = glide(92, 61, 1.6, 0.8) * (1 + 0.03 * np.sin(2 * np.pi * 5.5 * t_axis(1.6)))
+    groan = lowpass(saw(groan_f, 1.6), 700) * adsr(int(1.6 * SR), 0.25, 0.4, 0.6, 0.8) * 0.35
+    groan = resonator(groan, 240, 6) * 0.5 + groan
+    out = place(out, groan, 0)
+    gulp = sine(glide(150, 48, 0.5, 0.6), 0.5) * expdecay(0.5, 0.16) * 0.9
+    gulp += lowpass(white(0.5), 300) * expdecay(0.5, 0.1) * 0.6
+    out = place(out, gulp, 1.1)
+    for k in range(26):
+        at = 1.25 + rng.uniform(0, 1.9) * (k / 26) ** 0.6
+        f = rng.uniform(180, 520)
+        blip = sine(glide(f, f * 1.8, 0.06), 0.06) * expdecay(0.06, 0.02) * rng.uniform(0.08, 0.22)
+        out = place(out, blip, at)
+    out = place(out, lowpass(brown(2.5), 220) * expdecay(2.5, 0.8) * 0.4, 1.1)
+    return reverb(out, 0.4, 2.5, 0.9, 3000)
+
+
+def ship_answer():
+    """The captain answering the light: two clacks of a signal-lamp shutter."""
+    out = seconds(1.3)
+    for at in (0.3, 0.62):
+        clack = bandpass(white(0.03), 900, 4200) * expdecay(0.03, 0.006) * 0.7
+        ping = fm_bell(2350.0, 0.25, 1.37, 0.6, 0.05, 0.02) * 0.12
+        out = place(out, clack, at)
+        out = place(out, ping, at + 0.002)
+    return reverb(out, 0.3, 1.2, 0.5, 6000)
 
 
 def ship_lost():
@@ -400,7 +435,23 @@ def lens_stop():
     return reverb(out, 0.3, 2.0, 0.8)
 
 
-def build():
+def lens_brake():
+    """The heavy lens carriage braking after a fast swing: a brass clunk and a short ratchet."""
+    d = 1.4
+    out = seconds(d)
+    thump = lowpass(white(0.18), 170) * expdecay(0.18, 0.05) * 2.2
+    out = place(out, thump, 0)
+    out = place(out, fm_bell(410.0, 0.9, 2.76, 1.6, 0.22, 0.05) * 0.28, 0.004)
+    out = place(out, fm_bell(1230.0, 0.5, 1.41, 1.0, 0.09, 0.03) * 0.12, 0.004)
+    tt = 0.07
+    for k in range(4):
+        click = bandpass(white(0.012), 1400, 5200) * expdecay(0.012, 0.003)
+        out = place(out, click * (0.35 - k * 0.07), tt)
+        tt += 0.045 + k * 0.03
+    return reverb(out, 0.25, 1.4, 0.6, 5000)
+
+
+def build(only=None):
     jobs = {
         "amb_sea": amb_sea, "amb_wind": amb_wind, "amb_rain": amb_rain, "lens_whirr": lens_whirr, "lens_focus": lens_focus,
         "radio_static": radio_static, "radio_squelch": radio_squelch, "radio_tick": radio_tick, "radio_letter": radio_letter,
@@ -411,7 +462,10 @@ def build():
         "wreck": wreck, "flare": flare, "chart": chart, "buoy_bell": buoy_bell, "buoy_lit": buoy_lit, "buoy_out": buoy_out,
         "foghorn": foghorn, "thunder_1": lambda: thunder(1), "thunder_2": lambda: thunder(2), "thunder_3": lambda: thunder(3),
         "wrecker_lit": wrecker_lit, "douse_sizzle": douse_sizzle, "doused": doused, "switch_off": switch_off, "lens_stop": lens_stop,
+        "lens_brake": lens_brake, "ship_answer": ship_answer, "wreck_sink": wreck_sink,
     }
+    if only:
+        jobs = {k: v for k, v in jobs.items() if k in only}
     peaks = {"amb_sea": 0.7, "amb_wind": 0.6, "amb_rain": 0.6, "lens_whirr": 0.7, "lens_focus": 0.6, "radio_static": 0.5,
              "ui_hover": 0.6, "radio_tick": 0.6, "ui_tick": 0.5}
     for name, fn in jobs.items():

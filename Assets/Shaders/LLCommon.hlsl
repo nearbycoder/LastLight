@@ -8,6 +8,7 @@ float4 _LLBeamOrigin;      // xyz lantern position, w lamp power
 float4 _LLBeamDir;         // xy direction on the sea plane (x, z), z cos(outer), w cos(inner)
 float4 _LLBeamParams;      // x range, y strength, z focus 0..1, w fog extinction
 float4 _LLBeamColor;       // rgb HDR colour of the beam
+float4 _LLBeamTrail;       // xy lagging direction while the lens swings, w afterglow strength (visual only, not in the sim)
 float4 _LLOccluders[8];    // xy centre (x, z), z radius
 float _LLOccluderCount;
 float4 _LLFogBanks[8];     // xy centre, z radius, w density
@@ -127,6 +128,8 @@ float LLChord(float2 a, float2 b, float2 c, float r)
 float LLBeam2D(float2 p)
 {
     float i = LLWedge(_LLBeamOrigin.xz, _LLBeamDir.xy, _LLBeamDir.z, _LLBeamDir.w, _LLBeamParams.x, p);
+    if (_LLBeamTrail.w > 0.002)
+        i = max(i, LLWedge(_LLBeamOrigin.xz, _LLBeamTrail.xy, _LLBeamDir.z, _LLBeamDir.w, _LLBeamParams.x * 0.92, p) * _LLBeamTrail.w);
     if (i <= 0.0) return 0.0;
     i *= _LLBeamParams.y;
     i *= LLOcclusion(_LLBeamOrigin.xz, p);
