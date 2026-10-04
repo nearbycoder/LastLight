@@ -25,3 +25,4 @@ unity command capture_game_view --project-path "$ROOT" --format json -- --source
   | python3 -c "import json,sys,base64; d=json.load(sys.stdin); open(sys.argv[1],'wb').write(base64.b64decode(d['data']['result']['base64']))" "$ROOT/Screenshots/$NAME.png"
 U console -- --tail 30 --level warn 2>/dev/null | grep -o '"message":"[^"]*"' | grep -v "GPUResidentDrawer\|UAC1001\|SourceAssetDB\|no scripts associated" | head -20 || true
 ls -la "$ROOT/Screenshots/$NAME.png"
+U editor_stop >/dev/null 2>&1 || true

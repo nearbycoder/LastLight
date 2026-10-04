@@ -57,6 +57,30 @@ namespace LastLight.Automation
 
         public void Log(string msg) => Debug.Log("[Tour] " + msg);
 
+        float frameAcc;
+        int frameCount;
+        float worstFrame;
+
+        float simAcc;
+
+        void Update()
+        {
+            var g = Game.Instance;
+            if (g != null && g.Runner != null) simAcc += g.Runner.StepMs;
+            frameAcc += Time.unscaledDeltaTime;
+            frameCount++;
+            worstFrame = Mathf.Max(worstFrame, Time.unscaledDeltaTime);
+        }
+
+        /// <summary>Average and worst frame time since the last call.</summary>
+        public string FrameStats()
+        {
+            float avg = frameCount > 0 ? frameAcc / frameCount : 0f;
+            string s = $"{1f / Mathf.Max(avg, 1e-4f):0} fps avg ({avg * 1000f:0.0} ms), worst {worstFrame * 1000f:0} ms over {frameCount} frames, sim {simAcc / Mathf.Max(1, frameCount):0.00} ms/frame, screen {Screen.width}x{Screen.height}";
+            frameAcc = 0f; frameCount = 0; worstFrame = 0f; simAcc = 0f;
+            return s;
+        }
+
         public IEnumerator Shot(string name)
         {
             yield return new WaitForEndOfFrame();

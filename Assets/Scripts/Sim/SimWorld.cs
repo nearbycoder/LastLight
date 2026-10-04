@@ -562,6 +562,8 @@ namespace LastLight.Sim
         }
 
         /// <summary>The point `ahead` units along the route from the ship's position on its current leg.</summary>
+        public static Vector2 CourseAhead(SimShip s, float ahead) => Carrot(s, ahead);
+
         static Vector2 Carrot(SimShip s, float ahead)
         {
             var pts = s.Route.Points;

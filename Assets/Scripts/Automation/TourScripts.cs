@@ -83,7 +83,9 @@ namespace LastLight.Automation
                     float at = float.Parse(ts);
                     while (g.Runner != null && g.Runner.World.Time < at && !g.ShowingResults) yield return null;
                     g.Runner.TimeScale = 1f;
-                    yield return Tour.Wait(0.6f);
+                    t.FrameStats();
+                    yield return Tour.Wait(2.5f);
+                    t.Log($"night {night} t={at}: {t.FrameStats()}");
                     yield return t.Shot($"night{night:00}_t{at:000}");
                     g.Runner.TimeScale = 3f;
                 }

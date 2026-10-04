@@ -47,10 +47,11 @@ Shader "LL/Atmosphere"
             float4 _AmbientScatter;
             float _LLAtmoSteps;
 
-            float FogNoise(float3 p)
+            // The haze wisp noise doubles as the fog's coarse octave; only the fine one is extra.
+            float FogNoise(float3 p, float wisp)
             {
-                float3 q = p * float3(0.045, 0.09, 0.045) + float3(_Time.y * 0.035, 0, _Time.y * 0.02);
-                float n = LLNoise3(q) * 0.62 + LLNoise3(q * 2.3 + 5.1) * 0.38;
+                float3 q = p * float3(0.103, 0.207, 0.103) + float3(_Time.y * 0.08, 0, _Time.y * 0.046) + 5.1;
+                float n = wisp * 0.62 + LLNoise3(q) * 0.38;
                 return saturate(n * 1.8 - 0.3);
             }
 
@@ -105,7 +106,7 @@ Shader "LL/Atmosphere"
                     haze *= lerp(1.0, wisp * 1.8, _HazeNoise);
                     float bank = LLFogBankDensity(p);
                     float fog = 0.0;
-                    if (bank > 0.001) fog = bank * FogNoise(p) * _FogDensity;
+                    if (bank > 0.001) fog = bank * FogNoise(p, wisp) * _FogDensity;
                     float dens = haze + fog;
 
                     // Beam in-scatter with a forward-scattering lobe towards the viewer.

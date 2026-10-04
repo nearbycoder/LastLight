@@ -58,10 +58,15 @@ namespace LastLight.Core
         void Awake()
         {
             Instance = this;
-            Application.targetFrameRate = 60;
-            QualitySettings.vSyncCount = 1;
+            // Paced by targetFrameRate rather than vsync: some Wayland compositors throttle
+            // FIFO presentation to ~12 Hz, and they composite without tearing anyway.
+            QualitySettings.vSyncCount = Arg("-llVsync", 0);
+            int hz = Mathf.RoundToInt((float)Screen.currentResolution.refreshRateRatio.value);
+            Application.targetFrameRate = Arg("-llFps", Mathf.Max(60, hz));
             Time.timeScale = 1f;
             SaveData.Current.Apply();
+            int steps = Arg("-llSteps", -1);
+            if (steps > 0) ShaderGlobals.Steps = steps;
             Rig = Stage.BuildCamera();
             Stage.BuildMoon();
             Stage.BuildPost();
@@ -370,6 +375,10 @@ namespace LastLight.Core
             {
                 if (Current == State.Playing) Pause();
                 else if (Current == State.Paused && pause.Visible) Resume();
+                else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
+                else if (Current == State.Briefing) { briefing.Hide(); ShowTitle(); }
+                else if (Current == State.Logbook && logbook.Visible) { logbook.Hide(); ShowTitle(false); }
+                else if (Current == State.Title && settings.Visible) { settings.Hide(); SaveData.Current.Save(); ShowTitle(false); }
             }
 
             if (Current == State.Playing && Runner != null)

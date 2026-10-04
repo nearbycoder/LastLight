@@ -4,6 +4,6 @@
 set -euo pipefail
 GAME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Builds/Linux/LastLight.x86_64"
 [ -x "$GAME" ] || { echo "No build yet. Run Tools/unity.sh build-linux first." >&2; exit 1; }
-args=(-screen-fullscreen 0 -screen-width 1600 -screen-height 900)
+args=(-screen-fullscreen 0 -screen-width "${LL_W:-1600}" -screen-height "${LL_H:-900}")
 [ -n "${WAYLAND_DISPLAY:-}" ] && args+=(-force-wayland)
 exec "$GAME" "${args[@]}" "$@"

@@ -94,7 +94,7 @@ namespace LastLight.Core
             Sfx.SfxVolume = sfx;
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
-            ShaderGlobals.Steps = quality switch { 0 => 14, 1 => 20, _ => 28 };
+            if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
             if (!Application.isEditor)
             {
                 var mode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;

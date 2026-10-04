@@ -16,6 +16,8 @@ namespace LastLight.View
         readonly List<Color> lampColors = new List<Color>();
         Light cabinLight;
         ParticleSystem wake, smoke;
+        readonly MeshRenderer[] course = new MeshRenderer[7];
+        float courseShow;
         MeshRenderer ring;
         Material ringMat;
         MeshRenderer lostMark;
@@ -111,6 +113,12 @@ namespace LastLight.View
             ringMat = ring.sharedMaterial;
             lostMark = Glows.Ring("Lost", transform, r * 1.35f, RingLost, new Vector4(0.9f, 0.95f, 0.03f, 0), new Vector4(1, 10, 9f, 0.6f));
             lostMark.enabled = false;
+            // The captain's intended course: a dotted line ahead, so the keeper knows where to sweep.
+            for (int i = 0; i < course.Length; i++)
+            {
+                course[i] = Glows.Glow("Course", null, Vector3.zero, 1.1f, Color.black);
+                course[i].transform.SetParent(transform.parent, false);
+            }
         }
 
         static Color LampColor(string anchor)
@@ -234,6 +242,7 @@ namespace LastLight.View
 
             UpdateRing(dt);
             UpdateLamps(t);
+            UpdateCourse(dt);
             if (wake != null)
             {
                 var em = wake.emission;
@@ -269,6 +278,29 @@ namespace LastLight.View
             lostMark.enabled = !resolved && (Ship.State == ShipState.Lost || Ship.State == ShipState.Lured);
             if (lostMark.enabled)
                 lostMark.sharedMaterial.SetColor("_Color", (Ship.State == ShipState.Lost ? RingLost : RingLured) * 0.8f);
+        }
+
+        void UpdateCourse(float dt)
+        {
+            bool show = Ship.State == ShipState.Sailing && Ship.Inside;
+            courseShow = Mathf.MoveTowards(courseShow, show ? (Ship.Lit ? 1f : 0.45f) : 0f, dt * 2.5f);
+            for (int i = 0; i < course.Length; i++)
+            {
+                var r = course[i];
+                if (r == null) continue;
+                if (courseShow <= 0.01f) { r.enabled = false; continue; }
+                r.enabled = true;
+                float d = 8f + i * 7f + Mathf.Repeat(Time.time * 4f, 7f);
+                var p = SimWorld.CourseAhead(Ship, d);
+                r.transform.position = new Vector3(p.x, 0.6f, p.y);
+                float fadeAlong = 1f - (d - 8f) / (course.Length * 7f);
+                Glows.SetColor(r, new Color(0.9f, 0.85f, 0.7f) * 0.55f * courseShow * fadeAlong * fade);
+            }
+        }
+
+        void OnDestroy()
+        {
+            foreach (var r in course) if (r != null) Destroy(r.gameObject);
         }
 
         void UpdateLamps(float t)

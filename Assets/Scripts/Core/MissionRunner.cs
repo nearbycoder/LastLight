@@ -29,6 +29,9 @@ namespace LastLight.Core
         public KeeperControls Controls { get; } = new KeeperControls();
         public AutoKeeper Bot { get; } = new AutoKeeper();
         public float Bearing { get; private set; }
+        /// <summary>Milliseconds spent stepping the simulation last frame (profiling).</summary>
+        public float StepMs { get; private set; }
+        readonly System.Diagnostics.Stopwatch stepWatch = new System.Diagnostics.Stopwatch();
 
         WorldView world;
         Transform root;
@@ -94,6 +97,7 @@ namespace LastLight.Core
 
             KeeperInput input = AutoPlay || Attract ? new KeeperInput { Turn = AttractTurn } : Controls.Read(World.Beam.Origin);
             int steps = 0;
+            stepWatch.Start();
             while (accumulator >= StepTime && steps < 12)
             {
                 if (AutoPlay && !Attract) input = Bot.Decide(World, StepTime);
@@ -107,7 +111,11 @@ namespace LastLight.Core
                 accumulator -= StepTime;
                 steps++;
             }
+            stepWatch.Stop();
             if (steps == 12) accumulator = 0f;
+
+            StepMs = (float)stepWatch.Elapsed.TotalMilliseconds;
+            stepWatch.Reset();
 
             float alpha = Mathf.Clamp01(accumulator / StepTime);
             Bearing = prevBearing + Geo.DeltaAngle(prevBearing, World.Beam.Bearing) * alpha;

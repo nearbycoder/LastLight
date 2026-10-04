@@ -100,6 +100,12 @@ namespace LastLight.View
             Glows.Glow("Breakwater W", HarborLights, new Vector3(-98.5f, 4.5f, -20.5f), 3.2f, new Color(3f, 0.4f, 0.3f));
             Glows.Glow("Breakwater E", HarborLights, new Vector3(-87.5f, 4.5f, -23f), 3.2f, new Color(0.3f, 2.6f, 0.9f));
             Glows.PointLight("Harbour Light", HarborLights, new Vector3(-93f, 6f, -34f), new Color(1f, 0.7f, 0.4f), 6f, 30f);
+            // The way home: a slow warm pulse at the harbour mouth.
+            var mouth = new GameObject("Harbour Mouth").transform;
+            mouth.SetParent(HarborLights, false);
+            mouth.position = new Vector3(Map.Harbor.x, 0f, Map.Harbor.y);
+            var ring = Glows.Ring("Mouth Ring", mouth, Map.HarborRadius + 2f, new Color(1.2f, 0.85f, 0.45f) * 0.45f, new Vector4(0.88f, 0.96f, 0.02f, 0), new Vector4(1, 16, 1.6f, 0.55f));
+            ring.transform.localPosition = new Vector3(0, 0.35f, 0);
             if (ModelLibrary.Has("merrow_bay")) return;
             // Placeholder windows of the town.
             var rng = new System.Random(4);
