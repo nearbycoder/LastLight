@@ -38,7 +38,7 @@ namespace LastLight.View
         public static Material BeamCoreTemplate => Template("LL_BeamCore");
 
         /// <summary>Lit material with a base colour (vertex colours multiply on top).</summary>
-        public static Material Lit(Color color, float rim = 1f, float specular = 0.1f, float wet = 0f)
+        public static Material Lit(Color color, float rim = 1f, float specular = 0.03f, float wet = 0f)
         {
             string key = $"lit_{ColorUtility.ToHtmlStringRGB(color)}_{rim:0.00}_{specular:0.00}_{wet:0.00}";
             if (cache.TryGetValue(key, out var m) && m != null) return m;
@@ -89,7 +89,7 @@ namespace LastLight.View
             {
                 "glow" => Emissive(c, 2.2f),
                 "lamp" => Emissive(c, 6f),
-                "wet" => Lit(c, 1f, 0.25f, 1f),
+                "wet" => Lit(c, 1f, 0.12f, 1f),
                 "metal" => Lit(c, 1.2f, 0.5f),
                 "glass" => Lit(c, 1.5f, 0.8f),
                 _ => Lit(c),

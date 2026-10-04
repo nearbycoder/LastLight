@@ -41,6 +41,7 @@ Shader "LL/Lit"
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "LLCommon.hlsl"
 
             struct Attributes
@@ -79,7 +80,7 @@ Shader "LL/Lit"
                 UNITY_SETUP_INSTANCE_ID(i);
                 float3 N = normalize(i.normalWS);
                 float3 V = normalize(GetCameraPositionWS() - i.positionWS);
-                float3 albedo = _BaseColor.rgb * i.color.rgb;
+                float3 albedo = _BaseColor.rgb * SRGBToLinear(i.color.rgb);
                 // Wet, darker rock and hull near the waterline.
                 albedo *= lerp(1.0, 0.55, _Wet * (1.0 - saturate(i.positionWS.y / 1.5)));
 

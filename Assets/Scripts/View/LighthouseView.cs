@@ -35,6 +35,10 @@ namespace LastLight.View
             if (model != null)
             {
                 Lens = ModelLibrary.Find(model.transform, "Lens");
+                var cottage = ModelLibrary.Find(model.transform, "lamp_cottage");
+                if (cottage != null) Glows.PointLight("Cottage Light", cottage, Vector3.zero, new Color(1f, 0.72f, 0.42f), 3f, 12f);
+                var door = ModelLibrary.Find(model.transform, "lamp_door");
+                if (door != null) Glows.PointLight("Door Light", door, Vector3.zero, new Color(1f, 0.75f, 0.45f), 2f, 8f);
             }
             else
             {
@@ -83,7 +87,7 @@ namespace LastLight.View
             float drop = Mathf.Atan2(beam.Height * 0.9f, len * 1.6f) * Mathf.Rad2Deg;
             beamCore.transform.rotation = Quaternion.Euler(drop, deg, 0f);
             beamCore.transform.localScale = new Vector3(radius, radius * 0.45f, len);
-            beamCoreMat.SetFloat("_Intensity", Mathf.Lerp(0.55f, 0.9f, beam.Focus) * power);
+            beamCoreMat.SetFloat("_Intensity", Mathf.Lerp(0.3f, 0.5f, beam.Focus) * power);
 
             // The glare flares when the beam points at the camera.
             float facing = 0f;

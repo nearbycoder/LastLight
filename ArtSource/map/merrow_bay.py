@@ -129,10 +129,10 @@ HARBOR = dict(x=-93, z=-22, r=7.0, dock=[(-93, -30), (-95, -37)])
 
 # Where the wreckers light their false lanterns (cliff tops and the islet).
 WRECKER_SITES = [
-    dict(id="corley", name="Corley Cove", x=111, z=-30, h=9, aim=[300, 360], hazard=[106, -4]),
-    dict(id="blackhen", name="Black Hen", x=-50, z=52, h=12, aim=[300, 60], hazard=[-50, 56]),
-    dict(id="westpoint", name="West Point", x=-128, z=0, h=8, aim=[10, 80], hazard=[-138, 13]),
-    dict(id="sentinels", name="The Sentinels", x=29, z=-12, h=9, aim=[320, 40], hazard=[26, -5]),
+    dict(id="corley", name="Corley Cove", x=121, z=-31, h=7.5, aim=[300, 360], hazard=[106, -4]),
+    dict(id="blackhen", name="Black Hen", x=-50, z=54, h=10.5, aim=[300, 60], hazard=[-50, 56]),
+    dict(id="westpoint", name="West Point", x=-127, z=-1, h=5.5, aim=[10, 80], hazard=[-138, 13]),
+    dict(id="sentinels", name="The Sentinels", x=36, z=-31, h=6.5, aim=[320, 40], hazard=[26, -5]),
 ]
 
 DATA = dict(

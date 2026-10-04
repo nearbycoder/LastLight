@@ -158,9 +158,9 @@ Shader "LL/Water"
                 float path = pow(saturate(dot(Rflat, moon.direction)), 14.0);
                 float3 Hm = normalize(moon.direction + V);
                 float nhm = saturate(dot(N, Hm));
-                float sparkleNoise = LLSmooth(0.62, 0.9, LLNoise2(pos.xz * 0.8 + float2(t * 0.45, -t * 0.3)));
-                float sparkle = pow(nhm, 500.0) * 9.0 * sparkleNoise;
-                float3 moonGlint = moon.color * moonB * (path * (0.12 + wind * 0.18) + sparkle * (0.2 + path * 2.0));
+                float sparkleNoise = LLSmooth(0.7, 0.92, LLNoise2(pos.xz * 2.6 + float2(t * 0.9, -t * 0.6)));
+                float sparkle = pow(nhm, 600.0) * 7.0 * sparkleNoise;
+                float3 moonGlint = moon.color * moonB * (path * (0.1 + wind * 0.12) + sparkle * (0.1 + path * 1.6));
 
                 // Body colour: deep water, lighter on crests and in the wind patches.
                 float3 body = lerp(_DeepColor.rgb, _ShallowColor.rgb, saturate(i.crest * 0.7 + 0.2 + (wind - 0.5) * 0.5));
@@ -176,14 +176,14 @@ Shader "LL/Water"
                 // The beam: a warm pool, hottest near the lantern, textured by the ripples, glinting.
                 float beam = LLBeam2D(pos.xz);
                 float dist = length(pos.xz - _LLBeamOrigin.xz);
-                float hot = 0.42 + 0.58 * exp(-dist / (_LLBeamParams.x * 0.33));
+                float hot = 0.25 + 0.75 * exp(-dist / (_LLBeamParams.x * 0.3));
                 float3 toLamp = normalize(_LLBeamOrigin.xyz - pos);
                 float ndl = saturate(dot(N, toLamp));
-                float mottle = 0.6 + 0.4 * LLFbm2(pos.xz * 0.09 + float2(t * 0.04, -t * 0.03));
+                float mottle = 0.45 + 0.75 * LLFbm2(pos.xz * 0.11 + float2(t * 0.04, -t * 0.03)) * (0.7 + 0.6 * saturate(dot(N, toLamp) * 3.0 - 0.2));
                 float3 Hb = normalize(toLamp + V);
                 float nhb = saturate(dot(N, Hb));
                 float glint = pow(nhb, 180.0) * 7.0 + pow(nhb, 22.0) * 0.4;
-                float3 beamLight = _LLBeamColor.rgb * beam * (hot * mottle * (0.05 + 0.3 * ndl) + glint * (0.6 + hot * 0.6));
+                float3 beamLight = _LLBeamColor.rgb * beam * (hot * mottle * (0.1 + 0.4 * ndl) + glint * (0.6 + hot * 0.6));
                 beamLight += _LLBeamColor.rgb * beam * shallow * 0.55 * hot;   // the reef shows under the light
                 float falseB = LLFalseBeams(pos);
                 beamLight += _LLFalseColor.rgb * falseB * (0.1 + glint * 0.6);
@@ -205,9 +205,9 @@ Shader "LL/Water"
 
                 // Foam wherever anything breaks the surface.
                 float foamNoise = LLNoise2(pos.xz * 1.4 + float2(t * 0.5, t * 0.27));
-                float foam = saturate(1.0 - under / (0.7 + foamNoise * 0.8));
+                float foam = saturate(1.0 - under / (0.25 + foamNoise * 0.35));
                 foam *= LLSmooth(0.1, 0.6, foamNoise + foam * 0.5);
-                body = lerp(body, _ShallowColor.rgb * 1.5, shallow * 0.35);
+                body = lerp(body, _ShallowColor.rgb * 1.5, shallow * 0.35 * saturate(beam * 2.0 + _LLFlash));
 
                 float flash = _LLFlash;
                 float3 col = body * (ambient * 1.4 + moon.color * moonB * 0.05 + flash * 0.5) + reflection * fresnel + moonGlint + beamLight + lamps;

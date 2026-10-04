@@ -62,19 +62,32 @@ namespace LastLight.View
             var model = ModelLibrary.Spawn(ModelName, hull);
             var st = Ship.Stats;
             if (model == null) BuildStandIn(st);
-            else
+            Transform cabinAnchor = null;
+            if (model != null)
             {
                 foreach (var anchor in ModelLibrary.FindAll(model.transform, "lamp_"))
                 {
-                    if (Ship.Damaged && !anchor.name.StartsWith("lamp_cabin")) continue;
-                    var c = LampColor(anchor.name);
-                    AddLamp(anchor, Vector3.zero, LampSize(anchor.name), c);
+                    if (anchor.name.StartsWith("lamp_cabin")) { cabinAnchor ??= anchor; continue; }
+                    if (Ship.Damaged) continue;
+                    AddLamp(anchor, Vector3.zero, LampSize(anchor.name), LampColor(anchor.name));
+                }
+                if (Ship.Damaged)
+                {
+                    // Lamps out: darken the lit windows too.
+                    foreach (var rend in model.GetComponentsInChildren<Renderer>())
+                    {
+                        var mats = rend.sharedMaterials;
+                        for (int i = 0; i < mats.Length; i++)
+                            if (mats[i] != null && mats[i].name.StartsWith("emit_")) mats[i] = MaterialLibrary.Lit(new Color(0.06f, 0.06f, 0.07f));
+                        rend.sharedMaterials = mats;
+                    }
                 }
             }
 
             if (!Ship.Damaged)
             {
-                cabinLight = Glows.PointLight("Cabin", hull, new Vector3(0, 3.5f, -st.Length * 0.15f), new Color(1f, 0.72f, 0.42f), 3.5f, st.Length * 1.3f);
+                var cabinPos = cabinAnchor != null ? hull.InverseTransformPoint(cabinAnchor.position) + Vector3.up * 0.6f : new Vector3(0, 3.5f, -st.Length * 0.15f);
+                cabinLight = Glows.PointLight("Cabin", hull, cabinPos, new Color(1f, 0.72f, 0.42f), 3.5f, st.Length * 1.3f);
             }
             else
             {

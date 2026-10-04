@@ -32,7 +32,7 @@ namespace LastLight.View
         public static Color BeamTint = new Color(1f, 0.84f, 0.58f);
         public static float BeamBrightness = 2.4f;
         public static Color FalseTint = new Color(1f, 0.5f, 0.22f);
-        public static Color AmbientColor = new Color(0.045f, 0.066f, 0.1f);
+        public static Color AmbientColor = new Color(0.06f, 0.085f, 0.13f);
         public static float MoonBrightness = 1f;
         public static float HazeAmount = 1f;
         public static float DawnAmount;

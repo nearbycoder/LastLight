@@ -28,18 +28,18 @@ namespace LastLight.View
                 rock.transform.localScale = new Vector3(reef.Radius * 2.1f, 1.6f, reef.Radius * 1.8f);
             }
             else rock.transform.localScale = Vector3.one * reef.Radius / 2.4f;
-            rock.transform.localPosition = new Vector3(0, -1.25f, 0);
+            rock.transform.localPosition = new Vector3(0, -2.7f, 0);
             rock.transform.localRotation = Quaternion.Euler(0, reef.Index * 67f, 0);
 
             var decal = new GameObject("Foam");
             decal.transform.SetParent(go.transform, false);
             decal.transform.localPosition = new Vector3(0, 0.3f, 0);
-            decal.transform.localScale = new Vector3(reef.Radius * 4.2f, 1f, reef.Radius * 4.2f);
+            decal.transform.localScale = new Vector3(reef.Radius * 4.6f, 1f, reef.Radius * 4.6f);
             decal.AddComponent<MeshFilter>().sharedMesh = Meshes.QuadXZ;
             var r = decal.AddComponent<MeshRenderer>();
             v.foam = MaterialLibrary.NewFoam();
             v.foam.SetFloat("_Seed", reef.Index * 1.7f);
-            v.foam.SetVector("_Shape", new Vector4(0.2f, 0.92f, 1, 0));
+            v.foam.SetVector("_Shape", new Vector4(0.2f, 1.0f, 1, 0));
             r.sharedMaterial = v.foam;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return v;
@@ -53,7 +53,7 @@ namespace LastLight.View
             shown = Mathf.MoveTowards(shown, target, Time.deltaTime * (target > shown ? 4f : 0.8f));
             bloom = Mathf.Max(0f, bloom - Time.deltaTime * 1.5f);
             foam.SetFloat("_Amount", shown * (1f + bloom * 1.5f));
-            foam.SetVector("_Shape", new Vector4(0.2f, 0.92f - bloom * 0.0f + (1f - shown) * 0.2f, 1, 0));
+            foam.SetVector("_Shape", new Vector4(0.2f, 1.0f + bloom * 0.25f, 1, 0));
         }
     }
 
@@ -139,8 +139,10 @@ namespace LastLight.View
                 var col = buoy.Kind == "red" ? new Color(0.65f, 0.12f, 0.1f) : buoy.Kind == "green" ? new Color(0.1f, 0.45f, 0.22f) : new Color(0.7f, 0.55f, 0.15f);
                 c.GetComponent<Renderer>().sharedMaterial = MaterialLibrary.Lit(col, 1.3f, 0.3f, 0.5f);
             }
-            v.lamp = Glows.Glow("Lamp", v.body, new Vector3(0, 4.4f, 0), 3f, Color.black);
-            v.light = Glows.PointLight("Lamp Light", v.body, new Vector3(0, 4.5f, 0), v.lampColor.linear * 0.3f, 0f, 16f);
+            var anchor = model != null ? ModelLibrary.Find(model.transform, "lamp_top") : null;
+            var lampPos = anchor != null ? v.body.InverseTransformPoint(anchor.position) : new Vector3(0, 4.4f, 0);
+            v.lamp = Glows.Glow("Lamp", v.body, lampPos, 3f, Color.black);
+            v.light = Glows.PointLight("Lamp Light", v.body, lampPos + Vector3.up * 0.2f, v.lampColor.linear * 0.3f, 0f, 16f);
             v.light.color = new Color(v.lampColor.r, v.lampColor.g, v.lampColor.b) / Mathf.Max(v.lampColor.r, Mathf.Max(v.lampColor.g, v.lampColor.b));
             v.aura = Glows.Ring("Aura", go.transform, SimBuoy.AuraRadius, Color.black, new Vector4(0.95f, 0.985f, 0.01f, 0), new Vector4(1, 36, 0, 0));
             v.auraMat = v.aura.sharedMaterial;

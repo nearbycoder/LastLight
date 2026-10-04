@@ -18,7 +18,7 @@ namespace LastLight.Core
 
         public static readonly Vector3 MoonDirection = new Vector3(-0.3f, 0.48f, 0.82f).normalized;
         public static readonly Color MoonColor = new Color(0.62f, 0.72f, 0.92f);
-        public const float MoonIntensity = 0.5f;
+        public const float MoonIntensity = 1.1f;
 
         public static CameraRig BuildCamera()
         {

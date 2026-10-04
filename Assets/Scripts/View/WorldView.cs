@@ -47,7 +47,21 @@ namespace LastLight.View
         void BuildCoast()
         {
             var model = ModelLibrary.Spawn("merrow_bay", transform);
-            if (model != null) return;
+            if (model != null)
+            {
+                int lights = 0;
+                foreach (var a in ModelLibrary.FindAll(model.transform, "lamp_"))
+                {
+                    bool street = a.name.StartsWith("lamp_street") || a.name.StartsWith("lamp_chapel");
+                    Glows.Glow("Town Glow", a, Vector3.zero, street ? 2.6f : 1.5f, street ? new Color(2.4f, 1.6f, 0.8f) : new Color(1.6f, 0.9f, 0.35f));
+                    if (street || lights < 10)
+                    {
+                        Glows.PointLight("Town Light", a, Vector3.zero, new Color(1f, 0.7f, 0.4f), street ? 3.5f : 2f, street ? 14f : 9f);
+                        lights++;
+                    }
+                }
+                return;
+            }
             foreach (var poly in Map.Land)
             {
                 var go = new GameObject("Coast");
