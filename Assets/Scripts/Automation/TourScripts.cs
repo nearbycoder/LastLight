@@ -21,6 +21,14 @@ namespace LastLight.Automation
             Tour.Scripts["input"] = InputTour;
             Tour.Scripts["video"] = Video;
             Tour.Scripts["watch"] = Watch;
+            Tour.Scripts["report"] = Report;
+        }
+
+        /// <summary>The content validation report (the same as Tools/validate.sh) from the built player.</summary>
+        static IEnumerator Report(Tour t)
+        {
+            yield return null;
+            t.Log("validation report\n" + Validation.Report());
         }
 
         const int VideoFps = 30;

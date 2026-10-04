@@ -1,0 +1,6 @@
+# Python tooling: audio synthesis (ArtSource/audio), the review chart, the audio checks and the
+# trailer editor.  python3 -m venv Tools/.venv && Tools/.venv/bin/pip install -r Tools/requirements.txt
+numpy>=2.0
+scipy>=1.13
+matplotlib>=3.8
+pillow>=10.0

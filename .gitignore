@@ -41,3 +41,17 @@ __pycache__/
 
 # Mono crash dumps (a killed editor leaves these in the project root)
 mono_crash.*
+
+# Trailer and gameplay captures (raw footage; the edited trailer lives in docs/media)
+/[Cc]aptures/
+*.f32
+
+# Not used by this project, kept out in case tooling ever creates them
+node_modules/
+dist/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
