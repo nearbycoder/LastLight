@@ -1,0 +1,348 @@
+{
+ "missions": [
+  {
+   "id": "first_watch",
+   "night": 1,
+   "title": "First Watch",
+   "date": "Monday, 2nd October",
+   "briefing": "Three boats out of Porthkell tonight. Clear sky, easy sea. Keep them in your light and they'll keep their heads.",
+   "newThing": "aim",
+   "allowedWrecks": 1,
+   "drainScale": 0.85,
+   "ships": [
+    {
+     "t": 5,
+     "type": "trawler",
+     "route": "n2_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Gannet Head, Little Auk. Coming home with a full hold. Light us in, keeper?",
+     "damaged": false
+    },
+    {
+     "t": 34,
+     "type": "trawler",
+     "route": "harbor_e2",
+     "name": "Kittiwake",
+     "captain": "",
+     "hail": "Kittiwake leaving Porthkell. Heading east for the morning.",
+     "damaged": false
+    },
+    {
+     "t": 52,
+     "type": "trawler",
+     "route": "w2_e2",
+     "name": "Saint Brannoc",
+     "captain": "",
+     "hail": "Saint Brannoc passing along the coast. Evening, Gannet Head.",
+     "damaged": false
+    },
+    {
+     "t": 80,
+     "type": "trawler",
+     "route": "e2_harbor",
+     "name": "Dunlin",
+     "captain": "",
+     "hail": "Dunlin, inbound from Corley. Long night.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 1.5,
+     "on": "",
+     "who": "ianto",
+     "text": "Evening, keeper. Ianto at the harbour. Quiet one to start you off."
+    },
+    {
+     "t": 15,
+     "on": "",
+     "who": "board",
+     "text": "LETTER FROM THE BOARD OF LIGHTS: Gannet Head Light will be discontinued at the close of the season. A radio beacon will replace it. Twelve nights remain."
+    },
+    {
+     "t": 26,
+     "on": "",
+     "who": "ianto",
+     "text": "Twelve nights. Well. Let's make them count."
+    },
+    {
+     "t": -1,
+     "on": "firstLost",
+     "who": "ianto",
+     "text": "A boat in the dark loses its nerve. Get your light on her."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "That's the lot. Porthkell sleeps sound. Goodnight, keeper."
+    }
+   ],
+   "hints": [
+    {
+     "id": "aim",
+     "t": 2,
+     "on": ""
+    },
+    {
+     "id": "ships",
+     "t": -1,
+     "on": "firstEntered"
+    }
+   ],
+   "reefGroups": [],
+   "shoals": [],
+   "buoys": [],
+   "fog": [],
+   "wreckers": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "the_teeth",
+   "night": 2,
+   "title": "The Teeth",
+   "date": "Tuesday, 3rd October",
+   "briefing": "Boats coming down past the Merrow Teeth. The reefs are under the water; sweep your light ahead of them so the captains can see the rocks in time.",
+   "newThing": "chart",
+   "allowedWrecks": 1,
+   "drainScale": 0.9,
+   "reefGroups": [
+    "teeth"
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Little Auk again, keeper. Coming down past the Teeth. Mind them for me?",
+     "damaged": false
+    },
+    {
+     "t": 30,
+     "type": "trawler",
+     "route": "e1_harbor",
+     "name": "Guillemot",
+     "captain": "",
+     "hail": "Guillemot inbound from the east.",
+     "damaged": false
+    },
+    {
+     "t": 56,
+     "type": "trawler",
+     "route": "n3_e1",
+     "name": "Fulmar",
+     "captain": "",
+     "hail": "Fulmar, bound for Corley the long way round.",
+     "damaged": false
+    },
+    {
+     "t": 78,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Gannet Head, this is the Calloway. Pryce. I know these rocks better than you do, but light them anyway.",
+     "damaged": false
+    },
+    {
+     "t": 100,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater coming down from the north.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 1.5,
+     "on": "",
+     "who": "ianto",
+     "text": "The Teeth are out there, keeper. Underwater. A captain only steers round what he can see."
+    },
+    {
+     "t": -1,
+     "on": "firstCharted",
+     "who": "maren",
+     "text": "Thanks, keeper! I can see the white water now."
+    },
+    {
+     "t": -1,
+     "on": "firstFar",
+     "who": "ianto",
+     "text": "Far out? Hold your light steady. It'll reach further."
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "pryce",
+     "text": "Hm. Not bad. Not bad at all."
+    }
+   ],
+   "hints": [
+    {
+     "id": "chart",
+     "t": -1,
+     "on": "firstEntered"
+    },
+    {
+     "id": "focus",
+     "t": 70,
+     "on": ""
+    }
+   ],
+   "shoals": [],
+   "buoys": [],
+   "fog": [],
+   "wreckers": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  },
+  {
+   "id": "lantern_row",
+   "night": 3,
+   "title": "Lantern Row",
+   "date": "Thursday, 5th October",
+   "briefing": "Black Hen throws a long shadow your light can't reach. The channel buoys have lamps: light them, and they'll guide the boats a while on their own.",
+   "newThing": "buoy",
+   "allowedWrecks": 1,
+   "reefGroups": [
+    "teeth",
+    "hens"
+   ],
+   "buoys": [
+    "hen_bell",
+    "sands_n",
+    "fairway",
+    "teeth_bell"
+   ],
+   "ships": [
+    {
+     "t": 4,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Little Auk",
+     "captain": "maren",
+     "hail": "Auk here. Coming down behind Black Hen, keeper. Can't see your light from here!",
+     "damaged": false
+    },
+    {
+     "t": 26,
+     "type": "trawler",
+     "route": "w1_harbor",
+     "name": "Razorbill",
+     "captain": "",
+     "hail": "Razorbill from the west, inbound.",
+     "damaged": false
+    },
+    {
+     "t": 44,
+     "type": "steamer",
+     "route": "e1_harbor",
+     "name": "SS Calloway",
+     "captain": "pryce",
+     "hail": "Calloway. Same rocks as last night. Same keeper, I hope.",
+     "damaged": false
+    },
+    {
+     "t": 66,
+     "type": "trawler",
+     "route": "n1_harbor",
+     "name": "Petrel",
+     "captain": "",
+     "hail": "Petrel, on the Hen's side.",
+     "damaged": false
+    },
+    {
+     "t": 84,
+     "type": "trawler",
+     "route": "n3_harbor",
+     "name": "Shearwater",
+     "captain": "",
+     "hail": "Shearwater coming down past the Teeth.",
+     "damaged": false
+    },
+    {
+     "t": 104,
+     "type": "steamer",
+     "route": "w1_e1",
+     "name": "SS Maud Ellen",
+     "captain": "",
+     "hail": "Maud Ellen, through traffic, eastbound.",
+     "damaged": false
+    }
+   ],
+   "radio": [
+    {
+     "t": 2,
+     "on": "",
+     "who": "ianto",
+     "text": "Light the Hen Bell before the Auk gets there. A burning buoy keeps a boat steady."
+    },
+    {
+     "t": -1,
+     "on": "firstBuoy",
+     "who": "maren",
+     "text": "Ha! The bell's lit. I'm alright now, keeper."
+    },
+    {
+     "t": 95,
+     "on": "",
+     "who": "maren",
+     "text": "You're the only one awake round here, aren't you?"
+    },
+    {
+     "t": -1,
+     "on": "end",
+     "who": "ianto",
+     "text": "Lantern Row's all lit. Nicely done."
+    }
+   ],
+   "hints": [
+    {
+     "id": "buoy",
+     "t": 3,
+     "on": ""
+    }
+   ],
+   "shoals": [],
+   "fog": [],
+   "wreckers": [],
+   "foghorn": false,
+   "haze": 1.0,
+   "drainScale": 1.0,
+   "finale": false,
+   "storm": {
+    "enabled": false,
+    "cx": 0,
+    "cz": 0,
+    "rain": 0,
+    "lightningMin": 10,
+    "lightningMax": 18
+   }
+  }
+ ]
+}
