@@ -77,6 +77,14 @@ namespace LastLight.UI
             return hud;
         }
 
+        /// <summary>Settings: HUD text size. A smaller reference resolution draws everything bigger.</summary>
+        public void SetScale(float scale)
+        {
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            scale = Mathf.Clamp(scale, 1f, 1.3f);
+            scaler.referenceResolution = new Vector2(1920f, 1080f) / scale;
+        }
+
         void Build()
         {
             root = UiKit.Rect("Root", canvas.transform).Fill();

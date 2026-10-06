@@ -65,8 +65,12 @@ Point the light. That's the whole interface. The rest is deciding where to point
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
 along with text speed, hints, screen shake, lens turn speed, windowed or fullscreen, resolution,
 fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp)
-and **reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength).
+**reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength),
+HUD text size and difficulty.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
+
+**HUD text size** (100, 115 or 130%) enlarges everything drawn during a night: the radio, hints,
+manifest, score, foghorn and markers. The menus keep their size.
 
 **Difficulty** is Standard (the game as tuned) or **Hard**. On Hard, ships lose heart about 30%
 faster, a chart fades after 15 seconds instead of 22, a lit buoy burns 20 seconds instead of 28,

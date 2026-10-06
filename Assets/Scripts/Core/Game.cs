@@ -82,6 +82,8 @@ namespace LastLight.Core
             if (scale > 0) SaveData.Current.renderScale = scale / 100f;
             if (HasArg("-llReduceFlashing")) SaveData.Current.reduceFlashing = true;
             if (HasArg("-llHard")) SaveData.Current.difficulty = 1;
+            int hudScale = Arg("-llHudScale", 0);
+            if (hudScale > 0) SaveData.Current.hudScale = hudScale / 100f;
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
@@ -124,6 +126,7 @@ namespace LastLight.Core
         {
             UiKit.EnsureEventSystem();
             Hud = Hud.Create();
+            Hud.SetScale(SaveData.Current.hudScale);
             menus = UiKit.MakeCanvas("Menus", 20);
             title = TitleScreen.Create(menus.transform);
             logbook = LogbookScreen.Create(menus.transform);
