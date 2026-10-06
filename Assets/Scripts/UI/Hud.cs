@@ -32,6 +32,11 @@ namespace LastLight.UI
         }
         // The Night Watch strip: ships home and the clock, and a hull for each wreck the Board allows.
         Text watchText;
+        // The twelve nights: a hull for each wreck the Board allows, under the night's title.
+        RectTransform allowanceRow;
+        Text allowanceText;
+        readonly List<(Image hull, Image cross)> allowanceHulls = new List<(Image, Image)>();
+        int allowanceShown;
         readonly List<Image> watchHulls = new List<Image>();
         int watchWrecksShown;
         // Radio
@@ -109,6 +114,7 @@ namespace LastLight.UI
             nightLabel.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -26), new Vector2(0, 0));
             titleLabel = UiKit.Text("Title", tl, "", UiKit.Heading, 44, UiKit.Paper, TextAnchor.UpperLeft).Shadowed(0.8f, 2f);
             titleLabel.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -80), new Vector2(0, -22));
+            allowanceRow = UiKit.Rect("Allowance", tl).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(2, -88), new Vector2(560, 26));
 
             // Top-centre: the manifest.
             manifest = UiKit.Rect("Manifest", root).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -38), new Vector2(900, 44));
@@ -207,6 +213,7 @@ namespace LastLight.UI
             watchText = null;
             var sched = def.endless ? new SpawnDef[0] : r.World.Schedule;
             if (def.endless) BuildWatchStrip(def);
+            BuildAllowance(def.endless ? -1 : def.allowedWrecks);
             float w = 66f, gap = 10f;
             float total = sched.Length * w + (sched.Length - 1) * gap;
             for (int i = 0; i < sched.Length; i++)
@@ -240,6 +247,60 @@ namespace LastLight.UI
             watchText = UiKit.Text("Tally", manifest, "", UiKit.BodyBold, 26, UiKit.Paper, TextAnchor.MiddleLeft).Shadowed();
             watchText.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0, 0.5f), new Vector2(-40, 0), new Vector2(420, 40));
             watchWrecksShown = 0;
+        }
+
+        void BuildAllowance(int allowed)
+        {
+            foreach (Transform c in allowanceRow) Destroy(c.gameObject);
+            allowanceHulls.Clear();
+            allowanceText = null;
+            allowanceShown = 0;
+            allowanceRow.gameObject.SetActive(allowed >= 0);
+            if (allowed < 0) return;
+            for (int i = 0; i < allowed; i++)
+            {
+                var hull = UiKit.Image("Hull", allowanceRow, SpriteFactory.Ship("trawler"), new Color(0.92f, 0.94f, 1f, 0.85f));
+                hull.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(i * 48, 0), new Vector2(42, 17));
+                var cross = UiKit.Image("Cross", hull.transform, SpriteFactory.Icon("cross"), new Color(0, 0, 0, 0));
+                cross.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(22, 22));
+                allowanceHulls.Add((hull, cross));
+            }
+            allowanceText = UiKit.Text("Caption", allowanceRow, "", UiKit.BodyBold, 17, UiKit.Brass, TextAnchor.MiddleLeft).Shadowed();
+            allowanceText.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(allowed * 48 + 6, 0), new Vector2(480, 26));
+        }
+
+        /// <summary>The wrecks left before the Board ends the night, in words as well as hulls.</summary>
+        public static string AllowanceCaption(int allowed, int wrecks)
+        {
+            int left = allowed - wrecks;
+            if (left <= 0) return "NEXT WRECK ENDS THE NIGHT";
+            string n = left == 1 ? "ONE" : left == 2 ? "TWO" : left.ToString();
+            return wrecks == 0 ? $"{n} WRECK{(left == 1 ? "" : "S")} ALLOWED" : $"{n} MORE WRECK{(left == 1 ? "" : "S")} ALLOWED";
+        }
+
+        void UpdateAllowance(SimWorld w)
+        {
+            int allowed = allowanceHulls.Count;
+            for (int i = 0; i < allowed; i++)
+            {
+                bool spent = i < w.Wrecks;
+                var (hull, cross) = allowanceHulls[i];
+                hull.color = Color.Lerp(hull.color, spent ? new Color(0.9f, 0.35f, 0.3f, 0.45f) : new Color(0.92f, 0.94f, 1f, 0.85f), Unscaled.Delta * 6f);
+                cross.color = spent ? UiKit.Danger : new Color(0, 0, 0, 0);
+            }
+            if (w.Wrecks > allowanceShown && w.Wrecks - 1 < allowed) Tween.Punch(allowanceHulls[w.Wrecks - 1].hull.transform, 0.5f, 0.6f);
+            if (w.Wrecks != allowanceShown || allowanceText.text == "") allowanceText.text = UiKit.Spaced(AllowanceCaption(allowed, w.Wrecks));
+            allowanceShown = w.Wrecks;
+            bool last = w.Wrecks >= allowed;
+            allowanceText.color = last ? Color.Lerp(UiKit.Danger, UiKit.Paper, 0.35f + 0.35f * Mathf.Sin(Unscaled.Time * 5f)) : UiKit.Brass;
+        }
+
+        /// <summary>The allowance row as shown: hulls crossed out, and the caption; for tours.</summary>
+        public (int crossed, int hulls, string caption) AllowanceShown()
+        {
+            int crossed = 0;
+            foreach (var (_, cross) in allowanceHulls) if (cross.color.a > 0.5f) crossed++;
+            return (crossed, allowanceHulls.Count, allowanceText != null && allowanceRow.gameObject.activeSelf ? allowanceText.text : null);
         }
 
         void UpdateWatchStrip(SimWorld w)
@@ -482,6 +543,7 @@ namespace LastLight.UI
             }
 
             if (watchText != null) UpdateWatchStrip(w);
+            if (allowanceText != null) UpdateAllowance(w);
 
             // Manifest states.
             int spawned = w.SpawnedShips;

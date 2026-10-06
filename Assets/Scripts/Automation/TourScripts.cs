@@ -1,6 +1,7 @@
 using System.Collections;
 using LastLight.Core;
 using LastLight.Sim;
+using LastLight.UI;
 using LastLight.View;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -163,6 +164,14 @@ namespace LastLight.Automation
             yield return Tour.Wait(4f);
             yield return t.Shot("07_results");
 
+            // The stakes: night 8 allows two wrecks, and the briefing says so.
+            g.TourHideAll();
+            g.TourBriefing(8);
+            yield return Tour.Wait(4f);
+            yield return t.Shot("07b_briefing_stakes");
+            t.Log($"briefing stakes for night 8 (allows {g.Runner.Def.allowedWrecks}): \"{UI.BriefingScreen.StakesText(g.Runner.Def.allowedWrecks)}\"");
+            bool allowanceOk = true;
+
             // The dawn debrief: a night where the keeper neglects one ship, then one with two.
             var neglect = Game.ArgString("-llDebrief", "4:Razorbill|2:Little Auk,Shearwater").Split('|');
             for (int k = 0; k < neglect.Length; k++)
@@ -176,12 +185,33 @@ namespace LastLight.Automation
                 g.TourBegin();
                 g.Runner.TimeScale = 6f;
                 waited = 0f;
-                while (!g.ShowingResults && waited < 240f) { waited += Time.unscaledDeltaTime; yield return null; }
+                int wrecksSeen = 0;
+                while (!g.ShowingResults && waited < 240f)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    var w = g.Runner.World;
+                    if (w.Wrecks > wrecksSeen && w.Outcome == MissionOutcome.Running)
+                    {
+                        // The HUD's allowance row after each wreck: hulls crossed out, and the words.
+                        wrecksSeen = w.Wrecks;
+                        g.Runner.TimeScale = 0f;
+                        yield return Tour.Wait(0.8f);
+                        var (crossed, hulls, caption) = g.Hud.AllowanceShown();
+                        string want = UiKit.Spaced(UI.Hud.AllowanceCaption(g.Runner.Def.allowedWrecks, w.Wrecks));
+                        bool ok = hulls == g.Runner.Def.allowedWrecks && crossed == Mathf.Min(w.Wrecks, hulls) && caption == want;
+                        allowanceOk &= ok;
+                        t.Log($"{(ok ? "PASS" : "FAIL")} night {parts[0]} after wreck {w.Wrecks}: {crossed} of {hulls} hulls crossed, \"{caption}\"");
+                        yield return t.Shot($"{8 + k:00}_allowance_wreck{w.Wrecks}");
+                        g.Runner.TimeScale = 6f;
+                    }
+                    yield return null;
+                }
                 t.Log($"night {parts[0]} {g.Runner.World.Outcome} at {g.Runner.World.Time:0}s after {waited:0}s real, results {(g.ShowingResults ? "shown" : "NOT shown")}");
                 yield return Tour.Wait(4f);
                 foreach (var line in LastLight.Sim.Debrief.Lines(g.Runner.World)) t.Log("debrief " + line);
                 yield return t.Shot($"{8 + k:00}_results_debrief");
             }
+            t.Log($"{(allowanceOk ? "PASS" : "FAIL")} the HUD's wreck allowance follows the wrecks");
         }
 
         /// <summary>

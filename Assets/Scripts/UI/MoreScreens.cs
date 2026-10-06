@@ -14,7 +14,7 @@ namespace LastLight.UI
     public sealed class BriefingScreen : UiScreen
     {
         public Action OnStart;
-        Text number, title, date, speech, newTitle, newText, prompt;
+        Text number, title, date, speech, newTitle, newText, prompt, stakes;
         Image newIcon;
         RectTransform card, newCard;
         string full = "";
@@ -67,6 +67,11 @@ namespace LastLight.UI
             newText = Label(newCard, "", UiKit.BodyMedium, 27, UiKit.Paper, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(124, -50), new Vector2(556, 66));
             newText.rectTransform.pivot = new Vector2(0, 1);
             newText.lineSpacing = 0.95f;
+
+            // The stakes, just above the button: how many wrecks the Board will stand tonight.
+            stakes = Label(card, "", UiKit.Italic, 25, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(24, 124), new Vector2(860, 32));
+            stakes.rectTransform.pivot = new Vector2(0, 0.5f);
+            stakes.Shadowed();
 
             var start = UiButton.Create(card, "Begin the watch", UiKit.Heading, 46, () => { if (ready) OnStart?.Invoke(); });
             ((RectTransform)start.transform).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(22, 40), new Vector2(520, 64));
@@ -122,6 +127,7 @@ namespace LastLight.UI
                 for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0") + (watch.watches[i].hard ? " (Hard)" : ""));
                 date.text = $"Best watches  {string.Join("  ·  ", parts)}     longest {UiKit.Clock(longest)}";
             }
+            stakes.text = def.endless ? "" : StakesText(def.allowedWrecks);
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
@@ -134,6 +140,15 @@ namespace LastLight.UI
                 SetNewIcon(n.icon);
             }
             else newCard.gameObject.SetActive(false);
+        }
+
+        /// <summary>"The Board allows one wreck tonight. A second ends the night."</summary>
+        public static string StakesText(int allowed)
+        {
+            string[] counts = { "no", "one", "two", "three" }, ordinals = { "first", "second", "third", "fourth" };
+            if (allowed < 0 || allowed >= counts.Length) return "";
+            return allowed == 0 ? "The Board allows no wrecks tonight. The first ends the night."
+                : $"The Board allows {counts[allowed]} wreck{(allowed == 1 ? "" : "s")} tonight. A {ordinals[allowed]} ends the night.";
         }
 
         void SetNewIcon(string icon)
