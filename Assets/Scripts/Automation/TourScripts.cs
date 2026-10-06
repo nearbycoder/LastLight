@@ -159,6 +159,26 @@ namespace LastLight.Automation
             while (!g.ShowingResults && waited < 120f) { waited += Time.unscaledDeltaTime; yield return null; }
             yield return Tour.Wait(4f);
             yield return t.Shot("07_results");
+
+            // The dawn debrief: a night where the keeper neglects one ship, then one with two.
+            var neglect = Game.ArgString("-llDebrief", "4:Razorbill|2:Little Auk,Shearwater").Split('|');
+            for (int k = 0; k < neglect.Length; k++)
+            {
+                var parts = neglect[k].Split(':');
+                var names = new System.Collections.Generic.HashSet<string>(parts[1].Split(','));
+                g.TourHideAll();
+                g.TourBriefing(int.Parse(parts[0]));
+                g.Runner.Bot.Ignore = s => names.Contains(s.Name);
+                yield return Tour.Wait(3.5f);
+                g.TourBegin();
+                g.Runner.TimeScale = 6f;
+                waited = 0f;
+                while (!g.ShowingResults && waited < 240f) { waited += Time.unscaledDeltaTime; yield return null; }
+                t.Log($"night {parts[0]} {g.Runner.World.Outcome} at {g.Runner.World.Time:0}s after {waited:0}s real, results {(g.ShowingResults ? "shown" : "NOT shown")}");
+                yield return Tour.Wait(4f);
+                foreach (var line in LastLight.Sim.Debrief.Lines(g.Runner.World)) t.Log("debrief " + line);
+                yield return t.Shot($"{8 + k:00}_results_debrief");
+            }
         }
 
         /// <summary>

@@ -127,7 +127,9 @@ grumble, joke, panic and thank you in typed text over synthesized gibberish voic
 ### Twelve nights, three lamps each, and the Night Watch
 <img src="docs/media/results.jpg" width="49%" alt="Dawn results for night II: three lamps lit, five ships home, none wrecked"> <img src="docs/media/logbook.jpg" width="49%" alt="The keeper's logbook: nights kept with their lamps, later nights still sealed with wax">
 
-Dawn tallies every night with up to three lamps, and the keeper's logbook keeps your best for each
+Dawn tallies every night with up to three lamps and a short debrief of every ship that had a bad
+night: which reef it struck and whether that reef was uncharted or charted too late, who was lured
+and by which false light, and who lost their way. The keeper's logbook keeps your best for each
 night so you can go back for a cleaner watch. Finish the season and the **Night Watch** opens: an
 endless score attack, generated fresh each time, with every hazard out and no end to the ships.
 
@@ -219,11 +221,12 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (22 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (26 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
-  bot wins all twelve nights in the pure simulation, and that the bot keeps a generated Night
-  Watch for at least ten minutes.
+  bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
+  Watch for at least ten minutes, and that the dawn debrief accounts for every wreck when the
+  bot is made to neglect each ship in turn.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky

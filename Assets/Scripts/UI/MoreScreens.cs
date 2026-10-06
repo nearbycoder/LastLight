@@ -233,7 +233,7 @@ namespace LastLight.UI
     public sealed class ResultsScreen : UiScreen
     {
         public Action OnNext, OnRetry, OnLogbook;
-        Text heading, title, verdict, stats, scoreLine, best;
+        Text heading, title, verdict, stats, scoreLine, best, debrief;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
         UiButton next, retry, logbook;
@@ -289,11 +289,16 @@ namespace LastLight.UI
             heading.text = UiKit.Spaced(won ? "DAWN  ·  NIGHT " + UiKit.Roman(def.night) : "NIGHT " + UiKit.Roman(def.night));
             title.text = def.title;
             int lost = 0;
-            foreach (var s in w.Ships) if (!s.SteadyHand) lost++;
-            if (!won) verdict.text = "Too many ships were lost. The Board will hear of it.";
+            SimShip wavered = null;
+            foreach (var s in w.Ships) if (!s.SteadyHand) { lost++; wavered = s; }
+            var final = Debrief.FinalWreck(w);
+            if (!won) verdict.text = final != null ? $"One wreck too many: the {final.Name} {Debrief.WreckText(final)}." : "Too many ships were lost. The Board will hear of it.";
             else if (w.Lamps == 3) verdict.text = "Every ship home, and not one lost its way.";
-            else if (w.Lamps == 2) verdict.text = lost == 1 ? "Every ship home, though one lost its way for a while." : $"Every ship home, though {lost} lost their way for a while.";
-            else verdict.text = w.Wrecks == 1 ? "The light was kept, but one ship never made it." : $"The light was kept, but {w.Wrecks} ships never made it.";
+            else if (w.Lamps == 2) verdict.text = lost == 1
+                ? $"Every ship home, but the {wavered.Name} {(wavered.LuredCount > 0 ? "was lured " + Debrief.Times(wavered.LuredCount) : "lost its way " + Debrief.Times(wavered.LostCount))}."
+                : $"Every ship home, though {lost} lost their way for a while.";
+            else verdict.text = w.Wrecks == 1 && final != null ? $"The light was kept, but the {final.Name} never made it." : $"The light was kept, but {w.Wrecks} ships never made it.";
+            ShowDebrief(Debrief.Lines(w));
             stats.text = $"Ships home  <b>{w.Arrivals} / {w.TotalShips}</b>          Wrecked  <b>{w.Wrecks}</b>          Steady hands  <b>{w.SteadyArrivals}</b>";
             scoreLine.text = won ? w.Score.ToString("N0") : "";
             best.text = won && w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : (previousBest > 0 ? $"best {previousBest:N0}" : "");
@@ -325,6 +330,9 @@ namespace LastLight.UI
         }
 
         void ResetLamps(int count)
+            debrief = UiKit.Text("Debrief", card, "", UiKit.BodyMedium, 24, new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, 0.8f), TextAnchor.UpperCenter);
+            debrief.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -522), new Vector2(900, DebriefLine * MaxDebrief));
+            debrief.lineSpacing = 1.1f;
         {
             lampCount = count;
             lampShown = 0;
@@ -370,6 +378,32 @@ namespace LastLight.UI
             var glow = lamps[i].transform.parent.GetChild(lamps[i].transform.GetSiblingIndex() - 1).GetComponent<Image>();
             Tween.Run(glow, "glow", 0.9f, t => glow.color = new Color(1f, 0.75f, 0.35f, 0.55f * (1f - t * 0.45f)), 0f, Tween.EaseOutCubic);
             Sfx.Play("lamp_" + (i + 1), 0.8f, 1f, (i - 1) * 0.3f, Bus.Ui);
+            ShowDebrief(Debrief.Lines(w, wrecksOnly: true));
         }
     }
 }
+        const int MaxDebrief = 4;
+        const float DebriefLine = 30f;
+
+        /// <summary>Up to four lines on what went wrong, most serious first; the card grows to fit.</summary>
+        void ShowDebrief(List<Debrief.Line> lines)
+        {
+            var sb = new System.Text.StringBuilder();
+            int shown = lines.Count <= MaxDebrief ? lines.Count : MaxDebrief - 1;
+            for (int i = 0; i < shown; i++)
+            {
+                var l = lines[i];
+                string dot = l.Kind == Debrief.Kind.Wreck ? "#FF5A4A" : l.Kind == Debrief.Kind.Lured ? "#FF9A2E" : "#7E8A96";
+                if (i > 0) sb.Append('\n');
+                sb.Append($"<color={dot}><size=34>•</size></color>  <b>{l.Ship}</b>  {l.Text}");
+            }
+            if (lines.Count > shown) sb.Append($"\n<color=#7E8A96>and {lines.Count - shown} more</color>");
+            debrief.text = sb.ToString();
+            int rows = lines.Count == 0 ? 0 : Mathf.Min(lines.Count, MaxDebrief);
+            float extra = rows == 0 ? 0f : rows * DebriefLine + 6f - 40f;   // the old card had room for about one line
+            extra = Mathf.Max(0f, extra);
+            card.sizeDelta = new Vector2(1000, 860 + extra);
+            ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - extra);
+            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - extra);
+        }
+

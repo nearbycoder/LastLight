@@ -74,6 +74,13 @@ namespace LastLight.Sim
         public int AvoidObstacle = -1;
         public string SteerDebug = "";
         public string WreckCause = "";
+        // For the dawn debrief: how often the captain lost the way or was lured, and how the wreck happened.
+        public int LostCount, LuredCount;
+        public string LuredAt = "";            // the wrecker site that last lured this ship
+        public ShipState WreckedWhile;         // Sailing, Lost or Lured when the hull struck
+        public bool WreckCharted;              // the hazard was charted (or always visible) when struck
+        public bool WreckShoal;                // ran aground on a sandbank rather than striking rock
+        public float WreckTime = -1f;
         public float StateTime;        // seconds in the current state
 
         public bool Active => State == ShipState.Sailing || State == ShipState.Lost || State == ShipState.Lured;

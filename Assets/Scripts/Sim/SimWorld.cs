@@ -496,6 +496,7 @@ namespace LastLight.Sim
                     {
                         SetState(s, ShipState.Lost);
                         s.EverLost = true;
+                        s.LostCount++;
                         Emit(SimEventType.ShipLost, s);
                     }
                     break;
@@ -523,6 +524,8 @@ namespace LastLight.Sim
                     SetState(s, ShipState.Lured);
                     s.LuredBy = w;
                     s.EverLured = true;
+                    s.LuredCount++;
+                    s.LuredAt = w.Site.Name;
                     Emit(SimEventType.ShipLured, s, w.Index);
                     break;
                 }
@@ -885,17 +888,22 @@ namespace LastLight.Sim
         {
             var st = s.Stats;
             string cause = null;
+            bool charted = true, shoal = false;
             foreach (var k in Map.Stacks)
                 if ((s.Pos - k.Pos).sqrMagnitude < Sq(k.Radius + st.Radius * 0.7f)) { cause = k.Name; break; }
             if (cause == null)
                 foreach (var r in Reefs)
-                    if ((s.Pos - r.Pos).sqrMagnitude < Sq(r.Radius + st.Radius * 0.55f)) { cause = ReefGroupName(r.Group); break; }
+                    if ((s.Pos - r.Pos).sqrMagnitude < Sq(r.Radius + st.Radius * 0.55f)) { cause = ReefGroupName(r.Group); charted = r.Charted; break; }
             if (cause == null && st.DeepDraught)
                 foreach (var sh in Shoals)
-                    if (sh.Def.Contains(s.Pos, -0.5f)) { cause = sh.Def.Name; break; }
+                    if (sh.Def.Contains(s.Pos, -0.5f)) { cause = sh.Def.Name; charted = sh.Charted; shoal = true; break; }
             if (cause == null && s.Inside && Map.OnLand(s.Pos + s.Forward * st.Radius * 0.8f)) cause = "the shore";
             if (cause == null) return;
             s.WreckCause = cause;
+            s.WreckedWhile = s.State;
+            s.WreckCharted = charted;
+            s.WreckShoal = shoal;
+            s.WreckTime = Time;
             SetState(s, ShipState.Wrecked);
             Wrecks++;
             Emit(SimEventType.ShipWrecked, s, text: cause);

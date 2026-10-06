@@ -69,6 +69,55 @@ namespace LastLight.Tests
             Assert.GreaterOrEqual(r.Lamps, 1);
         }
 
+        static SimWorld Play(MissionDef def, AutoKeeper bot, int seed = 7)
+        {
+            var w = new SimWorld(map, def, seed);
+            for (int i = 0; i < 60 * 900 && w.Outcome == MissionOutcome.Running; i++)
+                w.Step(1f / 60f, bot.Decide(w, 1f / 60f));
+            return w;
+        }
+
+        [Test]
+        public void TheDawnDebriefExplainsEveryWreck([Values(2, 4, 9)] int night)
+        {
+            // Neglect each ship in turn, as the trailer does to stage a wreck, and read the debrief.
+            var def = missions[night - 1];
+            int staged = 0;
+            foreach (var spawn in def.ships)
+            {
+                var w = Play(def, new AutoKeeper { Ignore = s => s.Name == spawn.name });
+                var lines = Debrief.Lines(w);
+                int expected = 0;
+                foreach (var s in w.Ships) if (s.State == ShipState.Wrecked || !s.SteadyHand) expected++;
+                Assert.AreEqual(expected, lines.Count, $"night {night}, neglecting {spawn.name}: one line per ship that had a bad night");
+                for (int i = 0; i < w.Wrecks; i++)
+                {
+                    Assert.AreEqual(Debrief.Kind.Wreck, lines[i].Kind, "wrecks come first");
+                    StringAssert.IsMatch("struck|aground|ashore", lines[i].Text);
+                }
+                foreach (var l in lines) Assert.IsNotEmpty(l.Ship);
+                if (w.Wrecks > 0)
+                {
+                    staged++;
+                    UnityEngine.Debug.Log($"[Debrief] night {night}, neglecting {spawn.name}: {w.Outcome}, {w.Lamps} lamps\n  " + string.Join("\n  ", lines));
+                }
+            }
+            Assert.Greater(staged, 0, $"neglecting a ship on night {night} wrecks someone");
+        }
+
+        [Test]
+        public void TheDebriefSaysHowAShipWasWrecked()
+        {
+            var s = new SimShip { Name = "Little Auk", WreckCause = "the Merrow Teeth", WreckedWhile = ShipState.Sailing };
+            Assert.AreEqual("struck the Merrow Teeth, uncharted", Debrief.WreckText(s));
+            s.WreckCharted = true;
+            Assert.AreEqual("struck the Merrow Teeth, charted too late to turn", Debrief.WreckText(s));
+            s.WreckedWhile = ShipState.Lost;
+            Assert.AreEqual("lost in the dark, struck the Merrow Teeth", Debrief.WreckText(s));
+            var c = new SimShip { Name = "SS Calloway", WreckCause = "Long Sands", WreckShoal = true, WreckedWhile = ShipState.Lured, LuredAt = "Corley Cove" };
+            Assert.AreEqual("lured by the false light at Corley Cove, ran aground on the Long Sands", Debrief.WreckText(c));
+        }
+
         [Test]
         public void TheBeamFormulaMatchesTheDocumentedShape()
         {
