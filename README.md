@@ -158,7 +158,8 @@ endless score attack with every reef, sandbank and buoy out and no end to the sh
 brings its own weather: one to three fog banks in different places, squalls that blow through
 every few minutes with current, rain and lightning (stronger as the night wears on), and wreckers
 lighting up at their own times, with the mimic light late in a long watch. Ianto gives the forecast
-in the briefing, and the logbook of the watch keeps your five best.
+in the briefing, and the game keeps your five best watches. The briefing shows the top three, and
+the dawn card tells you where a watch ranks.
 
 ## Content overview
 
@@ -280,15 +281,16 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
   The `ui` tour ends on two staged dawn debriefs. The `input` tour drives the real mouse and
   keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
   pad pauses the night, and that the d-pad walks both settings columns. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
-  warning and a full-astern call. `-llRenderScale 70` and `-llReduceFlashing` set those options
-  for any tour. No real gamepad has been tested, only Unity's simulated device.
+  warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
+  `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
+  any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
 - `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
   as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
   colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it.

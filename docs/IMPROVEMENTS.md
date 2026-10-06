@@ -244,3 +244,32 @@ to `docs/media/improvements/round2/`. Tour output and logs stay under `Builds/` 
 - Settings ▸ Text size: 100%, 115% or 130%. It scales the in-night HUD: radio, hints, manifest,
   score, horn and markers. The menus are already large and are laid out at a fixed size.
 - **Verify:** screenshots at 130% at both 1280×720 and 1920×1080, with no overlaps or clipping.
+
+## Round 2 results (2026-10-06)
+
+All four items landed on `improvements-2`, one commit each. Verification was on the built Linux
+player: 55/55 EditMode tests, the validation report, and the `ui`, `input`, `watch`, `status`,
+`breakers` and `nights` tours, all with 0 errors. Captures are in
+`docs/media/improvements/round2/`.
+
+1. **Night Watch weather and records.** As planned, except "the music's storm mood": the music
+   was left alone, and rain, wind, swell and moonlight follow the squall. Tests show ten seeds give
+   ten different nights, and a squall eases in and out with no jumps. **Finding:** the variety
+   doesn't make the watch harder for the models. Both the bot and the novice keep all three
+   watches the full 30 minutes on Standard, the novice with 1 or 2 wrecks. Whether Standard's
+   Night Watch should get tougher (a faster ramp, or squalls that start sooner) is the owner's
+   call. Hard below is the tougher option for now.
+2. **Hard difficulty.** As planned. Standard is pinned by a test to the AutoKeeper's tuned scores
+   on all twelve nights. On Hard the AutoKeeper still wins all twelve. The novice drops to 74 of
+   108 lamps with 7 wrecks (Standard: 93 and 0; v0.1.0: 78 and 9), and its watches end after 24 to
+   28 minutes.
+3. **Lost and lured by shape.** A "?" over lost ships, and a lantern plus a dashed tether to the
+   false light over lured ones. `Tools/cvd_sim.py` shows the red and amber rings converging under
+   deuteranopia and protanopia while the shapes stay distinct (`lost_lured_cvd.jpg`). The
+   manifest icons at the top still differ by colour only.
+4. **HUD text size.** As planned: 100, 115 or 130%. Checked at 1280×720 and 1920×1080, and in a
+   Hard Night Watch squall at 720p.
+
+Still open: Standard Night Watch tuning (owner), the round 1 difficulty decision (owner), a
+real-gamepad pass, a listening pass, human playtests, Windows (module), and macOS signing
+(Developer ID).
