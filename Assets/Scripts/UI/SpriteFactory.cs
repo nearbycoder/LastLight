@@ -77,6 +77,15 @@ namespace LastLight.UI
 
         static float Union(float a, float b) => Mathf.Min(a, b);
 
+        /// <summary>Distance to the segment a-b.</summary>
+        public static float Segment(float x, float y, Vector2 a, Vector2 b)
+        {
+            var e = b - a;
+            var w = new Vector2(x, y) - a;
+            float t = Mathf.Clamp01(Vector2.Dot(w, e) / e.sqrMagnitude);
+            return (w - e * t).magnitude;
+        }
+
         // ---------------------------------------------------------------- sprites
 
         public static Sprite Rounded => Cached("rounded", () => Make(Raster(64, 64, (x, y) => Box(x, y, 32, 32, 31, 31, 14)), new Vector4(20, 20, 20, 20)));
@@ -249,6 +258,21 @@ namespace LastLight.UI
                     float base_ = Box(x, y, 48, 26, 16, 3, 1);
                     return Union(Union(glass, top), Union(Union(ring, flame), base_));
                 }
+                case "lanternSolid":
+                {
+                    // The wrecker's lantern as a solid silhouette, for marks too small for line art.
+                    float glass = Box(x, y, 48, 46, 18, 20, 4);
+                    float top = Polygon(x, y, new[] { new Vector2(26, 64), new Vector2(70, 64), new Vector2(48, 80) });
+                    float ring = Mathf.Abs(Circle(x, y, 48, 85, 6f)) - 3f;
+                    float base_ = Box(x, y, 48, 22, 22, 5, 2);
+                    return Union(Union(glass, top), Union(ring, base_));
+                }
+                case "tick":
+                    // Home: a bold check mark.
+                    return Union(Segment(x, y, new Vector2(20, 50), new Vector2(40, 28)), Segment(x, y, new Vector2(40, 28), new Vector2(76, 70))) - 8f;
+                case "cross":
+                    // Wrecked: a bold X.
+                    return Union(Segment(x, y, new Vector2(24, 24), new Vector2(72, 72)), Segment(x, y, new Vector2(24, 72), new Vector2(72, 24))) - 8f;
                 case "twin":
                 {
                     // Two beams from one point, turning together.

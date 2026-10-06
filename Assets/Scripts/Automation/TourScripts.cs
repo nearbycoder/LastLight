@@ -570,9 +570,22 @@ namespace LastLight.Automation
             g.TourBriefing(Game.Arg("-llNight2", 10));
             yield return Tour.Wait(3.5f);
             g.TourBegin();
+            // Staging: with nobody at the lamp the night can fail on wrecks before a wrecker lures
+            // anyone, so this run lets it go on (the HUD keeps showing the real allowance).
+            var def = g.Runner.Def;
+            int allowed = def.allowedWrecks;
+            def.allowedWrecks = 99;
             g.Runner.TimeScale = 2f;
             float waited = 0f;
-            bool lostShot = false, luredShot = false, lostOk = false, luredOk = false;
+            bool lostShot = false, luredShot = false, lostOk = false, luredOk = false, marksOk = true;
+            // The top bar's mark for a ship must say the same as the ship (by shape, not colour).
+            bool MarkMatches(SimShip s, string want)
+            {
+                string got = "";
+                foreach (var (ship, mark) in g.Hud.ManifestMarks()) if (ship == s.Name) got = mark;
+                t.Log($"{(got == want ? "PASS" : "FAIL")} manifest mark for {s.Name}: {(got == "" ? "none" : got)} (ship is {want})");
+                return got == want;
+            }
             while (waited < 300f && !g.ShowingResults && !(lostShot && luredShot))
             {
                 waited += Time.unscaledDeltaTime;
@@ -584,6 +597,7 @@ namespace LastLight.Automation
                     g.Runner.TimeScale = 0.2f;
                     yield return Tour.Wait(0.5f);
                     bool shows = g.Hud.StatusShowing(s.Id);
+                    marksOk &= MarkMatches(s, lost ? "lost" : "lured");
                     if (lost) { lostShot = true; lostOk = shows; t.Log($"lost: {s.Name} at {s.Pos}, glyph {(shows ? "showing" : "MISSING")}"); yield return t.Shot("status_lost"); }
                     else { luredShot = true; luredOk = shows; t.Log($"lured: {s.Name} by {s.LuredBy?.Site.Name}, glyph {(shows ? "showing" : "MISSING")}"); yield return t.Shot("status_lured"); }
                     g.Runner.TimeScale = 2f;
@@ -591,7 +605,37 @@ namespace LastLight.Automation
                 }
                 yield return null;
             }
+            def.allowedWrecks = allowed;
             t.Log($"{(lostOk && luredOk ? "PASS" : "FAIL")} a lost ship shows a '?' ({lostOk}) and a lured ship a lantern and tether ({luredOk})");
+            // The other two marks on a fresh night 2: the bot keeps the lamp but leaves its first
+            // ship to its fate, so one ship comes home and one is wrecked.
+            g.TourBriefing(2);
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            g.Runner.AutoPlay = true;
+            g.TourNeglect(g.Runner.Def.ships[0].name);
+            g.Runner.TimeScale = 4f;
+            bool homeSeen = false, wreckSeen = false;
+            waited = 0f;
+            while (waited < 240f && !g.ShowingResults && !(homeSeen && wreckSeen))
+            {
+                waited += Time.unscaledDeltaTime;
+                SimShip home = null, wreck = null;
+                foreach (var s in g.Runner.World.Ships)
+                {
+                    if (!homeSeen && home == null && s.State == ShipState.Arrived) home = s;
+                    if (!wreckSeen && wreck == null && s.State == ShipState.Wrecked) wreck = s;
+                }
+                if (home != null || wreck != null)
+                {
+                    yield return Tour.Wait(0.3f);
+                    if (home != null) { homeSeen = true; marksOk &= MarkMatches(home, "home"); }
+                    if (wreck != null) { wreckSeen = true; marksOk &= MarkMatches(wreck, "wrecked"); }
+                }
+                yield return null;
+            }
+            yield return t.Shot("status_manifest");
+            t.Log($"{(marksOk && homeSeen && wreckSeen ? "PASS" : "FAIL")} manifest marks follow the ships by shape (home seen {homeSeen}, wreck seen {wreckSeen})");
         }
 
         static float MeanBrightness(string save = null)

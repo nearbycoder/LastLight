@@ -19,7 +19,17 @@ namespace LastLight.UI
         CanvasGroup group;
         Text nightLabel, titleLabel, scoreLabel;
         RectTransform manifest;
-        readonly List<(Image icon, Image mark, SpawnDef def)> manifestIcons = new List<(Image, Image, SpawnDef)>();
+        readonly List<ManifestIcon> manifestIcons = new List<ManifestIcon>();
+
+        /// <summary>A ship in the top bar, with a mark under it that tells its state by shape:
+        /// "?" lost, a lantern lured, a cross wrecked, a tick home.</summary>
+        sealed class ManifestIcon
+        {
+            public Image Icon, Mark;
+            public Text Question;
+            public SpawnDef Def;
+            public string Kind = "";
+        }
         // The Night Watch strip: ships home and the clock, and a hull for each wreck the Board allows.
         Text watchText;
         readonly List<Image> watchHulls = new List<Image>();
@@ -203,9 +213,11 @@ namespace LastLight.UI
             {
                 var icon = UiKit.Image("Ship", manifest, SpriteFactory.Ship(sched[i].type), new Color(1, 1, 1, 0.25f));
                 icon.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-total / 2 + w / 2 + i * (w + gap), 0), new Vector2(w, w * 0.4f));
-                var mark = UiKit.Image("Mark", icon.transform, SpriteFactory.Disc, new Color(0, 0, 0, 0));
-                mark.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, -8), new Vector2(8, 8));
-                manifestIcons.Add((icon, mark, sched[i]));
+                var mark = UiKit.Image("Mark", icon.transform, SpriteFactory.Icon("tick"), new Color(0, 0, 0, 0));
+                mark.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, -13), new Vector2(24, 24));
+                var q = UiKit.Text("Q", icon.transform, "?", UiKit.Title, 34, new Color(0, 0, 0, 0), TextAnchor.MiddleCenter).Shadowed();
+                q.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, -15), new Vector2(30, 40));
+                manifestIcons.Add(new ManifestIcon { Icon = icon, Mark = mark, Question = q, Def = sched[i] });
             }
             hornPanel.gameObject.SetActive(def.foghorn);
             radioGroup.alpha = 0f;
@@ -475,23 +487,37 @@ namespace LastLight.UI
             int spawned = w.SpawnedShips;
             for (int i = 0; i < manifestIcons.Count; i++)
             {
-                var (icon, mark, def) = manifestIcons[i];
+                var m = manifestIcons[i];
                 Color c = new Color(1, 1, 1, 0.22f);
-                Color mc = new Color(0, 0, 0, 0);
-                SimShip s = i < spawned ? FindShip(w, def) : null;
+                SimShip s = i < spawned ? FindShip(w, m.Def) : null;
+                string kind = "";
+                float pulse = 0.5f + 0.5f * Mathf.Sin(Unscaled.Time * 8f);
                 if (s != null)
                 {
                     switch (s.State)
                     {
-                        case ShipState.Arrived: c = new Color(1f, 0.86f, 0.55f, 1f); mc = new Color(1f, 0.86f, 0.55f, 1f); break;
-                        case ShipState.Wrecked: c = new Color(0.9f, 0.35f, 0.3f, 0.75f); mc = UiKit.Danger; break;
-                        case ShipState.Lost: c = Color.Lerp(UiKit.Danger, Color.white, 0.5f + 0.5f * Mathf.Sin(Unscaled.Time * 8f)); break;
-                        case ShipState.Lured: c = Color.Lerp(UiKit.Lure, Color.white, 0.5f + 0.5f * Mathf.Sin(Unscaled.Time * 8f)); break;
+                        case ShipState.Arrived: c = new Color(1f, 0.86f, 0.55f, 1f); kind = "home"; break;
+                        case ShipState.Wrecked: c = new Color(0.9f, 0.35f, 0.3f, 0.75f); kind = "wrecked"; break;
+                        case ShipState.Lost: c = Color.Lerp(UiKit.Danger, Color.white, pulse); kind = "lost"; break;
+                        case ShipState.Lured: c = Color.Lerp(UiKit.Lure, Color.white, pulse); kind = "lured"; break;
                         default: c = new Color(0.92f, 0.94f, 1f, 0.95f); break;
                     }
                 }
-                icon.color = Color.Lerp(icon.color, c, dt * 8f);
-                mark.color = mc;
+                m.Icon.color = Color.Lerp(m.Icon.color, c, dt * 8f);
+                if (kind != m.Kind)
+                {
+                    m.Kind = kind;
+                    if (kind == "home" || kind == "wrecked" || kind == "lured") m.Mark.sprite = SpriteFactory.Icon(kind == "home" ? "tick" : kind == "wrecked" ? "cross" : "lanternSolid");
+                    if (kind != "") Tween.Punch(m.Mark.transform.parent, 0.25f, 0.35f);
+                }
+                // The mark carries the state by shape; its colour only repeats it.
+                float a = kind == "lost" || kind == "lured" ? 0.7f + 0.3f * pulse : 1f;
+                m.Mark.color = kind == "home" ? new Color(1f, 0.86f, 0.55f, a)
+                    : kind == "wrecked" ? new Color(UiKit.Danger.r, UiKit.Danger.g, UiKit.Danger.b, a)
+                    : kind == "lured" ? new Color(UiKit.Lure.r, UiKit.Lure.g, UiKit.Lure.b, a)
+                    : new Color(0, 0, 0, 0);
+                var qc = Color.Lerp(UiKit.Danger, Color.white, 0.25f);
+                m.Question.color = kind == "lost" ? new Color(qc.r, qc.g, qc.b, a) : new Color(0, 0, 0, 0);
             }
 
             // Foghorn readiness.
@@ -514,6 +540,15 @@ namespace LastLight.UI
             }
 
             UpdateStatus(w);
+        }
+
+        /// <summary>The mark under each manifest icon, in schedule order ("", "lost", "lured",
+        /// "wrecked" or "home"), with the ship's name; for tours.</summary>
+        public List<(string ship, string mark)> ManifestMarks()
+        {
+            var list = new List<(string, string)>();
+            foreach (var m in manifestIcons) list.Add((m.Def.name, m.Kind));
+            return list;
         }
 
         // ---------------------------------------------------------------- lost and lured, by shape
