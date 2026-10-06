@@ -273,3 +273,68 @@ player: 55/55 EditMode tests, the validation report, and the `ui`, `input`, `wat
 Still open: Standard Night Watch tuning (owner), the round 1 difficulty decision (owner), a
 real-gamepad pass, a listening pass, human playtests, Windows (module), and macOS signing
 (Developer ID).
+
+## Round 3 scope
+
+Chosen from what's still open after round 2 and from a read of the code and the running game
+for things a first-time player runs into. The owner hasn't ruled on Standard's difficulty, so
+nothing here changes balance on either difficulty. A real-gamepad pass, a listening pass and
+playtests still need hardware or people.
+
+Every item must keep `Tools/unity.sh test` green, keep the `ui`, `input` and `status` tours at
+0 errors, and leave the AutoKeeper's pinned Standard scores alone. Captures go to
+`docs/media/improvements/round3/`. Tour output and logs stay under `Builds/round3/`. The real
+save (`~/.config/unity3d/Gannet Head/Last Light/prefs`) is checksummed before and after.
+
+### 1. Manifest icons that read without colour
+Round 2 left the ship icons in the top bar telling their states apart by colour only (white,
+red, amber, gold). Under deuteranopia the red and amber pulses converge.
+- Each icon gets a small mark under it drawn as a shape: a **?** while the ship is Lost, a
+  **lantern** while it's Lured, a **cross** once it's wrecked, and a **tick** once it's home.
+  Sailing ships have no mark.
+- **Verify:** the `status` tour logs which mark each manifest icon shows when a lost ship and a
+  lured ship are on screen, and fails if they don't match the ships' states. The manifest crops
+  go through `Tools/cvd_sim.py`, and I read the result.
+
+### 2. Say how many wrecks the night allows
+Nights allow one or two wrecks (nights 8, 10, 11 and 12 allow two), and one more ends the night
+at once. Nothing tells the player that: the briefing doesn't mention it, and only the Night
+Watch shows its allowance on the HUD.
+- The briefing card says it in a line under the date, for example *"The Board allows one wreck
+  tonight. A second ends the night."*
+- During the night, a small row of hulls beside the manifest shows the wrecks the Board allows,
+  as the Night Watch strip already does. Each wreck greys one out, and the last one pulses so
+  the next wreck is clearly the one that ends the night.
+- **Verify:** the `ui` tour shoots a night 8 briefing (two allowed), and a staged wreck on night 2
+  shows the strip with the allowance spent. The tour logs the strip's state against the sim's
+  wreck count. Checked at 1280×720 and at 130% HUD text size for overlaps with the manifest.
+
+### 3. A radio log in the pause menu
+The radio shows one call at a time, and calls carry instructions ("Light the Hen Bell before the
+Auk gets there"). A call that typed out while the player was busy is gone.
+- The radio keeps the night's calls. The pause menu shows the latest six beside the menu, newest
+  at the bottom, with the speaker's name. It is cleared at the start of each night.
+- **Verify:** a new EditMode test checks that the log keeps calls in order, caps its length and
+  clears. The `input` tour pauses after the opening calls, checks the log matches the radio's
+  history, and saves a screenshot I'll read at 1280×720 and 1920×1080.
+
+### 4. Focus: hold or toggle, and two control fixes
+Focus means holding a button for most of a night. That's tiring, and impossible for some
+players.
+- Settings ▸ **Focus**: *Hold* (as now) or *Toggle*. In Toggle, a press of the left button,
+  Shift, W, ↑ or a trigger switches focus on or off. Focus switches off when a night starts or
+  restarts. Hints, the title strip and the fog card say "press" or "click" instead of "hold".
+- The ending's "Hold the left button, or Space" prompt follows the device ("Hold A" on a pad).
+- The mouse pointer hides while a gamepad is in use during a night and returns with the mouse.
+- **Verify:** the `input` tour switches to Toggle and checks with the simulated mouse,
+  keyboard and pad that one press focuses and stays focused after release, a second press
+  unfocuses, and Hold mode still works. It also checks the pointer hides on pad input and comes
+  back on mouse movement. Screenshot of the setting.
+
+### Not in this round
+- **Standard difficulty and the Night Watch ramp**: the owner's call.
+- **Real gamepad**: an 8BitDo receiver is plugged into the development machine, but nobody can
+  press its buttons in this session. The input tour will log which devices Unity sees, and
+  that's all that can be claimed.
+- **Listening pass, playtests, Windows, macOS signing**: need people, a module install or an
+  Apple account.
