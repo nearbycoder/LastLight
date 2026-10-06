@@ -191,3 +191,56 @@ player: 28/28 EditMode tests, the validation report, the `ui`, `input`, `nights`
 Still open: a real-gamepad pass, a listening pass, human playtests (now including the difficulty
 change from item 2), Night Watch variety, Windows (module install), and macOS signing and
 notarization (needs a Developer ID).
+
+## Round 2 scope
+
+Chosen from the open items above, plus what round 1 turned up. Round 1 left the Night Watch
+easy, because the bot no longer loses a watch in 30 minutes, and it is the same night every time
+apart from the ship order. Lost and lured ships differ only by colour, red against amber, and
+PLAN's "?" for a lost captain was never built. The owner hasn't ruled on round 1's easier
+tuning, so it stays the default. A Hard option adds a tougher choice without touching it.
+
+Every item must keep `Tools/unity.sh test` green, keep the `ui`, `input` and `nights` tours at 0
+errors, and keep the AutoKeeper winning all twelve nights on the default difficulty. Captures go
+to `docs/media/improvements/round2/`. Tour output and logs stay under `Builds/` and `Logs/`.
+
+### 1. Night Watch weather and records (it was "the same night every time")
+- Every watch generates its own conditions from its seed:
+  - one to three fog banks in different places, drifting in different directions
+  - passing **squalls**, the first after five to nine minutes and then every four to seven,
+    each lasting one to two minutes. A squall brings a current, rain and lightning, and the
+    later ones are stronger.
+  - wreckers arriving at random times and sites, with a mimic light late in long watches
+- In the sim, a squall ramps in and out. The view follows it: rain, wind, swell, moonlight and
+  the music's storm mood. The twelve nights keep their fixed storms, unchanged.
+- The briefing gives a **forecast** in Ianto's voice, for example: fret off Black Hen, squalls
+  from the north-west after about six minutes, the Corleys out early.
+- The save keeps the **five best watches**. The briefing lists them, and the dawn card names the
+  rank of the watch just kept.
+- **Verify:** new tests check that ten seeds give different fog and squall layouts, that every
+  generated watch passes the mission checks, that squall windows behave (the current is zero
+  outside them and the ramp is smooth), and that the bot still keeps a watch for at least ten
+  minutes. The report records how long watches last now. Screenshots: a squall in a watch, the
+  forecast briefing, and the dawn card with a rank.
+
+### 2. A Hard difficulty (today's tuning stays the default)
+- Settings ▸ Difficulty: **Standard** (exactly today's game) or **Hard**. On Hard, ships lose
+  heart about 30% faster, a chart fades after 15 s instead of 22, a lit buoy burns 20 s instead
+  of 28, the crew give no breakers warning, and Night Watch ships come about 15% closer together.
+- Records are shared. The results card and the watch table say when a night or watch was kept on
+  Hard.
+- **Verify:** a test proves Standard is unchanged (same outcomes and scores as today). A test
+  shows the AutoKeeper still wins all twelve nights on Hard. The report adds a novice run on
+  Hard. Screenshots: settings, and a Hard results card.
+
+### 3. Telling lost and lured ships apart without colour
+- A lost ship shows a bobbing **"?"** over its hull, as PLAN §12 intended. A lured ship shows a
+  small **lantern** mark and a faint dashed **tether** to the false light that has it.
+- **Verify:** a tour shot with a lost ship and a lured ship. The same crops are put through
+  deuteranopia and protanopia simulation (Machado matrices) and set side by side, and I check the
+  two states stay distinct by shape.
+
+### 4. HUD and radio text size
+- Settings ▸ Text size: 100%, 115% or 130%. It scales the in-night HUD: radio, hints, manifest,
+  score, horn and markers. The menus are already large and are laid out at a fixed size.
+- **Verify:** screenshots at 130% at both 1280×720 and 1920×1080, with no overlaps or clipping.
