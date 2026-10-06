@@ -338,3 +338,41 @@ players.
   that's all that can be claimed.
 - **Listening pass, playtests, Windows, macOS signing**: need people, a module install or an
   Apple account.
+
+## Round 3 results (2026-10-06)
+
+All four items landed on `improvements-3`, one commit each. Verification was on the built Linux
+player: 57/57 EditMode tests (55 before, plus two for the radio log), and the `ui`, `input`,
+`status`, `radiolog` and `ending` tours, all with 0 errors and every check passing. The real save
+file's checksum was the same before and after every run. Captures are in
+`docs/media/improvements/round3/`. No simulation code changed, and the test that pins the
+AutoKeeper's Standard scores still passes, so balance on both difficulties is unchanged. The
+validation report wasn't re-run for that reason.
+
+1. **Manifest marks by shape.** As planned. The line-art lantern was too thin to read at 20 px,
+   so the mark uses a solid lantern silhouette. The `status` tour checks all four marks against
+   their ships, and `manifest_cvd.jpg` shows the ?, lantern, cross and tick staying distinct under
+   deuteranopia and protanopia. Two pieces of tour staging: night 10's wreck allowance is lifted
+   while the tour waits for a lure, because the night sometimes failed first and made round 2's
+   tour flaky, and home and wrecked are staged on a fresh night 2.
+2. **Wreck allowance.** As planned, except where the briefing puts the line. It sits just above
+   "Begin the watch", because there was no room under the date. The HUD row under the night's
+   title shows a hull per allowed wreck and words ("ONE WRECK ALLOWED", then "NEXT WRECK ENDS THE
+   NIGHT", which pulses). The `ui` tour checks it after each staged wreck. Checked on night 11
+   (12 ships) at 1280×720 with 130% HUD text: no overlaps.
+3. **Radio log.** As planned. It shows up to six calls, as many as fit in the panel. The panel
+   sizes itself to its calls and stops above the HUD's radio panel even at 130% HUD text
+   (checked at 1280×720 and 1920×1080).
+4. **Focus hold or toggle.** As planned. The `input` tour checks the left button, Shift and the
+   right trigger in Toggle (press focuses, it stays focused after release, a second press widens),
+   that a click in the pause menu doesn't switch it, that Hold still works, and that the pointer
+   hides on pad input and returns with the mouse. The ending's prompt follows the device in code,
+   but the pad wording was only checked by reading the code, because the `ending` tour holds the
+   prompt on its own and doesn't use a pad.
+
+**Real gamepad.** The `input` tour now logs the devices Unity sees. With an 8BitDo receiver
+plugged in, Unity listed only the mouse, keyboard and touchscreen, so the controller was probably
+switched off. A real-pad pass still needs someone to hold it.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), a real-gamepad pass, a
+listening pass, human playtests, Windows (module install) and macOS signing (Developer ID).

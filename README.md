@@ -57,17 +57,20 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Action | Mouse and keyboard | Gamepad |
 |---|---|---|
 | Aim the beam | Move the mouse (the lens follows with weight), or turn it with **A / D** or **← / →** | Right or left stick |
-| Focus: a narrow, long, bright beam that turns slower | Hold the **left mouse button**, **Shift**, **W** or **↑** | Hold either trigger |
+| Focus: a narrow, long, bright beam that turns slower | Hold the **left mouse button**, **Shift**, **W** or **↑** (or press to switch, with Focus set to Toggle) | Hold either trigger (or press, with Toggle) |
 | Sound the foghorn (14 s cooldown) | **Space** or the **right mouse button** | **A** |
 | Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) |
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
 
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
-along with text speed, hints, screen shake, lens turn speed, windowed or fullscreen, resolution,
+along with text speed, hints, screen shake, **focus** (hold the button, or toggle: press once to
+focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
 fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp)
 **reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength),
 HUD text size and difficulty.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
+The pause menu shows the night's latest radio calls, so a call you missed can be read again. The
+mouse pointer hides while you play with a gamepad.
 
 **HUD text size** (100, 115 or 130%) enlarges everything drawn during a night: the radio, hints,
 manifest, score, foghorn and markers. The menus keep their size.
@@ -81,6 +84,7 @@ table of best watches say when it was Hard.
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
+They also follow the Focus setting, so in Toggle they say "press" or "click" rather than "hold".
 
 ### The rules in brief
 
@@ -88,7 +92,8 @@ you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse 
   in the dark. At zero the captain is **Lost**: the ship slows, wanders and drifts toward the shore
   until you light it again. A lost ship shows a red ring and a bobbing **?**. A lured ship shows an
   amber ring, a small **lantern** and a dashed tether to the false light that has it, so the two
-  read apart by shape as well as colour.
+  read apart by shape as well as colour. The ship icons in the top bar carry the same marks (a
+  **?** or a lantern), with a **cross** once a ship is wrecked and a **tick** once it's home.
 - **Reefs are hidden.** Captains' routes run straight over rocks they can't see. Light a reef
   briefly to **chart** it. White water breaks over it and captains steer around it. A chart fades
   about 22 seconds after the light leaves it, so time your sweeps to stay just ahead of each ship.
@@ -98,7 +103,9 @@ you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse 
   ring for **full astern**, with three short blasts, and the ship slows hard while it swings
   clear. A chart in the last moment can still be a near miss.
 - A night ends when every scheduled ship has made port or been lost, and fails at once if the wrecks
-  exceed that night's allowance. You earn a lamp for keeping the light through the night, a second
+  exceed that night's allowance: one wreck on most nights, two on nights 8, 10, 11 and 12. The
+  briefing says how many, and hulls under the night's title count them down, ending on "next
+  wreck ends the night". You earn a lamp for keeping the light through the night, a second
   for losing no ship, and a third for a **steady hand**: no ship ever Lost or Lured.
 
 ## Features
@@ -252,7 +259,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (55 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (57 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -264,7 +271,8 @@ contains a copy of it.
   Watch seeds give ten different nights and that a squall eases in and out. On difficulty, they
   check that the AutoKeeper wins all twelve nights on Hard, that its Standard scores match the
   tuned game exactly, and that Hard really is harder: shorter charts and buoys, no warning, closer
-  watch ships.
+  watch ships. Two check the pause menu's radio log: calls kept in order, capped, and cleared each
+  night.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -281,19 +289,23 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
-  The `ui` tour ends on two staged dawn debriefs. The `input` tour drives the real mouse and
+  The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
+  staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
   keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
-  pad pauses the night, and that the d-pad walks both settings columns. `flash` measures screen
+  pad pauses the night, and that the d-pad walks both settings columns. It switches Focus to Toggle
+and checks each control both ways, checks the pointer hides for pad play, and logs the input
+devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
   any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
 - `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
   as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
-  colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it.
+  colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it, and checks that each
+  top-bar mark (lost, lured, wrecked, home) matches its ship.
 - `Tools/.venv/bin/python Tools/audio_check.py` measures every synthesized clip: clipping, true
   peak, EBU R128 loudness, DC offset, clicks, and the seams of looped clips.
 - `Tools/record.sh` records a four-minute gameplay reel with sound.
@@ -387,7 +399,9 @@ Linux. Here's what is still unproven or rough:
 - **The audio has only been measured.** Every clip passes `Tools/audio_check.py`, but no one has
   yet judged whether the music and gibberish voices are pleasant to listen to.
 - **Gamepad support is tested only with a simulated device.** Button layouts and stick dead zones
-  on real controllers are unverified.
+  on real controllers are unverified. An 8BitDo receiver is plugged into the development machine,
+  but Unity listed only the mouse, keyboard and touchscreen (the pad was presumably off), and no
+  one pressed its buttons.
 - **Linux only, as published.** `Tools/unity.sh build-mac` makes a universal macOS app (Mono, macOS
   12 or later) and `Tools/package.sh <version> mac` zips it with instructions for opening an
   unsigned app. The build succeeds on Linux, and both architectures of the executable carry
