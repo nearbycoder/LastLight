@@ -24,6 +24,7 @@ namespace LastLight.Automation
             Tour.Scripts["report"] = Report;
             Tour.Scripts["flash"] = FlashTour;
             Tour.Scripts["breakers"] = BreakersTour;
+            Tour.Scripts["status"] = StatusTour;
         }
 
         /// <summary>The content validation report (the same as Tools/validate.sh) from the built player.</summary>
@@ -556,6 +557,41 @@ namespace LastLight.Automation
                 yield return null;
             }
             t.Log($"{(warned ? "PASS" : "FAIL")} a breakers warning came for the neglected {ignore}; {(astern ? "PASS" : "FAIL")} a captain went full astern");
+        }
+
+        /// <summary>
+        /// Night 9 with nobody at the lamp: ships lose their way and the wreckers lure them. Takes a
+        /// shot when a lost ship and a lured one are both in the bay, and checks their glyphs show.
+        /// </summary>
+        static IEnumerator StatusTour(Tour t)
+        {
+            var g = Game.Instance;
+            g.AutoPlay = false;
+            g.TourBriefing(Game.Arg("-llNight2", 10));
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            g.Runner.TimeScale = 2f;
+            float waited = 0f;
+            bool lostShot = false, luredShot = false, lostOk = false, luredOk = false;
+            while (waited < 300f && !g.ShowingResults && !(lostShot && luredShot))
+            {
+                waited += Time.unscaledDeltaTime;
+                foreach (var s in g.Runner.World.Ships)
+                {
+                    if (!s.Inside || s.Pos.y < 5f) continue;
+                    bool lost = s.State == ShipState.Lost && !lostShot, lured = s.State == ShipState.Lured && !luredShot;
+                    if (!lost && !lured) continue;
+                    g.Runner.TimeScale = 0.2f;
+                    yield return Tour.Wait(0.5f);
+                    bool shows = g.Hud.StatusShowing(s.Id);
+                    if (lost) { lostShot = true; lostOk = shows; t.Log($"lost: {s.Name} at {s.Pos}, glyph {(shows ? "showing" : "MISSING")}"); yield return t.Shot("status_lost"); }
+                    else { luredShot = true; luredOk = shows; t.Log($"lured: {s.Name} by {s.LuredBy?.Site.Name}, glyph {(shows ? "showing" : "MISSING")}"); yield return t.Shot("status_lured"); }
+                    g.Runner.TimeScale = 2f;
+                    break;
+                }
+                yield return null;
+            }
+            t.Log($"{(lostOk && luredOk ? "PASS" : "FAIL")} a lost ship shows a '?' ({lostOk}) and a lured ship a lantern and tether ({luredOk})");
         }
 
         static float MeanBrightness(string save = null)

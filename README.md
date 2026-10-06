@@ -82,7 +82,9 @@ you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse 
 
 - **Ships follow the light.** Each ship has a confidence ring. It refills in your beam and drains
   in the dark. At zero the captain is **Lost**: the ship slows, wanders and drifts toward the shore
-  until you light it again.
+  until you light it again. A lost ship shows a red ring and a bobbing **?**. A lured ship shows an
+  amber ring, a small **lantern** and a dashed tether to the false light that has it, so the two
+  read apart by shape as well as colour.
 - **Reefs are hidden.** Captains' routes run straight over rocks they can't see. Light a reef
   briefly to **chart** it. White water breaks over it and captains steer around it. A chart fades
   about 22 seconds after the light leaves it, so time your sweeps to stay just ahead of each ship.
@@ -283,6 +285,9 @@ contains a copy of it.
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `-llRenderScale 70` and `-llReduceFlashing` set those options
   for any tour. No real gamepad has been tested, only Unity's simulated device.
+- `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
+  as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
+  colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it.
 - `Tools/.venv/bin/python Tools/audio_check.py` measures every synthesized clip: clipping, true
   peak, EBU R128 loudness, DC offset, clicks, and the seams of looped clips.
 - `Tools/record.sh` records a four-minute gameplay reel with sound.

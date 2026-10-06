@@ -83,6 +83,7 @@ namespace LastLight.UI
             group = root.Group(0f);
             group.blocksRaycasts = false;
             markerLayer = UiKit.Rect("Markers", root).Fill();
+            statusLayer = UiKit.Rect("ShipStatus", root).Fill();
 
             // Top-left: the night.
             var tl = UiKit.Rect("Night", root).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(46, -34), new Vector2(560, 120));
@@ -170,6 +171,12 @@ namespace LastLight.UI
         {
             runner = r;
             this.radio = radio;
+            foreach (var g in glyphs.Values)
+            {
+                Destroy(g.Root.gameObject);
+                foreach (var d in g.Dashes) Destroy(d.gameObject);
+            }
+            glyphs.Clear();
             var def = r.Def;
             nightLabel.text = UiKit.Spaced((def.endless ? "ENDLESS" : "NIGHT " + UiKit.Roman(def.night)) + (r.World.Hard ? "  ·  HARD" : ""));
             titleLabel.text = def.title;
@@ -497,7 +504,111 @@ namespace LastLight.UI
                 hintTimer -= dt;
                 if (hintTimer <= 0f) HideHint();
             }
+
+            UpdateStatus(w);
         }
+
+        // ---------------------------------------------------------------- lost and lured, by shape
+
+        RectTransform statusLayer;
+
+        /// <summary>A lost captain's "?" or a lured ship's lantern and its tether to the false light.</summary>
+        sealed class StatusGlyph
+        {
+            public RectTransform Root;
+            public Text Question;
+            public Image Lantern;
+            public readonly List<Image> Dashes = new List<Image>();
+            public bool Used;
+        }
+
+        readonly Dictionary<int, StatusGlyph> glyphs = new Dictionary<int, StatusGlyph>();
+        const int MaxDashes = 40;
+        const float DashGap = 22f;
+
+        StatusGlyph Glyph(int id)
+        {
+            if (glyphs.TryGetValue(id, out var g)) return g;
+            g = new StatusGlyph { Root = UiKit.Rect("Status", statusLayer) };
+            g.Root.anchorMin = g.Root.anchorMax = Vector2.zero;
+            g.Root.sizeDelta = new Vector2(60, 60);
+            g.Question = UiKit.Text("Q", g.Root, "?", UiKit.Heading, 66, Color.Lerp(UiKit.Danger, Color.white, 0.25f), TextAnchor.MiddleCenter).Shadowed(0.9f, 2.5f);
+            g.Question.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 84));
+            g.Lantern = UiKit.Image("Lantern", g.Root, SpriteFactory.Icon("lantern"), Color.Lerp(UiKit.Lure, Color.white, 0.15f));
+            g.Lantern.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(50, 50));
+            for (int i = 0; i < MaxDashes; i++)
+            {
+                var d = UiKit.Image("Dash", statusLayer, SpriteFactory.Bar, UiKit.Lure);
+                d.rectTransform.anchorMin = d.rectTransform.anchorMax = Vector2.zero;
+                d.rectTransform.sizeDelta = new Vector2(10, 3);
+                d.raycastTarget = false;
+                g.Dashes.Add(d);
+            }
+            glyphs[id] = g;
+            return g;
+        }
+
+        void UpdateStatus(SimWorld w)
+        {
+            foreach (var g in glyphs.Values) g.Used = false;
+            var cam = CameraRig.Instance != null ? CameraRig.Instance.Cam : Camera.main;
+            if (cam != null)
+            {
+                var canvasRect = (RectTransform)canvas.transform;
+                float scale = canvasRect.rect.width / Mathf.Max(1, Screen.width);
+                Vector2 ToCanvas(Vector3 world)
+                {
+                    var sp = cam.WorldToScreenPoint(world);
+                    return sp.z > 0f ? new Vector2(sp.x, sp.y) * scale : new Vector2(-999, -999);
+                }
+                foreach (var s in w.Ships)
+                {
+                    bool lost = s.State == ShipState.Lost, lured = s.State == ShipState.Lured && s.LuredBy != null;
+                    if (!s.Inside || (!lost && !lured)) continue;
+                    var g = Glyph(s.Id);
+                    g.Used = true;
+                    var at = ToCanvas(new Vector3(s.Pos.x, 2f, s.Pos.y));
+                    float bob = 5f * Mathf.Sin(Unscaled.Time * 3.2f + s.Id);
+                    g.Root.anchoredPosition = at + new Vector2(0f, 46f + bob);
+                    g.Root.gameObject.SetActive(true);
+                    g.Question.enabled = lost;
+                    g.Lantern.enabled = lured;
+                    int shown = 0;
+                    if (lured)
+                    {
+                        // Marching dashes from the ship to the lantern that has it.
+                        var site = s.LuredBy.Site;
+                        var to = ToCanvas(new Vector3(site.Pos.x, site.Height + 2f, site.Pos.y));
+                        var d = to - at;
+                        float len = d.magnitude;
+                        if (len > 1f)
+                        {
+                            var dir = d / len;
+                            float ang = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                            float offset = Mathf.Repeat(Unscaled.Time * 30f, DashGap);
+                            for (float along = 30f + offset; along < len - 20f && shown < MaxDashes; along += DashGap, shown++)
+                            {
+                                var dash = g.Dashes[shown];
+                                dash.rectTransform.anchoredPosition = at + dir * along;
+                                dash.rectTransform.localRotation = Quaternion.Euler(0, 0, ang);
+                                dash.color = new Color(UiKit.Lure.r, UiKit.Lure.g, UiKit.Lure.b, 0.6f);
+                                dash.enabled = true;
+                            }
+                        }
+                    }
+                    for (int i = shown; i < MaxDashes; i++) g.Dashes[i].enabled = false;
+                }
+            }
+            foreach (var g in glyphs.Values)
+                if (!g.Used)
+                {
+                    g.Root.gameObject.SetActive(false);
+                    foreach (var d in g.Dashes) d.enabled = false;
+                }
+        }
+
+        /// <summary>For the tours: is a ship's lost or lured glyph showing?</summary>
+        public bool StatusShowing(int shipId) => glyphs.TryGetValue(shipId, out var g) && g.Root.gameObject.activeSelf;
 
         readonly Dictionary<SpawnDef, SimShip> shipBySpawn = new Dictionary<SpawnDef, SimShip>();
 
