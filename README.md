@@ -80,6 +80,11 @@ you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse 
 - **Reefs are hidden.** Captains' routes run straight over rocks they can't see. Light a reef
   briefly to **chart** it. White water breaks over it and captains steer around it. A chart fades
   about 22 seconds after the light leaves it, so time your sweeps to stay just ahead of each ship.
+- **Breakers ahead.** A few seconds before a ship reaches an uncharted reef (or a steamer an
+  uncharted sandbank), its crew hear the surf. Its ring flickers white, a pale ring pulses round
+  it and the captain may call out. If you chart the rock too close for the captain to turn, they
+  ring for **full astern**, with three short blasts, and the ship slows hard while it swings
+  clear. A chart in the last moment can still be a near miss.
 - A night ends when every scheduled ship has made port or been lost, and fails at once if the wrecks
   exceed that night's allowance. You earn a lamp for keeping the light through the night, a second
   for losing no ship, and a third for a **steady hand**: no ship ever Lost or Lured.
@@ -227,21 +232,27 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (26 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (28 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
   Watch for at least ten minutes, and that the dawn debrief accounts for every wreck when the
-  bot is made to neglect each ship in turn.
+  bot is made to neglect each ship in turn. Two more stage a steamer at Widow's Ledge. One checks
+  that the crew warn of breakers a few seconds before an uncharted strike. The other charts the
+  reef at distances from 2 to 44 units, with and without full astern, and checks that full astern
+  turns some late charts into near misses and never causes a wreck.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
   hand and doesn't know where the reefs are.
-- The latest report, from the v0.1.0 build: the AutoKeeper wins all twelve nights, with three lamps
-  on eleven of them. On night 9 it chases the wreckers' lantern and loses a ship, so it gets one
-  lamp. The novice wins every night in three runs each. Its lamps fall from 9/9 on nights 1 to 3
-  to 3/9 on nights 7 and 8 (the first fog with dark ships, then the storm), then recover to 5 to
-  8 on nights 9 to 12. The bot keeps the Night Watch for 16 to 25 minutes (57 to 117 ships home).
+- The latest report, from the current build: the AutoKeeper wins all twelve nights with three lamps
+  each. The novice wins every night in three runs each, with lamps of 9, 9, 8, 8, 8, 7, 6, 9, 7,
+  9, 6 and 7 out of 9 (93 of 108) and no wrecks. The bot keeps every generated Night Watch for the
+  full 30 minutes the report runs, with 0 or 1 wrecks. For comparison, v0.1.0 gave the AutoKeeper
+  one lamp on night 9, gave the novice 78 of 108 lamps (3/9 on nights 7 and 8) with 9 wrecks, and
+  the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
+  reefs that had already been charted, and full astern now prevents those (see Status and known
+  issues).
 - `Tools/tour.sh <ui|nights|ending|input|watch> <dir>` plays the built game with scripted input
   and saves screenshots. The `input` tour drives the real mouse and keyboard path, then a
   simulated gamepad.
@@ -340,9 +351,15 @@ Linux. Here's what is still unproven or rough:
 - **Gamepad support is tested only with a simulated device.** Button layouts and stick dead zones
   on real controllers are unverified.
 - **Linux only.** There are no Windows, macOS or web builds yet.
-- In the Night Watch, steamers threading the narrow water between Widow's Ledge and the Teeth can
-  run onto a reef that was charted late. That ends most of the bot's watches. It's fair (chart
-  ahead of the slow ships), but it can feel abrupt.
+- **Balance shifted after v0.1.0, and that shift hasn't been tested by people.** The wrecks that ended
+  the bot's Night Watches turned out not to be late charts. Steamers and ferries threading Widow's
+  Ledge struck reefs that had been charted well ahead, because their avoidance couldn't make the
+  turn. Captains now ring for full astern when a charted reef or sandbank is closer than they can
+  turn away from, so the wrecks left are uncharted rocks, lost ships and lured ships. The bot and
+  the novice model now rarely or never wreck (see the latest report under Tests and validation),
+  so the season and the Night Watch may now be too forgiving for strong players. If that's the
+  case, tighten them with deliberate levers (drain rates, schedules, the Night Watch's ramp)
+  rather than steering faults.
 - Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a
   render scale of 70%, is the safer choice there. On the development machine's Radeon 8060S at
   1600×900, night 5 averaged about 50 fps at 100% and about 74 fps at 70%. Those runs were made

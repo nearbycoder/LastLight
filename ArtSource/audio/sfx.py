@@ -452,6 +452,23 @@ def lens_brake():
     return reverb(out, 0.25, 1.4, 0.6, 5000)
 
 
+def breakers():
+    """Breakers ahead: surf crashing on rock nobody can see yet, under a low uneasy interval."""
+    out = seconds(2.2)
+    for k, at in enumerate((0.0, 0.5)):
+        n = 1.3
+        crash = bandpass(white(n), 300, 6000) * (adsr(int(n * SR), 0.12, 0.35, 0.35, 0.8) ** 1.4)
+        crash = sweep_lowpass(crash, 6000, 700)
+        thump = lowpass(white(0.6), 120) * expdecay(0.6, 0.18) * 1.2
+        out = place(out, crash * (0.8 - 0.25 * k), at)
+        out = place(out, thump * (0.9 - 0.3 * k), at + 0.05)
+    t = t_axis(1.4)
+    # A tritone under the surf: something is wrong out there.
+    tone = (sine(note_freq("F#3"), 1.4) * 0.5 + sine(note_freq("C4"), 1.4) * 0.35) * adsr(len(t), 0.05, 0.3, 0.4, 0.8) * 0.25
+    out = place(out, lowpass(tone, 1200), 0.02)
+    return reverb(out, 0.35, 2.2, 0.8, 5000)
+
+
 def build(only=None):
     jobs = {
         "amb_sea": amb_sea, "amb_wind": amb_wind, "amb_rain": amb_rain, "lens_whirr": lens_whirr, "lens_focus": lens_focus,
@@ -463,7 +480,7 @@ def build(only=None):
         "wreck": wreck, "flare": flare, "chart": chart, "buoy_bell": buoy_bell, "buoy_lit": buoy_lit, "buoy_out": buoy_out,
         "foghorn": foghorn, "thunder_1": lambda: thunder(1), "thunder_2": lambda: thunder(2), "thunder_3": lambda: thunder(3),
         "wrecker_lit": wrecker_lit, "douse_sizzle": douse_sizzle, "doused": doused, "switch_off": switch_off, "lens_stop": lens_stop,
-        "lens_brake": lens_brake, "ship_answer": ship_answer, "wreck_sink": wreck_sink,
+        "lens_brake": lens_brake, "ship_answer": ship_answer, "wreck_sink": wreck_sink, "breakers": breakers,
     }
     if only:
         jobs = {k: v for k, v in jobs.items() if k in only}

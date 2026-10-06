@@ -23,6 +23,7 @@ namespace LastLight.Automation
             Tour.Scripts["watch"] = Watch;
             Tour.Scripts["report"] = Report;
             Tour.Scripts["flash"] = FlashTour;
+            Tour.Scripts["breakers"] = BreakersTour;
         }
 
         /// <summary>The content validation report (the same as Tools/validate.sh) from the built player.</summary>
@@ -498,6 +499,53 @@ namespace LastLight.Automation
         }
 
         /// <summary>Mean luminance of the frame just drawn (0..1); optionally saves it as a PNG.</summary>
+        /// <summary>
+        /// Night 2 with the keeper ignoring one trawler: the crew's "breakers ahead" warning (the
+        /// ring flickers, the hint shows) before it strikes, and a captain ringing for full astern.
+        /// </summary>
+        static IEnumerator BreakersTour(Tour t)
+        {
+            var g = Game.Instance;
+            g.AutoPlay = true;
+            string ignore = Game.ArgString("-llIgnore", "Little Auk");
+            g.TourBriefing(Game.Arg("-llNight2", 2));
+            g.Runner.Bot.Ignore = s => s.Name == ignore;
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            g.Runner.TimeScale = 2f;
+            bool warned = false, astern = false;
+            float waited = 0f;
+            while ((!warned || !astern) && !g.ShowingResults && waited < 240f)
+            {
+                waited += Time.unscaledDeltaTime;
+                foreach (var s in g.Runner.World.Ships)
+                {
+                    if (!warned && s.Danger > 0f && s.Name == ignore)
+                    {
+                        warned = true;
+                        g.Runner.TimeScale = 1f;
+                        yield return Tour.Wait(0.9f);
+                        t.Log($"breakers ahead for {s.Name} at {g.Runner.World.Time:0}s; hint: {g.Hud.HintOnScreen}");
+                        yield return t.Shot("breakers_warning");
+                        g.Runner.TimeScale = 2f;
+                        break;
+                    }
+                    if (!astern && s.Astern)
+                    {
+                        astern = true;
+                        g.Runner.TimeScale = 1f;
+                        yield return Tour.Wait(0.5f);
+                        t.Log($"full astern: {s.Name} at {g.Runner.World.Time:0}s, speed {s.Speed:0.0}");
+                        yield return t.Shot("full_astern");
+                        g.Runner.TimeScale = 2f;
+                        break;
+                    }
+                }
+                yield return null;
+            }
+            t.Log($"{(warned ? "PASS" : "FAIL")} a breakers warning came for the neglected {ignore}; {(astern ? "PASS" : "FAIL")} a captain went full astern");
+        }
+
         static float MeanBrightness(string save = null)
         {
             var tex = ScreenCapture.CaptureScreenshotAsTexture();

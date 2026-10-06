@@ -25,6 +25,7 @@ namespace LastLight.Core
         float swingPeak, lastBrake = -9f;
         float hitPause;
         float thunderAt = -1f;
+        readonly List<(float at, string id, Vector3 pos, float volume)> delayed = new List<(float, string, Vector3, float)>();
         public static Sfx.Loop Whirr, Focus, Sea, Wind, Rain, Static;
 
         public Feedback(MissionRunner runner, Hud hud, Radio radio)
@@ -93,6 +94,7 @@ namespace LastLight.Core
             ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lmb", "A false light! Hold your beam on its lantern to douse it.", "RT"),
             ["shoal"] = ("Steamers run aground on sandbanks. Light the sands to chart them.", "ring", null, null),
             ["storm"] = ("The storm pushes ships towards the rocks. Lightning reveals them.", "ring", null, null),
+            ["breakers"] = ("Breakers ahead! A flickering ring means rock in that ship's path. Light the water in front of it.", "ring", null, null),
         };
 
         static (string text, string icon) HintFor(string id)
@@ -152,6 +154,22 @@ namespace LastLight.Core
                     Sfx.PlayAt("ship_lit", pos3, 0.4f, e.Ship.Type == ShipType.Steamer ? 0.8f : e.Ship.Type == ShipType.Ferry ? 1.12f : 1f, 0.15f);
                     if (!e.Ship.Damaged) Sfx.PlayAt("ship_answer", pos3, 0.3f, Random.Range(0.95f, 1.05f), 0.15f);
                     break;
+                case SimEventType.ShipDanger:
+                    Sfx.PlayAt("breakers", pos3, 0.65f, 1f, 0.5f);
+                    hud.Danger(e.Pos);
+                    radio.React(e, w);
+                    ShowHint("breakers");
+                    break;
+                case SimEventType.ShipAstern:
+                {
+                    // Three short blasts, "my engines are going astern", and a shout for a late chart;
+                    // a routine check between charted rocks gets one quiet blast.
+                    var horn = e.Ship.Type switch { ShipType.Steamer => "horn_steamer", ShipType.Ferry => "horn_ferry", _ => "horn_trawler" };
+                    bool late = e.Index == 1;
+                    for (int i = 0; i < (late ? 3 : 1); i++) delayed.Add((w.Time + i * 0.32f, horn, pos3, late ? 0.4f : 0.22f));
+                    if (late) radio.React(e, w);
+                    break;
+                }
                 case SimEventType.ShipLost:
                     Sfx.PlayAt("ship_lost", pos3, 0.75f);
                     radio.React(e, w);
@@ -274,6 +292,8 @@ namespace LastLight.Core
         {
             var w = runner.World;
             if (w == null) return;
+            for (int i = delayed.Count - 1; i >= 0; i--)
+                if (w.Time >= delayed[i].at) { Sfx.PlayAt(delayed[i].id, delayed[i].pos, delayed[i].volume, 1.12f, 0f); delayed.RemoveAt(i); }
 
             // Scripted radio and hints by time.
             var cues = runner.Def.radio;

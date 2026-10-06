@@ -63,7 +63,7 @@ namespace LastLight.Sim
                     return $"lost in the dark, {hit}";
                 default:
                     if (where == "the shore") return hit;
-                    return s.WreckCharted ? $"{hit}, charted too late to turn" : $"{hit}, uncharted";
+                    return !s.WreckCharted ? $"{hit}, uncharted" : s.WreckLate ? $"{hit}, charted too late to turn" : $"{hit} despite the chart";
             }
         }
 

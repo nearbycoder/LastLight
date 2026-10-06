@@ -41,6 +41,7 @@ namespace LastLight.View
         static readonly Color RingLow = new Color(1.6f, 0.75f, 0.2f);
         static readonly Color RingLost = new Color(2.2f, 0.25f, 0.18f);
         static readonly Color RingLured = new Color(2.0f, 0.55f, 0.08f);
+        static readonly Color RingDanger = new Color(2.4f, 2.1f, 1.6f);
 
         public static ShipView Create(SimShip ship, Transform parent)
         {
@@ -296,6 +297,8 @@ namespace LastLight.View
                 default:
                     c = Color.Lerp(RingLow, RingCalm, Mathf.Clamp01((shownConfidence - 0.2f) / 0.4f));
                     if (shownConfidence < 0.3f) pulseDepth = 0.45f;
+                    // Breakers ahead: the ring flickers white while the hazard is on its track.
+                    if (Ship.Danger > 0f) { c = Color.Lerp(c, RingDanger, Mathf.PingPong(Time.time * 7f, 1f)); fill = Mathf.Max(fill, 0.35f); }
                     break;
             }
             float visible = resolved ? 0f : Ship.Inside ? 1f : 0.35f;

@@ -377,6 +377,13 @@ namespace LastLight.UI
             ring.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(84, 84));
         }
 
+        /// <summary>Breakers ahead of a ship: a pale ring pulses round it (or at the screen edge).</summary>
+        public void Danger(Vector2 pos)
+        {
+            for (int i = 0; i < 2; i++)
+                AddMarker(new Vector3(pos.x, 1f, pos.y), SpriteFactory.ThinRing, new Color(0.92f, 0.96f, 1f, 1f), 56f + i * 26f, 1.6f + i * 0.4f, true);
+        }
+
         public void Flare(Vector2 pos) => AddMarker(new Vector3(pos.x, 1f, pos.y), SpriteFactory.ThinRing, new Color(1f, 0.35f, 0.25f, 1f), 70f, 6f, true);
 
         public void FloatText(Vector3 world, string text, Color color)

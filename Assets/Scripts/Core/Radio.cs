@@ -123,6 +123,24 @@ namespace LastLight.Core
                 case SimEventType.ShipFreed:
                     Say(Who(s), Pick("Wait. That wasn't Gannet Head! Hard about!", "Two lights? That one's false! Coming away!", "Thanks, keeper. That other light nearly had us."), 2, s.Name);
                     break;
+                case SimEventType.ShipDanger:
+                    Say(Who(s), s.Captain switch
+                    {
+                        "maren" => Pick("Keeper! White water ahead, I can hear it!", "Breakers off the bow! Where are the rocks?"),
+                        "pryce" => Pick("Breakers ahead. Show me the rock, keeper!", "Hear that? Surf where there shouldn't be any."),
+                        "dot" => Pick("Ooh, is that surf? Keeper, what's in front of us?", "Breakers ahead! Light the water for us, love!"),
+                        _ => Pick("Breakers ahead! Light the water, keeper!", $"{s.Name} here. Surf on the bow, can't see what's breaking!", "White water dead ahead! Where's the rock?"),
+                    }, s.Captain != "" ? 2 : 1, s.Name);
+                    break;
+                case SimEventType.ShipAstern:
+                    Say(Who(s), s.Captain switch
+                    {
+                        "maren" => Pick("Hard over! Full astern!", "Whoa! Back her off, back her off!"),
+                        "pryce" => Pick("Full astern! ...Hold her. Hold her.", "Rock! Full astern, and be quick about it!"),
+                        "dot" => Pick("Everyone hold on to something!", "Full astern! Sorry, folks, bit of a bump coming!"),
+                        _ => Pick("Rock ahead! Full astern!", "Full astern! Hard over!", "There it is! Back her down!"),
+                    }, 2, s.Name);
+                    break;
                 case SimEventType.ShipFlare:
                     Say(Who(s), Pick("Gannet Head, " + s.Name + ". No lamps, taking water. Flare's up!", "We've fired a flare. Can you see us, keeper?", s.Name + " here, dark and drifting. Look for the flare!"), 2, s.Name);
                     break;

@@ -80,7 +80,17 @@ namespace LastLight.Sim
         public ShipState WreckedWhile;         // Sailing, Lost or Lured when the hull struck
         public bool WreckCharted;              // the hazard was charted (or always visible) when struck
         public bool WreckShoal;                // ran aground on a sandbank rather than striking rock
+        public bool WreckLate;                 // the hazard was first charted close ahead of the ship
         public float WreckTime = -1f;
+        // Breakers ahead: an uncharted hazard a few seconds off along the ship's track.
+        public float Danger;                   // > 0 while the hazard is ahead (the ring flickers)
+        public float DangerCooldown;           // the warning sounds at most this often
+        // Full astern: a known hazard closer than the ship can turn away from.
+        public bool Astern;
+        /// <summary>Hazards charted while already close ahead (reef index, or 1000 + sandbank index).</summary>
+        public readonly System.Collections.Generic.HashSet<int> LateHazards = new System.Collections.Generic.HashSet<int>();
+        public float AsternCooldown;
+        public int AsternCount;
         public float StateTime;        // seconds in the current state
 
         public bool Active => State == ShipState.Sailing || State == ShipState.Lost || State == ShipState.Lured;

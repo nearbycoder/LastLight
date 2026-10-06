@@ -7,7 +7,7 @@ namespace LastLight.Sim
     public enum SimEventType
     {
         ShipIncoming, ShipSpawned, ShipEntered, ShipLit, ShipLost, ShipFound, ShipLured, ShipFreed,
-        ShipArrived, ShipWrecked, ShipFlare, ShipDanger,
+        ShipArrived, ShipWrecked, ShipFlare, ShipDanger, ShipAstern,
         ReefCharted, ShoalCharted, BuoyLit, BuoyOut,
         Horn, Lightning, WreckerLit, WreckerDoused, WreckerDousing,
         MissionWon, MissionFailed,
@@ -53,6 +53,7 @@ namespace LastLight.Sim
         public float Rain;
         public bool Frozen;              // stop ships (used by the ending)
         public static bool DebugSteering;   // fill SimShip.SteerDebug (allocates; for traces only)
+        public static bool LateChartReprieve = true;   // full astern for hazards charted too close (tests turn it off to compare)
         public bool ShipsDone => nextSpawn >= schedule.Length && !Ships.Exists(s => s.Active);
 
         readonly SpawnDef[] schedule;
@@ -65,6 +66,7 @@ namespace LastLight.Sim
             public Vector2 C;
             public float R;          // bounding radius (circle obstacles: the radius)
             public Vector2[] Poly;   // convex outline for sandbanks, null for circles
+            public int Hazard;       // reef index, 1000 + sandbank index, or -1 for a stack
         }
 
         readonly List<Obstacle> obstacles = new List<Obstacle>(64);
@@ -560,20 +562,106 @@ namespace LastLight.Sim
                 default:
                     speedFactor = s.Lit || s.InAura || !s.Inside ? 1f : 0.72f;
                     desiredHeading = Crab(SteerSailing(s), st.Speed * speedFactor * (s.Damaged ? 0.7f : 1f));
+                    if (FullAstern(s, desiredHeading)) speedFactor = Mathf.Min(speedFactor, 0.12f);
                     break;
             }
+            if (s.State != ShipState.Sailing) s.Astern = false;
+            s.AsternCooldown = Mathf.Max(0f, s.AsternCooldown - dt);
             if (s.Damaged) speedFactor *= 0.7f;
 
             float turn = st.TurnRate * Mathf.Deg2Rad * dt * (s.Damaged ? 0.8f : 1f);
             if (s.State == ShipState.Lost) turn *= 0.6f;
             s.Heading = Geo.WrapAngle(s.Heading + Mathf.Clamp(Geo.DeltaAngle(s.Heading, desiredHeading), -turn, turn));
-            s.Speed = Mathf.MoveTowards(s.Speed, st.Speed * speedFactor, 1.6f * dt);
+            s.Speed = Mathf.MoveTowards(s.Speed, st.Speed * speedFactor, (s.Astern ? 5f : 1.6f) * dt);
             s.Velocity = s.Forward * s.Speed + drift;
             s.Pos += s.Velocity * dt;
 
             AdvanceWaypoint(s);
             CheckArrival(s);
+            if (s.Active) CheckDanger(s, dt);
             if (s.Active) CheckCollisions(s);
+        }
+
+        /// <summary>
+        /// A captain who sees a charted reef or sandbank closer than he can turn away from rings
+        /// down full astern: the ship slows hard while it turns, so a late chart (or a tight
+        /// passage between charted rocks) is a near miss rather than a wreck. Stacks are left to
+        /// the ordinary avoidance. Uses the obstacles SteerSailing just gathered for this ship.
+        /// The event's Index is 1 for a late chart (the hazard was first seen close ahead).
+        /// </summary>
+        bool FullAstern(SimShip s, float desiredHeading)
+        {
+            bool astern = false;
+            int hazard = -1;
+            var st = s.Stats;
+            float need = Mathf.Abs(Geo.DeltaAngle(s.Heading, desiredHeading));
+            if (LateChartReprieve && s.Inside && need > 20f * Mathf.Deg2Rad)
+            {
+                int hit = FirstHit(s.Pos, s.Forward, st.Lookahead, float.MaxValue, -1);
+                if (hit >= 0 && obstacles[hit].Hazard >= 0)
+                {
+                    var o = obstacles[hit];
+                    float dist = o.Poly == null
+                        ? Mathf.Max(0f, Vector2.Distance(o.C, s.Pos) - o.R)
+                        : Geo.PointInPolygon(o.Poly, s.Pos) ? 0f : Mathf.Max(0f, RayPolygon(s.Pos, s.Forward, o.Poly));
+                    // How far the ship runs on while it swings its bow round at full speed.
+                    float runOn = s.Speed * need / (st.TurnRate * Mathf.Deg2Rad);
+                    astern = dist < runOn + st.Radius;
+                    hazard = o.Hazard;
+                }
+            }
+            if (astern && !s.Astern && s.AsternCooldown <= 0f)
+            {
+                s.AsternCount++;
+                s.AsternCooldown = 8f;
+                Emit(SimEventType.ShipAstern, s, s.LateHazards.Contains(hazard) ? 1 : 0, s.Pos);
+            }
+            s.Astern = astern;
+            return astern;
+        }
+
+        /// <summary>
+        /// Breakers ahead: an uncharted reef (or, for deep hulls, sandbank) lies on the ship's track
+        /// within a few seconds' run. The crew can hear it before they can see it.
+        /// </summary>
+        void CheckDanger(SimShip s, float dt)
+        {
+            s.Danger = Mathf.Max(0f, s.Danger - dt);
+            s.DangerCooldown = Mathf.Max(0f, s.DangerCooldown - dt);
+            if (!s.Inside || (s.State != ShipState.Sailing && s.State != ShipState.Lost)) return;
+            var st = s.Stats;
+            float speed = s.Velocity.magnitude;
+            if (speed < 0.3f) return;
+            var dir = s.Velocity / speed;
+            float reach = speed * (st.DeepDraught ? 4f : st.Lookahead > 18f ? 3.2f : 2.5f);
+            int found = -1;
+            var at = Vector2.zero;
+            foreach (var r in Reefs)
+            {
+                if (r.Charted) continue;
+                var rel = r.Pos - s.Pos;
+                float rr = r.Radius + st.Radius * 0.55f;
+                float t = Vector2.Dot(rel, dir);
+                if (t < -rr || t > reach + rr || Mathf.Abs(Geo.Cross(dir, rel)) >= rr) continue;
+                found = r.Index;
+                at = r.Pos;
+                break;
+            }
+            if (found < 0 && st.DeepDraught)
+                for (int i = 0; i < Shoals.Count && found < 0; i++)
+                {
+                    if (Shoals[i].Charted) continue;
+                    for (int k = 1; k <= 6; k++)
+                    {
+                        var p = s.Pos + dir * (reach * k / 6f);
+                        if (Shoals[i].Def.Contains(p, -0.5f)) { found = 1000 + i; at = p; break; }
+                    }
+                }
+            if (found < 0) return;
+            s.Danger = 0.4f;
+            if (s.DangerCooldown > 0f) return;
+            s.DangerCooldown = 10f;
+            Emit(SimEventType.ShipDanger, s, found);   // at the ship: the warning mustn't give the reef away
         }
 
         /// <summary>The point `ahead` units along the route from the ship's position on its current leg.</summary>
@@ -643,24 +731,32 @@ namespace LastLight.Sim
             obstacles.Clear();
             float clearance = st.Radius + 2.6f;
             float memory = st.Lookahead * 2.5f + 10f;
-            foreach (var k in Map.Stacks) obstacles.Add(new Obstacle { C = k.Pos, R = k.Radius + clearance });
+            foreach (var k in Map.Stacks) obstacles.Add(new Obstacle { C = k.Pos, R = k.Radius + clearance, Hazard = -1 });
+            // A hazard first seen this close is a late chart: the captain may have to ring for full astern.
+            float late = st.Lookahead * 1.2f;
             foreach (var r in Reefs)
             {
                 float d2 = (r.Pos - s.Pos).sqrMagnitude;
                 // A captain who has seen a reef charted near his course remembers it until he is past.
-                if (r.Charted && d2 < memory * memory) s.KnownReefs.Add(r.Index);
-                else if (d2 > memory * memory * 1.6f) s.KnownReefs.Remove(r.Index);
-                if (r.Charted || s.KnownReefs.Contains(r.Index)) obstacles.Add(new Obstacle { C = r.Pos, R = r.Radius + clearance });
+                if (r.Charted && d2 < memory * memory)
+                {
+                    if (s.KnownReefs.Add(r.Index) && d2 < Sq(late + r.Radius)) s.LateHazards.Add(r.Index);
+                }
+                else if (d2 > memory * memory * 1.6f) { s.KnownReefs.Remove(r.Index); s.LateHazards.Remove(r.Index); }
+                if (r.Charted || s.KnownReefs.Contains(r.Index)) obstacles.Add(new Obstacle { C = r.Pos, R = r.Radius + clearance, Hazard = r.Index });
             }
             if (st.DeepDraught)
                 for (int i = 0; i < Shoals.Count; i++)
                 {
                     var sh = Shoals[i];
                     float d = Vector2.Distance(sh.Def.Pos, s.Pos) - sh.Def.Rx;
-                    if (sh.Charted && d < memory) s.KnownShoals.Add(i);
-                    else if (d > memory * 1.3f) s.KnownShoals.Remove(i);
+                    if (sh.Charted && d < memory)
+                    {
+                        if (s.KnownShoals.Add(i) && d < late) s.LateHazards.Add(1000 + i);
+                    }
+                    else if (d > memory * 1.3f) { s.KnownShoals.Remove(i); s.LateHazards.Remove(1000 + i); }
                     if (sh.Charted || s.KnownShoals.Contains(i))
-                        obstacles.Add(new Obstacle { C = sh.Def.Pos, R = sh.Def.Rx + clearance, Poly = EllipsePoly(sh.Def, clearance * 0.8f) });
+                        obstacles.Add(new Obstacle { C = sh.Def.Pos, R = sh.Def.Rx + clearance, Poly = EllipsePoly(sh.Def, clearance * 0.8f), Hazard = 1000 + i });
                 }
 
             // If the waypoint itself sits inside a known hazard's buffer, move on to the next one.
@@ -888,21 +984,22 @@ namespace LastLight.Sim
         {
             var st = s.Stats;
             string cause = null;
-            bool charted = true, shoal = false;
+            bool charted = true, shoal = false, late = false;
             foreach (var k in Map.Stacks)
                 if ((s.Pos - k.Pos).sqrMagnitude < Sq(k.Radius + st.Radius * 0.7f)) { cause = k.Name; break; }
             if (cause == null)
                 foreach (var r in Reefs)
-                    if ((s.Pos - r.Pos).sqrMagnitude < Sq(r.Radius + st.Radius * 0.55f)) { cause = ReefGroupName(r.Group); charted = r.Charted; break; }
+                    if ((s.Pos - r.Pos).sqrMagnitude < Sq(r.Radius + st.Radius * 0.55f)) { cause = ReefGroupName(r.Group); charted = r.Charted || s.KnownReefs.Contains(r.Index); late = s.LateHazards.Contains(r.Index); break; }
             if (cause == null && st.DeepDraught)
                 foreach (var sh in Shoals)
-                    if (sh.Def.Contains(s.Pos, -0.5f)) { cause = sh.Def.Name; charted = sh.Charted; shoal = true; break; }
+                    if (sh.Def.Contains(s.Pos, -0.5f)) { cause = sh.Def.Name; charted = sh.Charted || s.KnownShoals.Contains(Shoals.IndexOf(sh)); late = s.LateHazards.Contains(1000 + Shoals.IndexOf(sh)); shoal = true; break; }
             if (cause == null && s.Inside && Map.OnLand(s.Pos + s.Forward * st.Radius * 0.8f)) cause = "the shore";
             if (cause == null) return;
             s.WreckCause = cause;
             s.WreckedWhile = s.State;
             s.WreckCharted = charted;
             s.WreckShoal = shoal;
+            s.WreckLate = late;
             s.WreckTime = Time;
             SetState(s, ShipState.Wrecked);
             Wrecks++;
