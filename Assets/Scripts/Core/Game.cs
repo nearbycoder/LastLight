@@ -384,6 +384,7 @@ namespace LastLight.Core
         void Update()
         {
             ShaderGlobals.PushMood();
+            InputMode.Update();
             float dt = Time.deltaTime;
             Radio.TextSpeed = SaveData.Current.textSpeed;
             if (Current == State.Playing || Current == State.Results || Current == State.Ending) Radio.Update(dt);

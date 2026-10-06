@@ -29,6 +29,7 @@ namespace LastLight.Core
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
         public bool hints = true;
+        public List<string> hintsSeen = new List<string>();   // each onboarding hint shows once per save
 
         const string Key = "lastlight.save";
         static SaveData current;
@@ -75,6 +76,7 @@ namespace LastLight.Core
                 if (current.lamps == null || current.lamps.Length != 12) current.lamps = new int[12];
                 if (current.best == null || current.best.Length != 12) current.best = new int[12];
                 current.homeNames ??= new List<string>();
+                current.hintsSeen ??= new List<string>();
                 return current;
             }
         }

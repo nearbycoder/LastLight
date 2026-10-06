@@ -66,6 +66,10 @@ The game starts fullscreen. Settings has volumes for master, music, effects, rad
 along with text speed, fog quality, screen shake, hints, lens turn speed, windowed or fullscreen,
 and resolution.
 
+Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
+Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
+you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
+
 ### The rules in brief
 
 - **Ships follow the light.** Each ship has a confidence ring. It refills in your beam and drains

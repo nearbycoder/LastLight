@@ -144,8 +144,9 @@ namespace LastLight.UI
             hornIcon.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -48), new Vector2(60, 60));
             var label = UiKit.Text("Label", hornPanel, "HORN", UiKit.BodyBold, 16, UiKit.Muted, TextAnchor.MiddleCenter);
             label.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -48), new Vector2(100, 30));
-            hornKey = UiKit.Text("Key", hornPanel, "SPACE", UiKit.BodyBold, 18, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed();
+            hornKey = UiKit.Text("Key", hornPanel, InputMode.Pick("SPACE", "A"), UiKit.BodyBold, 18, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed();
             hornKey.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(120, 30));
+            InputMode.Changed += () => hornKey.text = InputMode.Pick("SPACE", "A");
             hornPanel.gameObject.SetActive(false);
         }
 
@@ -307,6 +308,16 @@ namespace LastLight.UI
         {
             hintId = id;
             hintTimer = duration;
+            SetHintContent(text, icon);
+            hintPanel.anchoredPosition = new Vector2(0, -76);
+            Tween.Fade(hintGroup, 1f, 0.4f);
+            Tween.Move(hintPanel, new Vector2(0, -96), 0.5f, 0f, Tween.EaseOutBack);
+            Sfx.Play("ui_hint", 0.45f);
+        }
+
+        /// <summary>The hint's words and icon, without the entrance (for a change of input device).</summary>
+        public void SetHintContent(string text, string icon)
+        {
             hintText.text = text;
             hintIcon.gameObject.SetActive(true);
             hintKey.text = "";
@@ -324,10 +335,6 @@ namespace LastLight.UI
                     break;
             }
             if (!(icon.Length > 0 && hintKey.text != "")) hintIcon.rectTransform.sizeDelta = icon == "ring" || icon == "lamp" ? new Vector2(54, 54) : new Vector2(42, 56);
-            hintPanel.anchoredPosition = new Vector2(0, -76);
-            Tween.Fade(hintGroup, 1f, 0.4f);
-            Tween.Move(hintPanel, new Vector2(0, -96), 0.5f, 0f, Tween.EaseOutBack);
-            Sfx.Play("ui_hint", 0.45f);
         }
 
         public void HideHint(bool instant = false)
@@ -338,6 +345,9 @@ namespace LastLight.UI
         }
 
         public bool HintShowing(string id) => hintId == id;
+
+        /// <summary>The words of the hint on screen, or null (for the tours).</summary>
+        public string HintOnScreen => hintId != null ? hintText.text : null;
 
         // ---------------------------------------------------------------- markers
 

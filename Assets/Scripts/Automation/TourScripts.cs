@@ -366,6 +366,40 @@ namespace LastLight.Automation
             yield return PadPress(pad, GamepadButton.East);
             yield return Tour.Wait(0.5f);
             t.Log($"{(padPaused && Time.timeScale == 1f ? "PASS" : "FAIL")} Start pauses and B resumes");
+
+            // ---- Prompts follow the device in use, and each hint shows once per save.
+            bool promptsOk = InputMode.Pad;
+            t.Log($"{(InputMode.Pad ? "PASS" : "FAIL")} the pad is the device in use after pad input");
+            SaveData.Current.hintsSeen.Clear();
+            g.TourBriefing(5);
+            yield return Tour.Wait(3.5f);
+            yield return t.Shot("input_briefing_pad");
+            g.TourBegin();
+            InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = new Vector2(0f, 1f) });
+            float hintWait = 0f;
+            while (g.Hud.HintOnScreen == null && hintWait < 30f) { hintWait += Time.unscaledDeltaTime; yield return null; }
+            string padHint = g.Hud.HintOnScreen ?? "";
+            yield return Tour.Wait(0.8f);
+            yield return t.Shot("input_hint_pad");
+            bool padWords = padHint.Contains("stick") || padHint.Contains("trigger") || padHint.Contains("Press A");
+            t.Log($"{(padWords ? "PASS" : "FAIL")} the hint speaks pad: \"{padHint}\"");
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            var mid = new Vector2(Screen.width * 0.5f, Screen.height * 0.6f);
+            for (int i = 0; i < 10; i++) { MouseTo(mid + new Vector2(i * 12f, 0f)); yield return null; }
+            yield return Tour.Wait(0.3f);
+            string keyHint = g.Hud.HintOnScreen ?? "";
+            bool keyWords = !InputMode.Pad && keyHint != padHint && keyHint != "";
+            t.Log($"{(keyWords ? "PASS" : "FAIL")} moving the mouse rewords it: \"{keyHint}\"");
+            yield return t.Shot("input_hint_keys");
+            var seen = new System.Collections.Generic.List<string>(SaveData.Current.hintsSeen);
+            g.TourBriefing(5);
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            string again = null;
+            while (g.Runner.World.Time < 20f) { if (g.Hud.HintOnScreen != null && again == null) again = g.Hud.HintOnScreen; yield return null; }
+            bool once = seen.Count > 0 && again == null;
+            t.Log($"{(once ? "PASS" : "FAIL")} hints seen once ({string.Join(", ", seen)}) stay away on the next night{(again != null ? ": showed \"" + again + "\"" : "")}");
+            promptsOk &= padWords && keyWords && once;
             InputSystem.RemoveDevice(pad);
 
             // ---- The turn-speed setting scales how fast the keys swing the lens.
@@ -386,6 +420,12 @@ namespace LastLight.Automation
             bool scaled = rates[1] > rates[0] * 1.8f;
             t.Log($"{(scaled ? "PASS" : "FAIL")} turn speed setting: {rates[0]:0} deg/s at 0.5, {rates[1]:0} deg/s at 1.25");
             t.Log(navOk && padAim && padFocus > 0.9f && padCd > 10f && padPaused && scaled ? "gamepad PASS" : "gamepad FAIL");
+            t.Log(promptsOk ? "prompts PASS" : "prompts FAIL");
+            // The title's control strip in pad words.
+            InputMode.Set(true);
+            g.TourTitle();
+            yield return Tour.Wait(4f);
+            yield return t.Shot("input_title_pad");
         }
 
         static IEnumerator PadPress(Gamepad pad, GamepadButton button)

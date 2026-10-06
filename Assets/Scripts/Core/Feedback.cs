@@ -20,7 +20,6 @@ namespace LastLight.Core
         readonly HashSet<string> fired = new HashSet<string>();
         readonly HashSet<int> cuesDone = new HashSet<int>();
         readonly HashSet<int> hintsDone = new HashSet<int>();
-        readonly HashSet<string> hintSeen = new HashSet<string>();
         float swept;               // total beam rotation, for the "aim" hint
         float focusHeld;
         float swingPeak, lastBrake = -9f;
@@ -34,6 +33,7 @@ namespace LastLight.Core
             this.hud = hud;
             this.radio = radio;
             runner.OnEvent += Handle;
+            InputMode.Changed += RefreshHint;
             EnsureLoops();
             var storm = runner.Def.storm;
             bool stormy = storm != null && storm.enabled;
@@ -60,7 +60,11 @@ namespace LastLight.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { Whirr = Focus = Sea = Wind = Rain = Static = null; }
 
-        public void Detach() => runner.OnEvent -= Handle;
+        public void Detach()
+        {
+            runner.OnEvent -= Handle;
+            InputMode.Changed -= RefreshHint;
+        }
 
         bool First(string key) => fired.Add(key);
 
@@ -76,24 +80,43 @@ namespace LastLight.Core
                     if (hints[i].on == on && hintsDone.Add(i)) ShowHint(hints[i].id);
         }
 
-        static readonly Dictionary<string, (string text, string icon)> HintText = new Dictionary<string, (string, string)>
+        // Each hint in mouse-and-keyboard words, then in gamepad words (keycap icons for the pad).
+        static readonly Dictionary<string, (string text, string icon, string padText, string padIcon)> HintText = new Dictionary<string, (string, string, string, string)>
         {
-            ["aim"] = ("Move the mouse to turn the light.", "mouse"),
-            ["ships"] = ("Ships lose their nerve in the dark. Keep them in your light.", "ring"),
-            ["chart"] = ("Sweep the light ahead of a ship to chart the hidden reefs.", "ring"),
-            ["focus"] = ("Hold the left button to focus: a narrow beam that reaches further.", "lmb"),
-            ["buoy"] = ("Sweep the light over a buoy to light it. It guides ships for a while.", "lamp"),
-            ["horn"] = ("Fog! Press SPACE to sound the foghorn.", "SPACE"),
-            ["flare"] = ("A ship with no lamps. Watch for its flares.", "ring"),
-            ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lmb"),
-            ["shoal"] = ("Steamers run aground on sandbanks. Light the sands to chart them.", "ring"),
-            ["storm"] = ("The storm pushes ships towards the rocks. Lightning reveals them.", "ring"),
+            ["aim"] = ("Move the mouse to turn the light.", "mouse", "Point the right stick to turn the light.", "RS"),
+            ["ships"] = ("Ships lose their nerve in the dark. Keep them in your light.", "ring", null, null),
+            ["chart"] = ("Sweep the light ahead of a ship to chart the hidden reefs.", "ring", null, null),
+            ["focus"] = ("Hold the left button to focus: a narrow beam that reaches further.", "lmb", "Hold the right trigger to focus: a narrow beam that reaches further.", "RT"),
+            ["buoy"] = ("Sweep the light over a buoy to light it. It guides ships for a while.", "lamp", null, null),
+            ["horn"] = ("Fog! Press SPACE to sound the foghorn.", "SPACE", "Fog! Press A to sound the foghorn.", "A"),
+            ["flare"] = ("A ship with no lamps. Watch for its flares.", "ring", null, null),
+            ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lmb", "A false light! Hold your beam on its lantern to douse it.", "RT"),
+            ["shoal"] = ("Steamers run aground on sandbanks. Light the sands to chart them.", "ring", null, null),
+            ["storm"] = ("The storm pushes ships towards the rocks. Lightning reveals them.", "ring", null, null),
         };
 
+        static (string text, string icon) HintFor(string id)
+        {
+            var h = HintText[id];
+            return InputMode.Pad && h.padText != null ? (h.padText, h.padIcon) : (h.text, h.icon);
+        }
+
+        /// <summary>Each hint shows once per save (Settings can bring them all back).</summary>
         void ShowHint(string id)
         {
-            if (!SaveData.Current.hints || !hintSeen.Add(id)) return;
-            if (HintText.TryGetValue(id, out var h)) hud.ShowHint(id, h.text, h.icon, id == "aim" ? 12f : 9f);
+            var save = SaveData.Current;
+            if (!save.hints || !HintText.ContainsKey(id) || save.hintsSeen.Contains(id)) return;
+            save.hintsSeen.Add(id);
+            save.Save();
+            var h = HintFor(id);
+            hud.ShowHint(id, h.text, h.icon, id == "aim" ? 12f : 9f);
+        }
+
+        /// <summary>The keeper picked up the other device: reword the hint on screen.</summary>
+        void RefreshHint()
+        {
+            foreach (var id in HintText.Keys)
+                if (hud.HintShowing(id)) { var h = HintFor(id); hud.SetHintContent(h.text, h.icon); return; }
         }
 
         void Dismiss(string id)

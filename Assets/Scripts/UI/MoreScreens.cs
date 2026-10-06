@@ -18,6 +18,7 @@ namespace LastLight.UI
         Image newIcon;
         RectTransform card, newCard;
         string full = "";
+        string newThing;
         float typed;
         bool ready;
 
@@ -70,9 +71,25 @@ namespace LastLight.UI
             var start = UiButton.Create(card, "Begin the watch", UiKit.Heading, 46, () => { if (ready) OnStart?.Invoke(); });
             ((RectTransform)start.transform).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(22, 40), new Vector2(520, 64));
             FirstSelected = start;
-            prompt = Label(card, "click, or press Space", UiKit.Italic, 24, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(330, 72), new Vector2(360, 30));
+            prompt = Label(card, PromptText(), UiKit.Italic, 24, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(330, 72), new Vector2(360, 30));
             prompt.rectTransform.pivot = new Vector2(0, 0.5f);
+            InputMode.Changed += () =>
+            {
+                prompt.text = PromptText();
+                if (newThing != null && NewThings.TryGetValue(newThing, out var n)) { newText.text = NewText(newThing, n.text); SetNewIcon(n.icon); }
+            };
         }
+
+        static string PromptText() => InputMode.Pick("click, or press Space", "press A");
+
+        // The new-thing cards that name a control, in gamepad words.
+        static readonly Dictionary<string, string> PadNewThings = new Dictionary<string, string>
+        {
+            ["aim"] = "Point the right stick to turn the light.",
+            ["fog"] = "Fog swallows the light. Hold RT to focus, A for the horn.",
+        };
+
+        static string NewText(string id, string keys) => InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys;
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
         {
@@ -101,27 +118,35 @@ namespace LastLight.UI
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
+            newThing = def.newThing;
             if (!string.IsNullOrEmpty(def.newThing) && NewThings.TryGetValue(def.newThing, out var n))
             {
                 newCard.gameObject.SetActive(true);
                 newTitle.text = UiKit.Spaced(n.title);
-                newText.text = n.text;
-                newIcon.sprite = n.icon switch
-                {
-                    "mouse" => SpriteFactory.Mouse(""),
-                    "lmb" => SpriteFactory.Mouse("left"),
-                    "steamer" or "ferry" => SpriteFactory.Ship(n.icon),
-                    "lamp" => SpriteFactory.Lamp,
-                    _ => SpriteFactory.Icon(n.icon),
-                };
-                newIcon.rectTransform.sizeDelta = n.icon switch
-                {
-                    "mouse" or "lmb" => new Vector2(46, 62),
-                    "steamer" or "ferry" => new Vector2(96, 38),
-                    _ => new Vector2(70, 70),
-                };
+                newText.text = NewText(def.newThing, n.text);
+                SetNewIcon(n.icon);
             }
             else newCard.gameObject.SetActive(false);
+        }
+
+        void SetNewIcon(string icon)
+        {
+            // Mouse pictures mean nothing to a pad player: the light's own lamp stands in.
+            if (InputMode.Pad && (icon == "mouse" || icon == "lmb")) icon = "lamp";
+            newIcon.sprite = icon switch
+            {
+                "mouse" => SpriteFactory.Mouse(""),
+                "lmb" => SpriteFactory.Mouse("left"),
+                "steamer" or "ferry" => SpriteFactory.Ship(icon),
+                "lamp" => SpriteFactory.Lamp,
+                _ => SpriteFactory.Icon(icon),
+            };
+            newIcon.rectTransform.sizeDelta = icon switch
+            {
+                "mouse" or "lmb" => new Vector2(46, 62),
+                "steamer" or "ferry" => new Vector2(96, 38),
+                _ => new Vector2(70, 70),
+            };
         }
 
         public override void Show()
@@ -188,22 +213,27 @@ namespace LastLight.UI
         {
             var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.72f));
             dim.rectTransform.Fill();
-            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(980, 1040));
+            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 820));
             var bg = UiKit.Image("Bg", panel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
             bg.rectTransform.Fill();
             Label(panel, "Settings", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
             var rule = UiKit.Image("Rule", panel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f));
             rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -146), new Vector2(620, 3));
             var save = SaveData.Current;
+            // Two columns: sound and text on the left, play and display on the right. Pads move
+            // down the left column, then down the right, then to Done (left and right change values).
+            var order = new List<Selectable>();
             int row = 0;
+            float column = -410f;
             void Row(string label, Component control)
             {
                 // Label and control share a centre line.
                 float y = -196 - row * 60;
-                var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-170, y), new Vector2(380, 50));
+                var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(column - 170, y), new Vector2(380, 50));
                 l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
-                ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(210, y), new Vector2(380, 46));
+                ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(column + 210, y), new Vector2(380, 46));
+                order.Add((Selectable)control);
                 row++;
             }
             Row("Master volume", UiSlider.Create(panel, save.master, v => { save.master = v; save.Apply(); }));
@@ -212,17 +242,39 @@ namespace LastLight.UI
             Row("Radio voices", UiSlider.Create(panel, save.radio, v => { save.radio = v; save.Apply(); Sfx.Play("voice_ianto", 0.4f, 0.95f, 0, Bus.Radio, 0.5f); }));
             Row("Sea and wind", UiSlider.Create(panel, save.ambience, v => { save.ambience = v; save.Apply(); }));
             Row("Text speed", UiStepper.Create(panel, new[] { "Slow", "Normal", "Fast" }, save.textSpeed < 0.9f ? 0 : save.textSpeed > 1.1f ? 2 : 1, i => { save.textSpeed = i == 0 ? 0.7f : i == 2 ? 1.5f : 1f; }));
-            Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }));
-            Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
             Row("Hints", UiStepper.Create(panel, new[] { "Off", "On" }, save.hints ? 1 : 0, i => save.hints = i == 1));
+            UiButton replay = null;
+            replay = UiButton.Create(panel, "Show hints again", UiKit.BodyMedium, 26, () =>
+            {
+                save.hintsSeen.Clear();
+                save.Save();
+                replay.Label.text = "Hints will show again";
+            }, TextAnchor.MiddleCenter);
+            Row("Seen hints", replay);
+
+            row = 0;
+            column = 410f;
+            Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
             Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
             var sizes = Resolutions();
             int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
             var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
             Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }));
+            Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }));
             var back = UiButton.Create(panel, "Done", UiKit.Heading, 44, () => { SaveData.Current.Save(); OnBack?.Invoke(); }, TextAnchor.MiddleCenter);
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
+            order.Add(back);
+            for (int i = 0; i < order.Count; i++)
+            {
+                var nav = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = order[(i + order.Count - 1) % order.Count],
+                    selectOnDown = order[(i + 1) % order.Count],
+                };
+                order[i].navigation = nav;
+            }
             FirstSelected = back;
         }
     }
@@ -273,6 +325,9 @@ namespace LastLight.UI
             stats = UiKit.Text("Stats", card, "", UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.UpperCenter);
             stats.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -470), new Vector2(900, 120));
             stats.lineSpacing = 1.3f;
+            debrief = UiKit.Text("Debrief", card, "", UiKit.BodyMedium, 24, new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, 0.8f), TextAnchor.UpperCenter);
+            debrief.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -522), new Vector2(900, DebriefLine * MaxDebrief));
+            debrief.lineSpacing = 1.1f;
             scoreLine = Label(card, "", UiKit.Heading, 54, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(900, 70));
             best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
             next = UiButton.Create(card, "Next night", UiKit.Heading, 42, () => OnNext?.Invoke(), TextAnchor.MiddleCenter);
@@ -323,16 +378,39 @@ namespace LastLight.UI
             best.text = w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : previousBest > 0 ? $"best {previousBest:N0}" : "";
             var m = NightWatch.Milestones;
             for (int i = 0; i < 3; i++) lampCaptions[i].text = $"{m[i]} ships home";
+            ShowDebrief(Debrief.Lines(w, wrecksOnly: true));
             ResetLamps(w.Lamps);
             next.gameObject.SetActive(false);
             retry.Label.text = "Keep watch again";
             FirstSelected = retry;
         }
 
+        const int MaxDebrief = 4;
+        const float DebriefLine = 30f;
+
+        /// <summary>Up to four lines on what went wrong, most serious first; the card grows to fit.</summary>
+        void ShowDebrief(List<Debrief.Line> lines)
+        {
+            var sb = new System.Text.StringBuilder();
+            int shown = lines.Count <= MaxDebrief ? lines.Count : MaxDebrief - 1;
+            for (int i = 0; i < shown; i++)
+            {
+                var l = lines[i];
+                string dot = l.Kind == Debrief.Kind.Wreck ? "#FF5A4A" : l.Kind == Debrief.Kind.Lured ? "#FF9A2E" : "#7E8A96";
+                if (i > 0) sb.Append('\n');
+                sb.Append($"<color={dot}><size=34>•</size></color>  <b>{l.Ship}</b>  {l.Text}");
+            }
+            if (lines.Count > shown) sb.Append($"\n<color=#7E8A96>and {lines.Count - shown} more</color>");
+            debrief.text = sb.ToString();
+            int rows = lines.Count == 0 ? 0 : Mathf.Min(lines.Count, MaxDebrief);
+            float extra = rows == 0 ? 0f : rows * DebriefLine + 6f - 40f;   // the old card had room for about one line
+            extra = Mathf.Max(0f, extra);
+            card.sizeDelta = new Vector2(1000, 860 + extra);
+            ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - extra);
+            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - extra);
+        }
+
         void ResetLamps(int count)
-            debrief = UiKit.Text("Debrief", card, "", UiKit.BodyMedium, 24, new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, 0.8f), TextAnchor.UpperCenter);
-            debrief.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -522), new Vector2(900, DebriefLine * MaxDebrief));
-            debrief.lineSpacing = 1.1f;
         {
             lampCount = count;
             lampShown = 0;
@@ -378,32 +456,6 @@ namespace LastLight.UI
             var glow = lamps[i].transform.parent.GetChild(lamps[i].transform.GetSiblingIndex() - 1).GetComponent<Image>();
             Tween.Run(glow, "glow", 0.9f, t => glow.color = new Color(1f, 0.75f, 0.35f, 0.55f * (1f - t * 0.45f)), 0f, Tween.EaseOutCubic);
             Sfx.Play("lamp_" + (i + 1), 0.8f, 1f, (i - 1) * 0.3f, Bus.Ui);
-            ShowDebrief(Debrief.Lines(w, wrecksOnly: true));
         }
     }
 }
-        const int MaxDebrief = 4;
-        const float DebriefLine = 30f;
-
-        /// <summary>Up to four lines on what went wrong, most serious first; the card grows to fit.</summary>
-        void ShowDebrief(List<Debrief.Line> lines)
-        {
-            var sb = new System.Text.StringBuilder();
-            int shown = lines.Count <= MaxDebrief ? lines.Count : MaxDebrief - 1;
-            for (int i = 0; i < shown; i++)
-            {
-                var l = lines[i];
-                string dot = l.Kind == Debrief.Kind.Wreck ? "#FF5A4A" : l.Kind == Debrief.Kind.Lured ? "#FF9A2E" : "#7E8A96";
-                if (i > 0) sb.Append('\n');
-                sb.Append($"<color={dot}><size=34>•</size></color>  <b>{l.Ship}</b>  {l.Text}");
-            }
-            if (lines.Count > shown) sb.Append($"\n<color=#7E8A96>and {lines.Count - shown} more</color>");
-            debrief.text = sb.ToString();
-            int rows = lines.Count == 0 ? 0 : Mathf.Min(lines.Count, MaxDebrief);
-            float extra = rows == 0 ? 0f : rows * DebriefLine + 6f - 40f;   // the old card had room for about one line
-            extra = Mathf.Max(0f, extra);
-            card.sizeDelta = new Vector2(1000, 860 + extra);
-            ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - extra);
-            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - extra);
-        }
-

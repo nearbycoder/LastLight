@@ -130,9 +130,14 @@ namespace LastLight.UI
             SetWatchUnlocked(false);
             FirstSelected = begin;
 
-            footer = Label(Root, "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause", UiKit.Body, 22, new Color(0.65f, 0.7f, 0.76f, 0.85f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(1600, 40));
+            footer = Label(Root, FooterText(), UiKit.Body, 22, new Color(0.65f, 0.7f, 0.76f, 0.85f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(1600, 40));
             footer.Shadowed();
+            InputMode.Changed += () => footer.text = FooterText();
         }
+
+        static string FooterText() => InputMode.Pick(
+            "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause",
+            "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
 
         UiButton AddItem(string label, Action click)
         {
