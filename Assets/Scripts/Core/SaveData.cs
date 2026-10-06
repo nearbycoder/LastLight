@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using LastLight.Audio;
 using LastLight.View;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace LastLight.Core
 {
@@ -26,6 +28,8 @@ namespace LastLight.Core
         public int resWidth, resHeight;          // 0 = the desktop's own resolution
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
         public int quality = 2;                  // 0 low, 1 medium, 2 high
+        public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
+        public bool reduceFlashing;              // lightning and impact flashes much dimmer
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
         public bool hints = true;
@@ -141,6 +145,10 @@ namespace LastLight.Core
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
             if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
+            ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
+            // The pipeline asset is shared with the editor, so only the player changes it.
+            if (!Application.isEditor && GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
+                urp.renderScale = Mathf.Clamp(renderScale, 0.5f, 1f);
             if (display && !Application.isEditor)
             {
                 var mode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;

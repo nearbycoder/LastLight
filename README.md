@@ -63,8 +63,10 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
 
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
-along with text speed, fog quality, screen shake, hints, lens turn speed, windowed or fullscreen,
-and resolution.
+along with text speed, hints, screen shake, lens turn speed, windowed or fullscreen, resolution,
+fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp)
+and **reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength).
+A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
@@ -341,8 +343,10 @@ Linux. Here's what is still unproven or rough:
 - In the Night Watch, steamers threading the narrow water between Widow's Ledge and the Teeth can
   run onto a reef that was charted late. That ends most of the bot's watches. It's fair (chart
   ahead of the slow ships), but it can feel abrupt.
-- Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a lower
-  fullscreen resolution, is the safer choice there.
+- Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a
+  render scale of 70%, is the safer choice there. On the development machine's Radeon 8060S at
+  1600×900, night 5 averaged about 50 fps at 100% and about 74 fps at 70%. Those runs were made
+  while the machine was heavily loaded by other work, so treat the numbers as rough.
 - On the development machine, the X11/XWayland window path hung at startup. Use `LastLight.sh`
   under Wayland.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled

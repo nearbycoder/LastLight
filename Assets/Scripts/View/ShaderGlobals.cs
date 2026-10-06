@@ -88,8 +88,11 @@ namespace LastLight.View
             Shader.SetGlobalVectorArray(FalseDir, fdir);
             Shader.SetGlobalFloat(FalseCount, wc);
             Shader.SetGlobalVector(FalseColor, (Vector4)(FalseTint * 2.0f));
-            Shader.SetGlobalFloat(Flash, w.Flash);
+            Shader.SetGlobalFloat(Flash, w.Flash * FlashScale);
         }
+
+        /// <summary>Settings: Reduce flashing scales the lightning's whole-bay flash.</summary>
+        public static float FlashScale = 1f;
 
         public static void PushMood()
         {

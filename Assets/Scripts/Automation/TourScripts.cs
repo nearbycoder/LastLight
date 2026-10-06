@@ -22,6 +22,7 @@ namespace LastLight.Automation
             Tour.Scripts["video"] = Video;
             Tour.Scripts["watch"] = Watch;
             Tour.Scripts["report"] = Report;
+            Tour.Scripts["flash"] = FlashTour;
         }
 
         /// <summary>The content validation report (the same as Tools/validate.sh) from the built player.</summary>
@@ -400,7 +401,21 @@ namespace LastLight.Automation
             bool once = seen.Count > 0 && again == null;
             t.Log($"{(once ? "PASS" : "FAIL")} hints seen once ({string.Join(", ", seen)}) stay away on the next night{(again != null ? ": showed \"" + again + "\"" : "")}");
             promptsOk &= padWords && keyWords && once;
+
+            // ---- Nobody at the lamp: losing focus pauses, and so does unplugging the pad in use.
+            g.FocusLost();
+            yield return Tour.Wait(0.4f);
+            bool focusPause = g.TourPaused && Time.timeScale == 0f;
+            t.Log($"{(focusPause ? "PASS" : "FAIL")} losing window focus pauses the night");
+            g.TourResume();
+            yield return PadPress(pad, GamepadButton.DpadLeft);
             InputSystem.RemoveDevice(pad);
+            yield return Tour.Wait(0.4f);
+            bool unplugPause = g.TourPaused && Time.timeScale == 0f && !InputMode.Pad;
+            t.Log($"{(unplugPause ? "PASS" : "FAIL")} unplugging the pad in use pauses the night");
+            yield return t.Shot("input_unplugged");
+            g.TourResume();
+            promptsOk &= focusPause && unplugPause;
 
             // ---- The turn-speed setting scales how fast the keys swing the lens.
             var rates = new float[2];
@@ -426,6 +441,21 @@ namespace LastLight.Automation
             g.TourTitle();
             yield return Tour.Wait(4f);
             yield return t.Shot("input_title_pad");
+
+            // ---- Settings by pad: down the left column, into the right one, then to Done.
+            var pad2 = InputSystem.AddDevice<Gamepad>("TourPad2");
+            yield return null;
+            g.TourShowSettings();
+            yield return Tour.Wait(1.2f);
+            for (int i = 0; i < 9; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            var sel = es.currentSelectedGameObject;
+            bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
+            for (int i = 0; i < 7; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            string last = Selected();
+            bool settingsNav = rightColumn && last == "Button Done";
+            t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
+            InputSystem.RemoveDevice(pad2);
+            g.TourHideAll();
         }
 
         static IEnumerator PadPress(Gamepad pad, GamepadButton button)
@@ -436,6 +466,47 @@ namespace LastLight.Automation
             InputSystem.QueueStateEvent(pad, new GamepadState());
             yield return null;
             yield return null;
+        }
+
+        /// <summary>
+        /// A lightning strike on night 8 with Reduce flashing off, then on: a shot at the peak of
+        /// each, and the screen's mean brightness at the peak and just before.
+        /// </summary>
+        static IEnumerator FlashTour(Tour t)
+        {
+            var g = Game.Instance;
+            g.AutoPlay = true;
+            g.TourBriefing(8);
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            foreach (bool reduce in new[] { false, true })
+            {
+                SaveData.Current.reduceFlashing = reduce;
+                SaveData.Current.Apply(display: false);
+                g.Runner.TimeScale = 3f;
+                var w = g.Runner.World;
+                while (w.Flash < 0.5f) yield return null;      // let any strike in progress pass
+                while (w.Flash > 0.05f) yield return null;
+                g.Runner.TimeScale = 1f;
+                yield return new WaitForEndOfFrame();
+                float before = MeanBrightness();
+                while (w.Flash < 0.9f) yield return null;
+                yield return new WaitForEndOfFrame();
+                float peak = MeanBrightness(System.IO.Path.Combine(t.OutDir, reduce ? "flash_reduced.png" : "flash_full.png"));
+                t.Log($"lightning, reduce flashing {(reduce ? "on" : "off")}: screen brightness {before:0.000} -> {peak:0.000} (x{peak / Mathf.Max(before, 1e-4f):0.00})");
+            }
+        }
+
+        /// <summary>Mean luminance of the frame just drawn (0..1); optionally saves it as a PNG.</summary>
+        static float MeanBrightness(string save = null)
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            if (save != null) System.IO.File.WriteAllBytes(save, tex.EncodeToPNG());
+            var px = tex.GetPixels32();
+            double sum = 0;
+            for (int i = 0; i < px.Length; i += 7) sum += (0.2126 * px[i].r + 0.7152 * px[i].g + 0.0722 * px[i].b) / 255.0;
+            Object.Destroy(tex);
+            return (float)(sum / (px.Length / 7.0));
         }
 
         /// <summary>One night played by the AutoKeeper with a shot every N seconds.</summary>

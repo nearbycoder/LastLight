@@ -398,6 +398,7 @@ namespace LastLight.View
     /// <summary>A short, hot flash of light that fades out and removes itself.</summary>
     public sealed class FlashFx : MonoBehaviour
     {
+        public static float Scale = 1f;       // Settings: Reduce flashing
         public float Range = 40f, Intensity = 60f, Time = 1.4f;
         public Color Color = new Color(1f, 0.62f, 0.32f);
         Light light;
@@ -410,7 +411,7 @@ namespace LastLight.View
             t += UnityEngine.Time.deltaTime;
             float k = t / Time;
             if (k >= 1f) { Destroy(gameObject); return; }
-            light.intensity = Intensity * Mathf.Exp(-k * 4.5f) * (0.85f + 0.15f * Mathf.PerlinNoise(t * 30f, 0.5f));
+            light.intensity = Scale * Intensity * Mathf.Exp(-k * 4.5f) * (0.85f + 0.15f * Mathf.PerlinNoise(t * 30f, 0.5f));
         }
     }
 

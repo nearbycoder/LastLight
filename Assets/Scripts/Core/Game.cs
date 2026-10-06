@@ -76,6 +76,10 @@ namespace LastLight.Core
             int hz = Mathf.RoundToInt((float)Screen.currentResolution.refreshRateRatio.value);
             Application.targetFrameRate = Arg("-llFps", Mathf.Max(60, hz));
             Time.timeScale = 1f;
+            // Tours can set the comfort settings (with -llFresh the save is a blank one).
+            int scale = Arg("-llRenderScale", 0);
+            if (scale > 0) SaveData.Current.renderScale = scale / 100f;
+            if (HasArg("-llReduceFlashing")) SaveData.Current.reduceFlashing = true;
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
@@ -88,6 +92,30 @@ namespace LastLight.Core
             BuildUi();
             Feedback.EnsureLoops();
             AutoPlay = HasArg("-llAuto");
+            InputSystem.onDeviceChange += OnDeviceChange;
+        }
+
+        void OnDestroy() => InputSystem.onDeviceChange -= OnDeviceChange;
+
+        // Don't let the night run on unattended: pause when the window loses focus (tours run
+        // unfocused, so they call FocusLost themselves) or when the pad in use goes away.
+        void OnApplicationFocus(bool focused)
+        {
+            if (!focused && !HasArg("-llTour")) FocusLost();
+        }
+
+        public void FocusLost()
+        {
+            if (Current == State.Playing && !AutoPlay) Pause();
+        }
+
+        void OnDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            if (device is Gamepad && InputMode.Pad && (change == InputDeviceChange.Removed || change == InputDeviceChange.Disconnected))
+            {
+                InputMode.Set(false);
+                if (Current == State.Playing && !AutoPlay) Pause();
+            }
         }
 
         void BuildUi()
