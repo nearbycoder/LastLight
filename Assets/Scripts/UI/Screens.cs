@@ -325,6 +325,15 @@ namespace LastLight.UI
     public sealed class PauseScreen : UiScreen
     {
         public Action OnResume, OnRestart, OnSettings, OnLogbook, OnTitle;
+        RectTransform logPanel;
+        Text logText;
+        // The calls' area at most: the panel hangs from beside the title and stops short of the
+        // HUD's radio panel, even at 130% HUD text.
+        const float LogHeight = 500f;
+
+        /// <summary>How many of the night's calls the log is showing; for tours.</summary>
+        public int LogShown { get; private set; }
+        public string LogNewest { get; private set; }
 
         public static PauseScreen Create(Transform canvas)
         {
@@ -360,6 +369,46 @@ namespace LastLight.UI
                 ((RectTransform)b.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60 - i * 66), new Vector2(520, 60));
                 if (i == 0) FirstSelected = b;
             }
+
+            // The radio log: the night's latest calls, newest at the bottom, beside the menu.
+            logPanel = UiKit.Rect("RadioLog", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(340, 290), new Vector2(560, LogHeight + 78));
+            var bg = UiKit.Image("Bg", logPanel, SpriteFactory.Rounded, new Color(0.03f, 0.05f, 0.07f, 0.78f), true);
+            bg.rectTransform.Fill();
+            var edge = UiKit.Image("Edge", logPanel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.5f));
+            edge.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -3), new Vector2(-20, 1));
+            var caption = UiKit.Text("Caption", logPanel, UiKit.Spaced("ON THE RADIO TONIGHT"), UiKit.BodyBold, 18, UiKit.Brass, TextAnchor.MiddleLeft);
+            caption.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(26, -50), new Vector2(-20, -16));
+            logText = UiKit.Text("Calls", logPanel, "", UiKit.Radio, 21, UiKit.Paper, TextAnchor.UpperLeft);
+            logText.rectTransform.Stretch(Vector2.zero, Vector2.one, new Vector2(26, 18), new Vector2(-24, -56));
+            logText.lineSpacing = 1.08f;
+            logText.verticalOverflow = VerticalWrapMode.Overflow;
+            logPanel.gameObject.SetActive(false);
         }
+
+        /// <summary>Fill the log from the radio: as many of the latest calls as fit, oldest first.</summary>
+        public void SetRadioLog(RadioLog log)
+        {
+            LogShown = 0;
+            LogNewest = null;
+            if (log == null || log.Count == 0) { logPanel.gameObject.SetActive(false); return; }
+            logPanel.gameObject.SetActive(true);
+            string body = "";
+            for (int i = log.Count - 1; i >= 0 && LogShown < MaxLog; i--)
+            {
+                var e = log.Entries[i];
+                string who = string.IsNullOrEmpty(e.Title) || e.Title == e.Name ? e.Name : $"{e.Name}  <size=17><i>{e.Title}</i></size>";
+                string entry = $"<color=#C9A35A><size=18>{who}</size></color>\n{e.Text}";
+                string next = LogShown == 0 ? entry : entry + "\n\n" + body;
+                logText.text = next;
+                if (LogShown > 0 && logText.preferredHeight > LogHeight) break;
+                body = next;
+                LogShown++;
+                if (LogShown == 1) LogNewest = e.Text;
+            }
+            logText.text = body;
+            logPanel.sizeDelta = new Vector2(560, Mathf.Min(LogHeight, logText.preferredHeight) + 78f);
+        }
+
+        const int MaxLog = 6;
     }
 }

@@ -26,6 +26,7 @@ namespace LastLight.Automation
             Tour.Scripts["flash"] = FlashTour;
             Tour.Scripts["breakers"] = BreakersTour;
             Tour.Scripts["status"] = StatusTour;
+            Tour.Scripts["radiolog"] = RadioLogTour;
         }
 
         /// <summary>The content validation report (the same as Tools/validate.sh) from the built player.</summary>
@@ -362,6 +363,7 @@ namespace LastLight.Automation
             Key(UnityEngine.InputSystem.Key.Escape, false);
             yield return Tour.Wait(0.5f);
             t.Log($"{(Time.timeScale == 0f ? "PASS" : "FAIL")} escape pauses");
+            CheckRadioLog(t, g);
             yield return t.Shot("input_pause");
             t.Log(allOk ? "aim PASS" : "aim FAIL");
 
@@ -500,6 +502,33 @@ namespace LastLight.Automation
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
             InputSystem.RemoveDevice(pad2);
             g.TourHideAll();
+        }
+
+        /// <summary>The pause menu's radio log shows the night's latest calls, the newest last.</summary>
+        static bool CheckRadioLog(Tour t, Game g)
+        {
+            var log = g.Radio.Log;
+            var (shown, newest) = g.TourPauseLog;
+            bool ok = log.Count > 0 && shown > 0 && shown <= log.Count && newest == log.Entries[log.Count - 1].Text;
+            t.Log($"{(ok ? "PASS" : "FAIL")} the pause menu's radio log shows {shown} of the night's {log.Count} calls, newest \"{newest}\"");
+            return ok;
+        }
+
+        /// <summary>A night with plenty of radio, paused late on to read the log back.</summary>
+        static IEnumerator RadioLogTour(Tour t)
+        {
+            var g = Game.Instance;
+            g.AutoPlay = true;
+            g.TourBriefing(Game.Arg("-llNight2", 6));
+            yield return Tour.Wait(3.5f);
+            g.TourBegin();
+            g.Runner.TimeScale = 1.5f;
+            yield return Tour.Wait(Game.Arg("-llPauseAt", 70));
+            g.TourPause();
+            yield return Tour.Wait(1.2f);
+            CheckRadioLog(t, g);
+            yield return t.Shot("radio_log");
+            g.TourResume();
         }
 
         static IEnumerator PadPress(Gamepad pad, GamepadButton button)

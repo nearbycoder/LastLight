@@ -21,6 +21,29 @@ namespace LastLight.Core
         public int Priority;     // scripted 3, important reactions 2, chatter 1
     }
 
+    /// <summary>The night's calls as they went out, for reading back in the pause menu.</summary>
+    public sealed class RadioLog
+    {
+        public readonly struct Entry
+        {
+            public readonly string Name, Title, Text;
+            public Entry(string name, string title, string text) { Name = name; Title = title; Text = text; }
+        }
+
+        public const int Capacity = 40;
+        readonly List<Entry> entries = new List<Entry>();
+        public IReadOnlyList<Entry> Entries => entries;
+        public int Count => entries.Count;
+
+        public void Add(string name, string title, string text)
+        {
+            entries.Add(new Entry(name, title, text));
+            if (entries.Count > Capacity) entries.RemoveRange(0, entries.Count - Capacity);
+        }
+
+        public void Clear() => entries.Clear();
+    }
+
     /// <summary>
     /// The VHF: who is speaking, what they say about what just happened, and a small queue so the
     /// chatter never drowns out the scripted lines. The RadioPanel displays the current message.
@@ -39,6 +62,8 @@ namespace LastLight.Core
         };
 
         public event Action<RadioMessage> Started;
+        /// <summary>Every call that went out since the last <see cref="Clear"/> (one night).</summary>
+        public RadioLog Log { get; } = new RadioLog();
         public RadioMessage Current { get; private set; }
         public bool Busy => Current != null;
         readonly List<RadioMessage> queue = new List<RadioMessage>();
@@ -68,6 +93,7 @@ namespace LastLight.Core
 
         public void Clear()
         {
+            Log.Clear();
             queue.Clear();
             Current = null;
             timer = 0f;
@@ -89,6 +115,8 @@ namespace LastLight.Core
             Current = queue[0];
             queue.RemoveAt(0);
             timer = HoldDuration(Current);
+            // The crew's own shouts have no name: the ship's name stands in.
+            Log.Add(string.IsNullOrEmpty(Current.Speaker.Name) ? Current.Title : Current.Speaker.Name, Current.Title, Current.Text);
             Sfx.RadioDucking(true);
             Started?.Invoke(Current);
         }

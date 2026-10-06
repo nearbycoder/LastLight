@@ -369,6 +369,7 @@ namespace LastLight.Core
             Current = State.Paused;
             Time.timeScale = 0f;
             pause.Show();
+            pause.SetRadioLog(Radio.Log);
             Sfx.Play("ui_page", 0.4f, 1.2f);
         }
 
@@ -552,5 +553,6 @@ namespace LastLight.Core
         public void TourTitle() => ShowTitle();
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;
+        public (int shown, string newest) TourPauseLog => (pause.LogShown, pause.LogNewest);
     }
 }
