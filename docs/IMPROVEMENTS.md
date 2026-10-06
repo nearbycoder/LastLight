@@ -159,3 +159,35 @@ The real-pad pass, the listening pass and playtesting need hardware or people.
   Apple Developer account.
 - **WebGL:** not recommended for this round. Say so if a browser demo matters more than the items
   above.
+
+## Outcome of round 1 (2026-10-06)
+
+All five items landed on `improvements`, one commit each. Verification was on the built Linux
+player: 28/28 EditMode tests, the validation report, the `ui`, `input`, `nights`, `flash` and
+`breakers` tours, and the audio check for the new clip. Screenshots are in
+`docs/media/improvements/`.
+
+1. **Dawn debrief.** As planned. The ui tour shows a one-wreck night and a failed night with
+   named causes.
+2. **Breakers ahead and full astern.** This was bigger than planned. The diagnosis showed that the
+   wrecks ending the bot's Night Watches (and its night 9 lamp) were not late charts. Steamers and
+   ferries struck Widow's Ledge reefs that had been charted well ahead, because their avoidance
+   couldn't make the turn. Full astern therefore applies to any charted reef or sandbank the ship
+   can't turn away from, not only late charts. Measured effect: the AutoKeeper earns three lamps
+   on all 12 nights, the novice goes from 78 to 93 lamps out of 108 with 0 wrecks (was 9), and
+   the bot now keeps every Night Watch the full 30 minutes. That's a real easing of difficulty. The
+   README flags it, and a human playtest should decide whether the season needs tightening.
+3. **Hints once per save and device-aware prompts.** As planned, plus the HUD's horn key. Settings
+   moved to two columns with explicit pad navigation.
+4. **Comfort and performance.** As planned. Reduce flashing went from 0.3 to 0.12 because 0.3
+   still tripled screen brightness at a strike: peak brightness is now 0.27, against 0.72 with the
+   setting off. Fog-night fps at render scale 70% versus 100% was measured on a heavily loaded
+   shared machine, so the figures are rough (about 74 against 50 fps).
+5. **macOS build.** It builds as a universal Mono app with Unity's ad-hoc signature and
+   `com.nearbycoder.lastlight`. It's packaged with instructions for opening an unsigned app, has
+   never been run on a Mac, and isn't published. `build-windows` is ready and stops with a clear
+   message while the module is missing.
+
+Still open: a real-gamepad pass, a listening pass, human playtests (now including the difficulty
+change from item 2), Night Watch variety, Windows (module install), and macOS signing and
+notarization (needs a Developer ID).

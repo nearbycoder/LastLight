@@ -9,6 +9,8 @@
 #   Tools/unity.sh serve           resident batch-mode editor (no GUI) for `unity command`
 #   Tools/unity.sh setup           apply rendering/project setup (batch, quits)
 #   Tools/unity.sh build-linux     batch-build Builds/Linux/LastLight.x86_64
+#   Tools/unity.sh build-mac       batch-build Builds/Mac/LastLight.app (universal, unsigned)
+#   Tools/unity.sh build-windows   batch-build Builds/Windows/LastLight.exe (needs the Windows module)
 #   Tools/unity.sh test            run EditMode tests (mission solvability etc.)
 set -euo pipefail
 
@@ -33,12 +35,20 @@ case "${1:-open}" in
     exec "$UNITY" -batchmode -nographics -quit -projectPath "$PROJECT" \
       -executeMethod LastLight.EditorTools.BuildScript.BuildLinux -logFile -
     ;;
+  build-mac)
+    exec "$UNITY" -batchmode -nographics -quit -projectPath "$PROJECT" -buildTarget OSXUniversal \
+      -executeMethod LastLight.EditorTools.BuildScript.BuildMac -logFile -
+    ;;
+  build-windows)
+    exec "$UNITY" -batchmode -nographics -quit -projectPath "$PROJECT" \
+      -executeMethod LastLight.EditorTools.BuildScript.BuildWindows -logFile -
+    ;;
   test)
     exec "$UNITY" -batchmode -nographics -projectPath "$PROJECT" -runTests -testPlatform EditMode \
       -testResults "$PROJECT/Logs/test-results.xml" -logFile -
     ;;
   *)
-    echo "usage: $0 [open|serve|setup|build-linux|test]" >&2
+    echo "usage: $0 [open|serve|setup|build-linux|build-mac|build-windows|test]" >&2
     exit 2
     ;;
 esac

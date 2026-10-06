@@ -194,7 +194,8 @@ settings are saved locally.
 You'll need 64-bit Linux and a GPU with OpenGL 4.5. The game was developed on CachyOS (Arch) with
 an AMD Radeon integrated GPU under Wayland. On Wayland, `LastLight.sh` starts Unity's native
 Wayland backend, because the X11/XWayland path hung at startup on the development machine.
-There's no Windows or macOS build yet.
+There's no published Windows or macOS build yet. A macOS build can be made from source (see below),
+but it's unsigned and hasn't been run on a Mac.
 
 ## Build from source
 
@@ -221,8 +222,10 @@ Tools/.venv/bin/python ArtSource/audio/build_audio.py music                     
 # Unity
 Tools/unity.sh                 # open the editor
 Tools/unity.sh build-linux     # batch-build Builds/Linux/LastLight.x86_64
+Tools/unity.sh build-mac       # batch-build Builds/Mac/LastLight.app (universal Intel + Apple Silicon)
+Tools/unity.sh build-windows   # batch-build Builds/Windows/LastLight.exe (needs the Windows module)
 Tools/play.sh                  # run the build (LL_W=1920 LL_H=1080 for a window size)
-Tools/package.sh 0.1.0         # zip the build for a release, into Builds/release
+Tools/package.sh 0.1.0 linux   # zip a build for a release, into Builds/release (or mac, windows)
 ```
 
 `Tools/unity.sh` expects the editor at `~/Unity/Hub/Editor/6000.6.2f1` (set `UNITY` to change
@@ -253,9 +256,15 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch> <dir>` plays the built game with scripted input
-  and saves screenshots. The `input` tour drives the real mouse and keyboard path, then a
-  simulated gamepad.
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers> <dir> -llFresh` plays the built
+  game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
+  The `ui` tour ends on two staged dawn debriefs. The `input` tour drives the real mouse and
+  keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
+  prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
+  pad pauses the night, and that the d-pad walks both settings columns. `flash` measures screen
+  brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
+  warning and a full-astern call. `-llRenderScale 70` and `-llReduceFlashing` set those options
+  for any tour. No real gamepad has been tested, only Unity's simulated device.
 - `Tools/.venv/bin/python Tools/audio_check.py` measures every synthesized clip: clipping, true
   peak, EBU R128 loudness, DC offset, clicks, and the seams of looped clips.
 - `Tools/record.sh` records a four-minute gameplay reel with sound.
@@ -350,7 +359,13 @@ Linux. Here's what is still unproven or rough:
   yet judged whether the music and gibberish voices are pleasant to listen to.
 - **Gamepad support is tested only with a simulated device.** Button layouts and stick dead zones
   on real controllers are unverified.
-- **Linux only.** There are no Windows, macOS or web builds yet.
+- **Linux only, as published.** `Tools/unity.sh build-mac` makes a universal macOS app (Mono, macOS
+  12 or later) and `Tools/package.sh <version> mac` zips it with instructions for opening an
+  unsigned app. The build succeeds on Linux, and both architectures of the executable carry
+  Unity's ad-hoc signature, but it isn't signed with a Developer ID or notarized, and **it has
+  never been run on a Mac**. Signing needs an Apple Developer account. `build-windows` is ready
+  but needs Unity's *Windows Build Support (Mono)* module, which isn't installed on the
+  development machine; without it the command stops with a clear message. There's no web build.
 - **Balance shifted after v0.1.0, and that shift hasn't been tested by people.** The wrecks that ended
   the bot's Night Watches turned out not to be late charts. Steamers and ferries threading Widow's
   Ledge struck reefs that had been charted well ahead, because their avoidance couldn't make the
