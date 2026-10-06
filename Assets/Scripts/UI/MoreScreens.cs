@@ -114,7 +114,14 @@ namespace LastLight.UI
             title.text = def.title;
             date.text = def.date;
             if (def.endless && watch != null && watch.watchShips > 0)
-                date.text = $"Longest watch {UiKit.Clock(watch.watchSeconds)}  ·  {watch.watchShips} ships home  ·  best {watch.watchBest:N0}";
+            {
+                // The best watches so far, best first.
+                var parts = new List<string>();
+                int longest = 0;
+                foreach (var r in watch.watches) longest = Mathf.Max(longest, r.seconds);
+                for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0"));
+                date.text = $"Best watches  {string.Join("  ·  ", parts)}     longest {UiKit.Clock(longest)}";
+            }
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
@@ -371,7 +378,7 @@ namespace LastLight.UI
         }
 
         /// <summary>The end of a Night Watch: how long it lasted, and lamps for ships brought home.</summary>
-        public void SetupWatch(SimWorld w, int previousBest)
+        public void SetupWatch(SimWorld w, int previousBest, int rank = 0)
         {
             heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH");
             title.text = "The watch ends";
@@ -379,7 +386,9 @@ namespace LastLight.UI
                 : w.Arrivals == 1 ? $"One ship home in {UiKit.Clock(w.Time)}." : $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}.";
             stats.text = $"Ships home  <b>{w.Arrivals}</b>          Wrecked  <b>{w.Wrecks}</b>          Watch kept  <b>{UiKit.Clock(w.Time)}</b>";
             scoreLine.text = w.Score.ToString("N0");
-            best.text = w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : previousBest > 0 ? $"best {previousBest:N0}" : "";
+            best.text = w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST")
+                : rank > 1 ? $"your {Ordinal(rank)} best watch  ·  best {previousBest:N0}"
+                : previousBest > 0 ? $"best {previousBest:N0}" : "";
             var m = NightWatch.Milestones;
             for (int i = 0; i < 3; i++) lampCaptions[i].text = $"{m[i]} ships home";
             ShowDebrief(Debrief.Lines(w, wrecksOnly: true));
@@ -388,6 +397,8 @@ namespace LastLight.UI
             retry.Label.text = "Keep watch again";
             FirstSelected = retry;
         }
+
+        static string Ordinal(int n) => n switch { 2 => "second", 3 => "third", 4 => "fourth", 5 => "fifth", _ => n.ToString() };
 
         const int MaxDebrief = 4;
         const float DebriefLine = 30f;

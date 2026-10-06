@@ -139,11 +139,11 @@ namespace LastLight.Sim
         }
 
         /// <summary>The AutoKeeper keeps the Night Watch until the third wreck (or the time limit).</summary>
-        public static NightResult PlayWatch(MapData map, int seed, float limit = 1800f, float skill = 1f)
+        public static NightResult PlayWatch(MapData map, int seed, float limit = 1800f, float skill = 1f, AutoKeeper keeper = null)
         {
             var def = NightWatch.Generate(map, seed);
             var w = new SimWorld(map, def, seed);
-            var bot = new AutoKeeper { Skill = skill };
+            var bot = keeper ?? new AutoKeeper { Skill = skill };
             for (int i = 0; i < 60 * limit && w.Outcome == MissionOutcome.Running; i++)
                 w.Step(Dt, bot.Decide(w, Dt));
             return new NightResult { Def = def, Outcome = w.Outcome, Lamps = w.Lamps, Wrecks = w.Wrecks, Arrivals = w.Arrivals, Total = w.SpawnedShips, Score = w.Score, Time = w.Time };
@@ -190,6 +190,11 @@ namespace LastLight.Sim
             {
                 var r = PlayWatch(map, seed);
                 sb.Append($"     night watch (seed {seed}): {(r.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {r.Time / 60f:0.0} min, {r.Arrivals} home of {r.Total}, {r.Wrecks} wrecks, lamps {r.Lamps}, score {r.Score}\n");
+            }
+            foreach (int seed in new[] { 1, 2, 3 })
+            {
+                var r = PlayWatch(map, seed, keeper: AutoKeeper.Novice());
+                sb.Append($"     night watch, novice (seed {seed}): {(r.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {r.Time / 60f:0.0} min, {r.Arrivals} home of {r.Total}, {r.Wrecks} wrecks, lamps {r.Lamps}, score {r.Score}\n");
             }
             return sb.ToString();
         }

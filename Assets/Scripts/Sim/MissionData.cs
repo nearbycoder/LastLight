@@ -29,6 +29,7 @@ namespace LastLight.Sim
         public float haze = 1f;      // ambient mist multiplier (visual)
         public FogDef[] fog = new FogDef[0];
         public StormDef storm;
+        public SquallDef[] squalls = new SquallDef[0];   // passing storms (the Night Watch)
         public WreckerDef[] wreckers = new WreckerDef[0];
         public SpawnDef[] ships = new SpawnDef[0];
         public RadioCue[] radio = new RadioCue[0];
@@ -50,6 +51,16 @@ namespace LastLight.Sim
         public float cx, cz;          // current, units per second
         public float rain;            // 0..1
         public float lightningMin = 10f, lightningMax = 18f;
+    }
+
+    /// <summary>A passing squall: a storm that blows in at t, ramps up, holds and dies away.</summary>
+    [Serializable]
+    public class SquallDef
+    {
+        public float t, dur;
+        public float cx, cz;          // current at full strength, units per second
+        public float rain = 0.8f;
+        public string from = "";      // where it blows from, for the radio ("north-west")
     }
 
     [Serializable]

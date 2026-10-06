@@ -46,6 +46,7 @@ namespace LastLight.Core
         float outcomeTimer = -1f;
         bool recorded;
         int previousBest;
+        int watchRank;
         Ending ending;
         ParticleSystem rainFx;
         MissionDef watchDef;
@@ -292,6 +293,45 @@ namespace LastLight.Core
             ShaderGlobals.MoonBrightness = stormy ? 0.35f : 1f;
             if (rainFx != null) Destroy(rainFx.gameObject);
             if (stormy && def.storm.rain > 0f) rainFx = FX.RainSheet(def.storm.rain);
+            // Squalls (the Night Watch): the weather follows the sim's storm strength, frame by frame.
+            squally = !stormy && def.squalls != null && def.squalls.Length > 0;
+            if (!stormy)
+            {
+                // Calm again (a watch may have ended mid-squall).
+                Waves.Scale = 0.35f;
+                Waves.Choppiness = 1f;
+                MaterialLibrary.Water.SetFloat("_WaveScale", Waves.Scale);
+                MaterialLibrary.Water.SetFloat("_Choppiness", Waves.Choppiness);
+                Feedback.Wind?.Set(0.25f);
+                Feedback.Rain?.Set(0f);
+            }
+            if (squally) { rainFx = FX.RainSheet(1f); SetRain(0f); }
+        }
+
+        bool squally;
+
+        void SetRain(float amount)
+        {
+            if (rainFx == null) return;
+            var em = rainFx.emission;
+            em.rateOverTime = 3500f * amount;
+        }
+
+        /// <summary>A squall blowing through: rain, wind, swell and moonlight follow its strength.</summary>
+        void UpdateSquall()
+        {
+            if (!squally || Runner == null || Runner.Attract) return;
+            var w = Runner.World;
+            float k = w.StormStrength;
+            SetRain(w.Rain);
+            Stage.Moon.intensity = Stage.MoonIntensity * Mathf.Lerp(1f, 0.45f, k);
+            ShaderGlobals.MoonBrightness = Mathf.Lerp(1f, 0.35f, k);
+            Feedback.Wind?.Set(Mathf.Lerp(0.25f, 0.85f, k));
+            Feedback.Rain?.Set(k > 0.02f ? 0.7f * w.Rain + 0.2f * k : 0f);
+            Waves.Scale = Mathf.Lerp(0.35f, 0.75f, k);
+            Waves.Choppiness = Mathf.Lerp(1f, 1.25f, k);
+            MaterialLibrary.Water.SetFloat("_WaveScale", Waves.Scale);
+            MaterialLibrary.Water.SetFloat("_Choppiness", Waves.Choppiness);
         }
 
         void BeginWatch()
@@ -345,11 +385,11 @@ namespace LastLight.Core
                 recorded = true;
                 var names = new List<string>();
                 foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
-                if (Watching) SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names);
+                if (Watching) watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names);
                 else if (won) SaveData.Current.RecordNight(Night, w.Lamps, w.Score, names);
             }
             Hud.Show(false, 1.2f);
-            if (Watching) results.SetupWatch(w, previousBest);
+            if (Watching) results.SetupWatch(w, previousBest, watchRank);
             else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won);
             results.Show();
             if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
@@ -417,6 +457,7 @@ namespace LastLight.Core
             Radio.TextSpeed = SaveData.Current.textSpeed;
             if (Current == State.Playing || Current == State.Results || Current == State.Ending) Radio.Update(dt);
             feedback?.Update(dt);
+            UpdateSquall();
 
             var kb = Keyboard.current;
             var pad = Gamepad.current;

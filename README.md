@@ -142,7 +142,11 @@ Dawn tallies every night with up to three lamps and a short debrief of every shi
 night: which reef it struck and whether that reef was uncharted or charted too late, who was lured
 and by which false light, and who lost their way. The keeper's logbook keeps your best for each
 night so you can go back for a cleaner watch. Finish the season and the **Night Watch** opens: an
-endless score attack, generated fresh each time, with every hazard out and no end to the ships.
+endless score attack with every reef, sandbank and buoy out and no end to the ships. Each watch
+brings its own weather: one to three fog banks in different places, squalls that blow through
+every few minutes with current, rain and lightning (stronger as the night wears on), and wreckers
+lighting up at their own times, with the mimic light late in a long watch. Ianto gives the forecast
+in the briefing, and the logbook of the watch keeps your five best.
 
 ## Content overview
 
@@ -163,7 +167,7 @@ night 9, and the later nights combine them:
 | X | Two Lights | Wreckers moving between sites, in fog |
 | XI | The Mimic | A false light that copies your sweep |
 | XII | Last Light | The finale |
-| ∞ | Night Watch | Unlocked after the season: endless, every hazard at once, the third wreck ends the watch |
+| ∞ | Night Watch | Unlocked after the season: endless, with every hazard out and its own fog, squalls and wreckers each time; the third wreck ends the watch |
 
 | Hull | Character |
 |---|---|
@@ -251,7 +255,8 @@ contains a copy of it.
 - The latest report, from the current build: the AutoKeeper wins all twelve nights with three lamps
   each. The novice wins every night in three runs each, with lamps of 9, 9, 8, 8, 8, 7, 6, 9, 7,
   9, 6 and 7 out of 9 (93 of 108) and no wrecks. The bot keeps every generated Night Watch for the
-  full 30 minutes the report runs, with 0 or 1 wrecks. For comparison, v0.1.0 gave the AutoKeeper
+  full 30 minutes the report runs, with no wrecks, and so does the novice, with 1 or 2 wrecks,
+  even with the squalls. For comparison, v0.1.0 gave the AutoKeeper
   one lamp on night 9, gave the novice 78 of 108 lamps (3/9 on nights 7 and 8) with 9 wrecks, and
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
@@ -372,7 +377,8 @@ Linux. Here's what is still unproven or rough:
   turn. Captains now ring for full astern when a charted reef or sandbank is closer than they can
   turn away from, so the wrecks left are uncharted rocks, lost ships and lured ships. The bot and
   the novice model now rarely or never wreck (see the latest report under Tests and validation),
-  so the season and the Night Watch may now be too forgiving for strong players. If that's the
+  so the season and the Night Watch may now be too forgiving for strong players. The report shows
+  even the novice keeping a Night Watch for 30 minutes. If that's the
   case, tighten them with deliberate levers (drain rates, schedules, the Night Watch's ramp)
   rather than steering faults.
 - Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a

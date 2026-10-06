@@ -62,6 +62,60 @@ namespace LastLight.Tests
         }
 
         [Test]
+        public void EveryNightWatchHasItsOwnWeather()
+        {
+            var layouts = new HashSet<string>();
+            for (int seed = 1; seed <= 10; seed++)
+            {
+                var def = NightWatch.Generate(map, seed);
+                var errors = Validation.MissionErrors(map, def);
+                Assert.IsEmpty(errors, string.Join("\n", errors));
+                Assert.That(def.fog.Length, Is.InRange(1, 3), "one to three fog banks");
+                Assert.IsNotEmpty(def.squalls, "squalls blow through");
+                Assert.That(def.squalls[0].t, Is.InRange(300f, 540f), "the first squall after five to nine minutes");
+                for (int i = 0; i < def.squalls.Length; i++)
+                {
+                    var q = def.squalls[i];
+                    Assert.That(q.dur, Is.InRange(60f, 120f));
+                    if (i > 0) Assert.GreaterOrEqual(q.t - (def.squalls[i - 1].t + def.squalls[i - 1].dur), 240f, "a breather between squalls");
+                }
+                Assert.Greater(new UnityEngine.Vector2(def.squalls[def.squalls.Length - 1].cx, def.squalls[def.squalls.Length - 1].cz).magnitude,
+                    new UnityEngine.Vector2(def.squalls[0].cx, def.squalls[0].cz).magnitude, "later squalls blow harder");
+                StringAssert.Contains("Tonight:", def.briefing);
+                var f = def.fog[0];
+                layouts.Add($"{def.fog.Length} {f.x:0} {f.z:0} {def.squalls[0].t:0} {def.squalls[0].from} {def.wreckers[0].start:0} {def.wreckers[0].sites[0]}");
+            }
+            Assert.GreaterOrEqual(layouts.Count, 9, "ten seeds give (nearly) ten different nights:\n" + string.Join("\n", layouts));
+        }
+
+        [Test]
+        public void ASquallBlowsInAndDiesAway()
+        {
+            var def = NightWatch.Generate(map, 4);
+            var q = def.squalls[0];
+            var w = new SimWorld(map, def, 4);
+            var bot = new AutoKeeper();
+            float last = 0f, maxStep = 0f, peak = 0f;
+            int strikes = 0;
+            for (int i = 0; i < 60 * (q.t + q.dur + 20f) && w.Outcome == MissionOutcome.Running; i++)
+            {
+                w.Step(1f / 60f, bot.Decide(w, 1f / 60f));
+                foreach (var e in w.Events) if (e.Type == SimEventType.Lightning) strikes++;
+                maxStep = UnityEngine.Mathf.Max(maxStep, UnityEngine.Mathf.Abs(w.StormStrength - last));
+                last = w.StormStrength;
+                peak = UnityEngine.Mathf.Max(peak, w.StormStrength);
+                if (w.Time < q.t - 1f) { Assert.AreEqual(0f, w.StormStrength); Assert.AreEqual(UnityEngine.Vector2.zero, w.Current); }
+                if (UnityEngine.Mathf.Abs(w.Time - (q.t + q.dur * 0.5f)) < 0.01f)
+                    Assert.AreEqual(new UnityEngine.Vector2(q.cx, q.cz).magnitude, w.Current.magnitude, 0.01f, "full current mid-squall");
+            }
+            Assert.AreEqual(0f, w.StormStrength, "calm again after the squall");
+            Assert.AreEqual(UnityEngine.Vector2.zero, w.Current);
+            Assert.AreEqual(1f, peak, 0.001f);
+            Assert.Less(maxStep, 0.01f, "the squall eases in and out, no jumps");
+            Assert.Greater(strikes, 0, "lightning while it blows");
+        }
+
+        [Test]
         public void TheBotKeepsTheNightWatchForTenMinutes([Values(1, 2, 3)] int seed)
         {
             var r = Validation.PlayWatch(map, seed);

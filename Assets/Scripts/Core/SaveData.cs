@@ -8,6 +8,13 @@ using UnityEngine.Rendering.Universal;
 
 namespace LastLight.Core
 {
+    /// <summary>One kept Night Watch, for the table of best watches.</summary>
+    [Serializable]
+    public sealed class WatchRecord
+    {
+        public int score, ships, seconds;
+    }
+
     /// <summary>Progress and preferences, stored as JSON in PlayerPrefs.</summary>
     [Serializable]
     public sealed class SaveData
@@ -21,6 +28,8 @@ namespace LastLight.Core
         public bool endingSeen;
         public bool tutorialSeen;
         public int watchBest, watchShips, watchSeconds;   // Night Watch records
+        public List<WatchRecord> watches = new List<WatchRecord>();   // the five best watches, best first
+        public const int WatchTable = 5;
 
         // Settings
         public float master = 0.9f, music = 0.75f, sfx = 1f, radio = 1f, ambience = 0.9f;
@@ -68,6 +77,12 @@ namespace LastLight.Core
                         current.watchBest = 9600;
                         current.watchShips = 57;
                         current.watchSeconds = 954;
+                        current.watches = new List<WatchRecord>
+                        {
+                            new WatchRecord { score = 9600, ships = 57, seconds = 954 },
+                            new WatchRecord { score = 7450, ships = 44, seconds = 781 },
+                            new WatchRecord { score = 5100, ships = 31, seconds = 602 },
+                        };
                     }
                     return current;
                 }
@@ -81,6 +96,10 @@ namespace LastLight.Core
                 if (current.best == null || current.best.Length != 12) current.best = new int[12];
                 current.homeNames ??= new List<string>();
                 current.hintsSeen ??= new List<string>();
+                current.watches ??= new List<WatchRecord>();
+                // Saves from before the table: the one best watch becomes its first entry.
+                if (current.watches.Count == 0 && current.watchBest > 0)
+                    current.watches.Add(new WatchRecord { score = current.watchBest, ships = current.watchShips, seconds = current.watchSeconds });
                 return current;
             }
         }
@@ -111,8 +130,16 @@ namespace LastLight.Core
         /// <summary>The Night Watch opens once the last night has been kept.</summary>
         public bool WatchUnlocked => endingSeen || lamps[11] > 0;
 
-        public void RecordWatch(int score, int ships, float seconds, IEnumerable<string> names)
+        /// <summary>Records a finished watch; returns its place in the table of best watches (1 = best),
+        /// or 0 if it didn't make the table.</summary>
+        public int RecordWatch(int score, int ships, float seconds, IEnumerable<string> names)
         {
+            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds) };
+            watches.Add(record);
+            watches.Sort((a, b) => b.score != a.score ? b.score.CompareTo(a.score) : b.seconds.CompareTo(a.seconds));
+            int rank = watches.IndexOf(record) + 1;
+            if (watches.Count > WatchTable) watches.RemoveRange(WatchTable, watches.Count - WatchTable);
+            if (rank > WatchTable) rank = 0;
             watchBest = Mathf.Max(watchBest, score);
             watchShips = Mathf.Max(watchShips, ships);
             watchSeconds = Mathf.Max(watchSeconds, Mathf.RoundToInt(seconds));
@@ -122,6 +149,7 @@ namespace LastLight.Core
                 if (!homeNames.Contains(n)) homeNames.Add(n);
             }
             Save();
+            return rank;
         }
 
         public int TotalLamps

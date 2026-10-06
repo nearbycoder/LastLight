@@ -203,18 +203,26 @@ namespace LastLight.Automation
             g.Runner.TimeScale = 1f;
             yield return Tour.Wait(1f);
             yield return t.Shot("03_watch_play");
+            // Fast-forward to the first squall at full blow.
+            g.Runner.TimeScale = 4f;
+            float sqWait = 0f;
+            while (g.Runner.World.StormStrength < 0.95f && sqWait < 240f && !g.ShowingResults) { sqWait += Time.unscaledDeltaTime; yield return null; }
+            g.Runner.TimeScale = 1f;
+            yield return Tour.Wait(1.5f);
+            t.Log($"squall at {g.Runner.World.Time:0}s: strength {g.Runner.World.StormStrength:0.00}, current {g.Runner.World.Current.magnitude:0.00}, rain {g.Runner.World.Rain:0.00}");
+            yield return t.Shot("04_watch_squall");
             g.Runner.Bot.Ignore = s => true;
             g.Runner.TimeScale = 3f;
             float waited = 0f;
             while (g.Runner.World.Wrecks < 1 && waited < 120f) { waited += Time.unscaledDeltaTime; yield return null; }
             g.Runner.TimeScale = 1f;
             yield return Tour.Wait(1.5f);
-            yield return t.Shot("04_watch_wreck");
+            yield return t.Shot("05_watch_wreck");
             g.Runner.TimeScale = 3f;
             waited = 0f;
             while (!g.ShowingResults && waited < 240f) { waited += Time.unscaledDeltaTime; yield return null; }
             yield return Tour.Wait(5f);
-            yield return t.Shot("05_watch_results");
+            yield return t.Shot("06_watch_results");
         }
 
         /// <summary>Several nights fast-forwarded by the AutoKeeper, shots at chosen game times.</summary>

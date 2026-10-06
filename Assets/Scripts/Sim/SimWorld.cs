@@ -48,6 +48,7 @@ namespace LastLight.Sim
         public const float HornCooldownTime = 14f;
         public const float HornRange = 140f;
         public float Flash;              // lightning flash, 1 at the strike, decays
+        public float StormStrength;      // 0 calm .. 1 full storm (a night's storm is always 1; squalls ramp)
         public float LightningTimer;
         public Vector2 Current;
         public float Rain;
@@ -112,6 +113,7 @@ namespace LastLight.Sim
                 Current = new Vector2(mission.storm.cx, mission.storm.cz);
                 Rain = mission.storm.rain;
                 LightningTimer = Mathf.Lerp(mission.storm.lightningMin, mission.storm.lightningMax, (float)rng.NextDouble()) * 0.5f;
+                StormStrength = 1f;
             }
             Beam.Rain = Rain;
 
@@ -253,13 +255,55 @@ namespace LastLight.Sim
             }
         }
 
+        /// <summary>How hard a squall is blowing at time t: 0 outside it, easing in and out over 18 s.</summary>
+        public static float SquallStrength(SquallDef q, float t)
+        {
+            if (t <= q.t || t >= q.t + q.dur) return 0f;
+            float ramp = Mathf.Min(18f, q.dur * 0.5f);
+            float k = Mathf.Min((t - q.t) / ramp, (q.t + q.dur - t) / ramp);
+            k = Mathf.Clamp01(k);
+            return k * k * (3f - 2f * k);
+        }
+
         void StepStorm(float dt)
         {
             var storm = Mission.storm;
-            if (storm == null || !storm.enabled) return;
+            if (storm == null || !storm.enabled)
+            {
+                StepSqualls(dt);
+                return;
+            }
             LightningTimer -= dt;
             if (LightningTimer > 0f) return;
             LightningTimer = Mathf.Lerp(storm.lightningMin, storm.lightningMax, (float)rng.NextDouble());
+            Strike();
+        }
+
+        /// <summary>The Night Watch's passing squalls: current, rain and lightning follow the strongest one blowing.</summary>
+        void StepSqualls(float dt)
+        {
+            var squalls = Mission.squalls;
+            if (squalls == null || squalls.Length == 0) return;
+            SquallDef active = null;
+            float k = 0f;
+            foreach (var q in squalls)
+            {
+                float s = SquallStrength(q, Time);
+                if (s > k) { k = s; active = q; }
+            }
+            StormStrength = k;
+            Current = active != null ? new Vector2(active.cx, active.cz) * k : Vector2.zero;
+            Rain = active != null ? active.rain * k : 0f;
+            Beam.Rain = Rain;
+            if (k < 0.6f) { LightningTimer = Mathf.Max(LightningTimer, 2f); return; }
+            LightningTimer -= dt;
+            if (LightningTimer > 0f) return;
+            LightningTimer = Mathf.Lerp(9f, 16f, (float)rng.NextDouble());
+            Strike();
+        }
+
+        void Strike()
+        {
             Flash = 1f;
             Emit(SimEventType.Lightning);
             foreach (var r in Reefs) r.ChartTimer = Mathf.Max(r.ChartTimer, 6f);
