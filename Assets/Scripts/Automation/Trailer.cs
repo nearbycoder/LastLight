@@ -220,7 +220,7 @@ namespace LastLight.Automation
 
         static SimWorld Twin(SimWorld live, Shot s, out float found)
         {
-            var w = new SimWorld(live.Map, live.Mission, 7);
+            var w = new SimWorld(live.Map, live.Mission, 7, live.Hard ? Difficulty.Hard : Difficulty.Standard);
             w.Beam.Bearing = live.Beam.Bearing;
             w.Beam.AngularVelocity = live.Beam.AngularVelocity;
             w.Beam.Focus = live.Beam.Focus;

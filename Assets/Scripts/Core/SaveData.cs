@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LastLight.Audio;
+using LastLight.Sim;
 using LastLight.View;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -13,6 +14,7 @@ namespace LastLight.Core
     public sealed class WatchRecord
     {
         public int score, ships, seconds;
+        public bool hard;
     }
 
     /// <summary>Progress and preferences, stored as JSON in PlayerPrefs.</summary>
@@ -39,6 +41,8 @@ namespace LastLight.Core
         public int quality = 2;                  // 0 low, 1 medium, 2 high
         public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
+        public int difficulty;                   // 0 Standard (the game as tuned), 1 Hard
+        public Difficulty Difficulty => difficulty == 1 ? Difficulty.Hard : Difficulty.Standard;
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
         public bool hints = true;
@@ -134,7 +138,7 @@ namespace LastLight.Core
         /// or 0 if it didn't make the table.</summary>
         public int RecordWatch(int score, int ships, float seconds, IEnumerable<string> names)
         {
-            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds) };
+            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds), hard = difficulty == 1 };
             watches.Add(record);
             watches.Sort((a, b) => b.score != a.score ? b.score.CompareTo(a.score) : b.seconds.CompareTo(a.seconds));
             int rank = watches.IndexOf(record) + 1;

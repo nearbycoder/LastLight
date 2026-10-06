@@ -49,6 +49,56 @@ namespace LastLight.Tests
             Assert.GreaterOrEqual(r.Lamps, 1);
         }
 
+        // The AutoKeeper's scores on Standard as tuned after round 1 (full astern), pinned so a Hard
+        // option or anything else can't quietly change the game the owner is still judging.
+        static readonly int[] StandardScores = { 600, 800, 1000, 1200, 1150, 1600, 1700, 1650, 1600, 1800, 2250, 2400 };
+
+        [Test]
+        public void StandardIsTheGameAsTuned([Range(1, 12)] int night)
+        {
+            var def = missions[night - 1];
+            var byDefault = Validation.PlayNight(map, def);
+            var standard = Validation.PlayNight(map, def, difficulty: Difficulty.Standard);
+            Assert.AreEqual(byDefault.Score, standard.Score);
+            Assert.AreEqual(byDefault.Time, standard.Time);
+            Assert.AreEqual(3, standard.Lamps, $"night {night}");
+            Assert.AreEqual(StandardScores[night - 1], standard.Score, $"night {night} {def.title}");
+        }
+
+        [Test]
+        public void EveryNightCanBeWonOnHard([Range(1, 12)] int night)
+        {
+            var r = Validation.PlayNight(map, missions[night - 1], difficulty: Difficulty.Hard);
+            Assert.AreEqual(MissionOutcome.Won, r.Outcome, $"night {night} {r.Def.title} on Hard: {r.Arrivals}/{r.Total} home, {r.Wrecks} wrecked");
+        }
+
+        [Test]
+        public void HardIsHarder()
+        {
+            // The same night, the same keeper: charts fade sooner, buoys burn shorter, no warnings.
+            var w = new SimWorld(map, missions[2], 7, Difficulty.Hard);
+            Assert.AreEqual(15f, w.ChartTime);
+            Assert.AreEqual(20f, w.BuoyBurnTime);
+            var std = NightWatch.Generate(map, 5);
+            var hard = NightWatch.Generate(map, 5, 1f, true);
+            Assert.Greater(hard.ships.Length, std.ships.Length * 1.1f, "Night Watch ships come closer together on Hard");
+            int warnings = 0;
+            var def = new MissionDef
+            {
+                id = "breakers", night = 99, title = "", drainScale = 0f, reefGroups = new[] { "widow" },
+                ships = new[] { new SpawnDef { t = 0f, type = "steamer", route = "e2_harbor", name = "SS Test" } },
+            };
+            var b = new SimWorld(map, def, 7, Difficulty.Hard);
+            var away = new KeeperInput { HasTarget = true, TargetBearing = Geo.Bearing(new UnityEngine.Vector2(-1f, 0.2f)) };
+            for (int i = 0; i < 60 * 240 && b.Wrecks == 0; i++)
+            {
+                b.Step(1f / 60f, away);
+                foreach (var e in b.Events) if (e.Type == SimEventType.ShipDanger) warnings++;
+            }
+            Assert.AreEqual(1, b.Wrecks);
+            Assert.AreEqual(0, warnings, "no breakers warning on Hard");
+        }
+
         [Test]
         public void TheNightWatchIsWellFormed([Values(1, 2, 3)] int seed)
         {

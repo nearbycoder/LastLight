@@ -68,6 +68,12 @@ fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text
 and **reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength).
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 
+**Difficulty** is Standard (the game as tuned) or **Hard**. On Hard, ships lose heart about 30%
+faster, a chart fades after 15 seconds instead of 22, a lit buoy burns 20 seconds instead of 28,
+the crew give no breakers warning, and Night Watch ships come about 15% closer together. The
+change takes effect from the next night. Records are shared, and the dawn card, the HUD and the
+table of best watches say when it was Hard.
+
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
@@ -239,7 +245,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (28 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (55 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -247,7 +253,11 @@ contains a copy of it.
   bot is made to neglect each ship in turn. Two more stage a steamer at Widow's Ledge. One checks
   that the crew warn of breakers a few seconds before an uncharted strike. The other charts the
   reef at distances from 2 to 44 units, with and without full astern, and checks that full astern
-  turns some late charts into near misses and never causes a wreck.
+  turns some late charts into near misses and never causes a wreck. Others check that ten Night
+  Watch seeds give ten different nights and that a squall eases in and out. On difficulty, they
+  check that the AutoKeeper wins all twelve nights on Hard, that its Standard scores match the
+  tuned game exactly, and that Hard really is harder: shorter charts and buoys, no warning, closer
+  watch ships.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -256,7 +266,10 @@ contains a copy of it.
   each. The novice wins every night in three runs each, with lamps of 9, 9, 8, 8, 8, 7, 6, 9, 7,
   9, 6 and 7 out of 9 (93 of 108) and no wrecks. The bot keeps every generated Night Watch for the
   full 30 minutes the report runs, with no wrecks, and so does the novice, with 1 or 2 wrecks,
-  even with the squalls. For comparison, v0.1.0 gave the AutoKeeper
+  even with the squalls. On **Hard** the AutoKeeper still wins all twelve nights (two lamps on night
+  6, three on the rest), and the novice drops to 74 of 108 lamps with 7 wrecks, close to v0.1.0's
+  78 and 9. On Hard the bot keeps two of three watches for 30 minutes, and the novice's watches end
+  after 24 to 28 minutes. For comparison, v0.1.0 gave the AutoKeeper
   one lamp on night 9, gave the novice 78 of 108 lamps (3/9 on nights 7 and 8) with 9 wrecks, and
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
@@ -378,7 +391,9 @@ Linux. Here's what is still unproven or rough:
   turn away from, so the wrecks left are uncharted rocks, lost ships and lured ships. The bot and
   the novice model now rarely or never wreck (see the latest report under Tests and validation),
   so the season and the Night Watch may now be too forgiving for strong players. The report shows
-  even the novice keeping a Night Watch for 30 minutes. If that's the
+  even the novice keeping a Night Watch for 30 minutes. **Hard** (Settings ▸ Difficulty) is the
+  tougher choice. It leaves Standard exactly as it was, and a test pins the AutoKeeper's Standard
+  scores on all twelve nights. If that's the
   case, tighten them with deliberate levers (drain rates, schedules, the Night Watch's ramp)
   rather than steering faults.
 - Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a

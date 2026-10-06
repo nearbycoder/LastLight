@@ -24,6 +24,8 @@ namespace LastLight.Sim
 
     public enum MissionOutcome { Running, Won, Failed }
 
+    public enum Difficulty { Standard, Hard }
+
     /// <summary>
     /// The whole game state of one night, stepped at a fixed rate. Pure C#: no scene objects, so
     /// it runs identically in the game, in EditMode tests and under the AutoKeeper bot.
@@ -76,10 +78,19 @@ namespace LastLight.Sim
         public int SpawnedShips => nextSpawn;
         public SpawnDef[] Schedule => schedule;
 
-        public SimWorld(MapData map, MissionDef mission, int seed = 7)
+        /// <summary>Hard: ships lose heart faster, charts fade sooner, buoys burn shorter, and the
+        /// crew give no breakers warning. Standard is the game as tuned.</summary>
+        public readonly bool Hard;
+        public const float HardDrain = 1.3f, HardChart = 15f, HardBurn = 20f;
+        /// <summary>Seconds a chart lasts after the light leaves the rock.</summary>
+        public float ChartTime => Hard ? HardChart : SimReef.ChartDuration;
+        public float BuoyBurnTime => Hard ? HardBurn : SimBuoy.BurnTime;
+
+        public SimWorld(MapData map, MissionDef mission, int seed = 7, Difficulty difficulty = Difficulty.Standard)
         {
             Map = map;
             Mission = mission;
+            Hard = difficulty == Difficulty.Hard;
             rng = new System.Random(seed);
             Beam.Origin = map.Lighthouse;
             Beam.Height = map.LensHeight;
@@ -323,7 +334,7 @@ namespace LastLight.Sim
                     if (r.Exposure >= SimReef.ExposureNeeded)
                     {
                         if (!r.Charted) Emit(SimEventType.ReefCharted, index: r.Index, pos: r.Pos);
-                        r.ChartTimer = SimReef.ChartDuration;
+                        r.ChartTimer = ChartTime;
                     }
                 }
                 else
@@ -344,7 +355,7 @@ namespace LastLight.Sim
                     if (s.Exposure >= SimReef.ExposureNeeded)
                     {
                         if (!s.Charted) Emit(SimEventType.ShoalCharted, index: i, pos: s.Def.Pos);
-                        s.ChartTimer = SimReef.ChartDuration;
+                        s.ChartTimer = ChartTime;
                     }
                 }
                 else
@@ -368,7 +379,7 @@ namespace LastLight.Sim
                 }
                 else
                 {
-                    b.Charge = Mathf.Max(0f, b.Charge - dt / SimBuoy.BurnTime);
+                    b.Charge = Mathf.Max(0f, b.Charge - dt / BuoyBurnTime);
                     if (wasBurning && !b.Burning) Emit(SimEventType.BuoyOut, index: b.Index, pos: b.Pos);
                 }
             }
@@ -528,7 +539,7 @@ namespace LastLight.Sim
             else if (s.InAura) s.Confidence = Mathf.Min(1f, s.Confidence + 0.4f * dt);
             else if (s.State != ShipState.Lured)
             {
-                float drain = dt / st.DrainTime * Mission.drainScale;
+                float drain = dt / st.DrainTime * Mission.drainScale * (Hard ? HardDrain : 1f);
                 if (s.InFog) drain *= 1.6f;
                 if (s.Damaged) drain *= 1.5f;
                 s.Confidence = Mathf.Max(0f, s.Confidence - drain);
@@ -672,6 +683,7 @@ namespace LastLight.Sim
         {
             s.Danger = Mathf.Max(0f, s.Danger - dt);
             s.DangerCooldown = Mathf.Max(0f, s.DangerCooldown - dt);
+            if (Hard) return;   // on Hard the crew hear nothing in time
             if (!s.Inside || (s.State != ShipState.Sailing && s.State != ShipState.Lost)) return;
             var st = s.Stats;
             float speed = s.Velocity.magnitude;

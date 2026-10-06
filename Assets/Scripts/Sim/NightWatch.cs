@@ -46,7 +46,8 @@ namespace LastLight.Sim
         static readonly string[] SteamerRoutes = { "e1_harbor", "e2_harbor", "e2_w2", "harbor_e2", "n1_harbor", "n2_harbor", "n3_harbor", "w1_e1", "w1_harbor", "w2_e2" };
         static readonly string[] FerryRoutes = { "e1_harbor", "e2_harbor", "e2_w2", "harbor_e2", "w1_e1", "w2_e2" };
 
-        public static MissionDef Generate(MapData map, int seed, float hours = 1f)
+        /// <summary>On Hard, ships come about 15% closer together.</summary>
+        public static MissionDef Generate(MapData map, int seed, float hours = 1f, bool hard = false)
         {
             var rng = new System.Random(seed);
             var routes = new List<string>(map.Routes.Keys);
@@ -83,7 +84,7 @@ namespace LastLight.Sim
                     t = t, type = type, route = route, name = name, captain = "",
                     damaged = type == "trawler" && t > 240f && rng.NextDouble() < 0.1,
                 });
-                t += Interval(t) * (0.75f + 0.5f * (float)rng.NextDouble());
+                t += Interval(t) * (0.75f + 0.5f * (float)rng.NextDouble()) * (hard ? 0.85f : 1f);
             }
 
             // The night's weather and wreckers come from their own stream, so a seed's ships stay put.

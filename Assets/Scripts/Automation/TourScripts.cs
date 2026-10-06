@@ -463,7 +463,7 @@ namespace LastLight.Automation
             for (int i = 0; i < 9; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
-            for (int i = 0; i < 7; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            for (int i = 0; i < 8; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");

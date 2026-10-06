@@ -57,7 +57,7 @@ namespace LastLight.Core
         MissionDef DefFor(int night, bool fresh)
         {
             if (night != NightWatch.Number) return MissionLibrary.All[Mathf.Clamp(night, 1, MissionLibrary.All.Count) - 1];
-            if (fresh || watchDef == null) watchDef = NightWatch.Generate(World.Map, Arg("-llSeed", UnityEngine.Random.Range(1, 100000)));
+            if (fresh || watchDef == null) watchDef = NightWatch.Generate(World.Map, Arg("-llSeed", UnityEngine.Random.Range(1, 100000)), 1f, SaveData.Current.difficulty == 1);
             return watchDef;
         }
 
@@ -81,6 +81,7 @@ namespace LastLight.Core
             int scale = Arg("-llRenderScale", 0);
             if (scale > 0) SaveData.Current.renderScale = scale / 100f;
             if (HasArg("-llReduceFlashing")) SaveData.Current.reduceFlashing = true;
+            if (HasArg("-llHard")) SaveData.Current.difficulty = 1;
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
@@ -249,7 +250,7 @@ namespace LastLight.Core
             if (feedback != null) { feedback.Detach(); feedback = null; }
             if (Runner != null) Runner.Teardown();
             Radio.Clear();
-            Runner = MissionRunner.Begin(def, World, AutoPlay);
+            Runner = MissionRunner.Begin(def, World, AutoPlay, difficulty: SaveData.Current.Difficulty);
             Runner.Holding = holding;
             int neglect = Arg("-llNeglect", -1);
             if (neglect >= 0 && neglect < def.ships.Length) TourNeglect(def.ships[neglect].name);

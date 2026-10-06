@@ -112,8 +112,8 @@ namespace LastLight.Sim
                     var s = FindShip(w, t.Index);
                     if (s == null || !s.Active || Ignored(s)) return false;
                     return s.State != ShipState.Sailing || s.Confidence < 0.97f;
-                case TaskKind.Reef: return w.Reefs[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
-                case TaskKind.Shoal: return w.Shoals[t.Index].ChartTimer < SimReef.ChartDuration - 0.5f;
+                case TaskKind.Reef: return w.Reefs[t.Index].ChartTimer < w.ChartTime - 0.5f;
+                case TaskKind.Shoal: return w.Shoals[t.Index].ChartTimer < w.ChartTime - 0.5f;
                 case TaskKind.Buoy: return !w.Buoys[t.Index].Burning || w.Buoys[t.Index].Charge < 0.5f;
                 case TaskKind.Wrecker: return w.Wreckers[t.Index].Burning;
                 case TaskKind.Idle: return false;

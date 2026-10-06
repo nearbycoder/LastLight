@@ -129,9 +129,9 @@ namespace LastLight.Sim
         }
 
         /// <summary>The AutoKeeper plays a night to the end.</summary>
-        public static NightResult PlayNight(MapData map, MissionDef def, int seed = 7, AutoKeeper bot = null)
+        public static NightResult PlayNight(MapData map, MissionDef def, int seed = 7, AutoKeeper bot = null, Difficulty difficulty = Difficulty.Standard)
         {
-            var w = new SimWorld(map, def, seed);
+            var w = new SimWorld(map, def, seed, difficulty);
             bot ??= new AutoKeeper();
             for (int i = 0; i < 60 * 900 && w.Outcome == MissionOutcome.Running; i++)
                 w.Step(Dt, bot.Decide(w, Dt));
@@ -139,10 +139,11 @@ namespace LastLight.Sim
         }
 
         /// <summary>The AutoKeeper keeps the Night Watch until the third wreck (or the time limit).</summary>
-        public static NightResult PlayWatch(MapData map, int seed, float limit = 1800f, float skill = 1f, AutoKeeper keeper = null)
+        public static NightResult PlayWatch(MapData map, int seed, float limit = 1800f, float skill = 1f, AutoKeeper keeper = null, Difficulty difficulty = Difficulty.Standard)
         {
-            var def = NightWatch.Generate(map, seed);
-            var w = new SimWorld(map, def, seed);
+            bool hard = difficulty == Difficulty.Hard;
+            var def = NightWatch.Generate(map, seed, 1f, hard);
+            var w = new SimWorld(map, def, seed, difficulty);
             var bot = keeper ?? new AutoKeeper { Skill = skill };
             for (int i = 0; i < 60 * limit && w.Outcome == MissionOutcome.Running; i++)
                 w.Step(Dt, bot.Decide(w, Dt));
@@ -195,6 +196,32 @@ namespace LastLight.Sim
             {
                 var r = PlayWatch(map, seed, keeper: AutoKeeper.Novice());
                 sb.Append($"     night watch, novice (seed {seed}): {(r.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {r.Time / 60f:0.0} min, {r.Arrivals} home of {r.Total}, {r.Wrecks} wrecks, lamps {r.Lamps}, score {r.Score}\n");
+            }
+
+            sb.Append("HARD (faster drain, 15 s charts, 20 s buoys, no breakers warning, closer Night Watch ships):\n");
+            int hardWon = 0;
+            foreach (var m in missions)
+            {
+                var r = PlayNight(map, m, difficulty: Difficulty.Hard);
+                if (r.Outcome == MissionOutcome.Won) hardWon++;
+                int wins = 0, lamps = 0, wrecks = 0;
+                foreach (int seed in new[] { 7, 8, 9 })
+                {
+                    var novice = AutoKeeper.Novice();
+                    novice.AimError += (seed - 7) * 1.5f;
+                    var n = PlayNight(map, m, seed, novice, Difficulty.Hard);
+                    if (n.Outcome == MissionOutcome.Won) wins++;
+                    lamps += n.Lamps;
+                    wrecks += n.Wrecks;
+                }
+                sb.Append($"{(r.Outcome == MissionOutcome.Won ? "PASS" : "FAIL")} night {m.night,2} {m.title,-18} bot {r.Outcome,-6} lamps {r.Lamps} wrecks {r.Wrecks}   novice won {wins}/3 lamps {lamps}/9 wrecks {wrecks}\n");
+            }
+            sb.Append($"{hardWon}/{missions.Count} nights won by the AutoKeeper on Hard\n");
+            foreach (int seed in new[] { 1, 2, 3 })
+            {
+                var r = PlayWatch(map, seed, difficulty: Difficulty.Hard);
+                var n = PlayWatch(map, seed, keeper: AutoKeeper.Novice(), difficulty: Difficulty.Hard);
+                sb.Append($"     hard night watch (seed {seed}): bot {(r.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {r.Time / 60f:0.0} min ({r.Wrecks} wrecks), novice {(n.Outcome == MissionOutcome.Running ? "still keeping" : "ended")} at {n.Time / 60f:0.0} min ({n.Arrivals} home, {n.Wrecks} wrecks)\n");
             }
             return sb.ToString();
         }

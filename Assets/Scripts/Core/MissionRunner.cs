@@ -47,14 +47,14 @@ namespace LastLight.Core
 
         public IEnumerable<ShipView> ShipViews => ships.Values;
 
-        public static MissionRunner Begin(MissionDef def, WorldView world, bool autoPlay, int seed = 7)
+        public static MissionRunner Begin(MissionDef def, WorldView world, bool autoPlay, int seed = 7, Difficulty difficulty = Difficulty.Standard)
         {
             var go = new GameObject("Night " + def.night);
             var r = go.AddComponent<MissionRunner>();
             r.Def = def;
             r.world = world;
             r.AutoPlay = autoPlay;
-            r.World = new SimWorld(world.Map, def, seed);
+            r.World = new SimWorld(world.Map, def, seed, difficulty);
             r.root = go.transform;
             r.BuildViews();
             r.prevBearing = r.Bearing = r.World.Beam.Bearing;

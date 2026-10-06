@@ -171,7 +171,7 @@ namespace LastLight.UI
             runner = r;
             this.radio = radio;
             var def = r.Def;
-            nightLabel.text = UiKit.Spaced(def.endless ? "ENDLESS" : "NIGHT " + UiKit.Roman(def.night));
+            nightLabel.text = UiKit.Spaced((def.endless ? "ENDLESS" : "NIGHT " + UiKit.Roman(def.night)) + (r.World.Hard ? "  ·  HARD" : ""));
             titleLabel.text = def.title;
             shownScore = 0;
             scoreLabel.text = "0";

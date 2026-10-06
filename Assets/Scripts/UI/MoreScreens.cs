@@ -119,7 +119,7 @@ namespace LastLight.UI
                 var parts = new List<string>();
                 int longest = 0;
                 foreach (var r in watch.watches) longest = Mathf.Max(longest, r.seconds);
-                for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0"));
+                for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0") + (watch.watches[i].hard ? " (Hard)" : ""));
                 date.text = $"Best watches  {string.Join("  ·  ", parts)}     longest {UiKit.Clock(longest)}";
             }
             full = def.briefing ?? "";
@@ -261,6 +261,7 @@ namespace LastLight.UI
 
             row = 0;
             column = 410f;
+            Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i));
             Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
             Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
@@ -352,7 +353,7 @@ namespace LastLight.UI
         public void Setup(MissionDef def, SimWorld w, int previousBest, bool hasNext, bool finale)
         {
             bool won = w.Outcome == MissionOutcome.Won;
-            heading.text = UiKit.Spaced(won ? "DAWN  ·  NIGHT " + UiKit.Roman(def.night) : "NIGHT " + UiKit.Roman(def.night));
+            heading.text = UiKit.Spaced((won ? "DAWN  ·  NIGHT " + UiKit.Roman(def.night) : "NIGHT " + UiKit.Roman(def.night)) + (w.Hard ? "  ·  HARD" : ""));
             title.text = def.title;
             int lost = 0;
             SimShip wavered = null;
@@ -380,7 +381,7 @@ namespace LastLight.UI
         /// <summary>The end of a Night Watch: how long it lasted, and lamps for ships brought home.</summary>
         public void SetupWatch(SimWorld w, int previousBest, int rank = 0)
         {
-            heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH");
+            heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH" + (w.Hard ? "  ·  HARD" : ""));
             title.text = "The watch ends";
             verdict.text = w.Arrivals == 0 ? "Not one ship home. The Board will hear of it."
                 : w.Arrivals == 1 ? $"One ship home in {UiKit.Clock(w.Time)}." : $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}.";
