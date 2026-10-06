@@ -99,6 +99,9 @@ namespace LastLight.Core
 
         static (string text, string icon) HintFor(string id)
         {
+            if (id == "focus" && SaveData.Current.focusToggle)
+                return InputMode.Pad ? ("Press the right trigger to focus: a narrow beam that reaches further. Press again to widen it.", "RT")
+                    : ("Click the left button to focus: a narrow beam that reaches further. Click again to widen it.", "lmb");
             var h = HintText[id];
             return InputMode.Pad && h.padText != null ? (h.padText, h.padIcon) : (h.text, h.icon);
         }

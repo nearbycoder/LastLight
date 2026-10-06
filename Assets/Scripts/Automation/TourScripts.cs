@@ -480,7 +480,64 @@ namespace LastLight.Automation
             SaveData.Current.turnSpeed = 1f;
             bool scaled = rates[1] > rates[0] * 1.8f;
             t.Log($"{(scaled ? "PASS" : "FAIL")} turn speed setting: {rates[0]:0} deg/s at 0.5, {rates[1]:0} deg/s at 1.25");
+
+            // ---- Focus: Toggle switches it with a press of the button, key or trigger; Hold still holds.
+            var focusPad = InputSystem.AddDevice<Gamepad>("TourPad3");
+            yield return null;
+            var mouseAt = cam.WorldToScreenPoint(new Vector3(0, 0, 100));
+            Vector2 at = new Vector2(mouseAt.x, mouseAt.y);
+            float Focus() => g.Runner.World.Beam.Focus;
+            bool toggleOk = true;
+            SaveData.Current.focusToggle = true;
+            for (int k = 0; k < 3; k++)
+            {
+                string how = k == 0 ? "left button" : k == 1 ? "Shift" : "right trigger";
+                for (int press = 0; press < 2; press++)
+                {
+                    if (k == 0) { MouseTo(at, left: true); yield return null; yield return null; MouseTo(at); }
+                    else if (k == 1) { Key(UnityEngine.InputSystem.Key.LeftShift, true); yield return null; yield return null; Key(UnityEngine.InputSystem.Key.LeftShift, false); }
+                    else { InputSystem.QueueStateEvent(focusPad, new GamepadState { rightTrigger = 1f }); yield return null; yield return null; InputSystem.QueueStateEvent(focusPad, new GamepadState()); }
+                    yield return Tour.Wait(1.0f);   // released, and the lens has had time to narrow or widen
+                    bool want = press == 0;
+                    bool ok = want ? Focus() > 0.9f : Focus() < 0.1f;
+                    toggleOk &= ok;
+                    t.Log($"{(ok ? "PASS" : "FAIL")} Toggle: {(press == 0 ? "a press of" : "a second press of")} the {how} {(want ? "focuses, and it stays focused after release" : "widens the beam again")} (focus {Focus():0.00})");
+                }
+            }
+            // While paused, a click on the menu is not a focus press.
+            g.TourPause();
+            yield return null;
+            MouseTo(at, left: true); yield return null; yield return null; MouseTo(at);
+            yield return null;
+            g.TourResume();
+            yield return Tour.Wait(1.0f);
+            bool pausedClick = Focus() < 0.1f;
+            t.Log($"{(pausedClick ? "PASS" : "FAIL")} Toggle: a click in the pause menu doesn't switch focus (focus {Focus():0.00})");
+            toggleOk &= pausedClick;
+            if (g.Runner.Controls.FocusOn) { Key(UnityEngine.InputSystem.Key.LeftShift, true); yield return null; Key(UnityEngine.InputSystem.Key.LeftShift, false); }
+            SaveData.Current.focusToggle = false;
+            MouseTo(at, left: true);
+            yield return Tour.Wait(1.0f);
+            bool holdOn = Focus() > 0.9f;
+            MouseTo(at);
+            yield return Tour.Wait(1.0f);
+            bool holdOff = Focus() < 0.1f;
+            t.Log($"{(holdOn && holdOff ? "PASS" : "FAIL")} Hold: focused while the button is down, wide once it's let go");
+            toggleOk &= holdOn && holdOff;
+            t.Log(toggleOk ? "focus toggle PASS" : "focus toggle FAIL");
+
+            // ---- The pointer hides while the pad is in use, and comes back with the mouse.
+            yield return PadPress(focusPad, GamepadButton.DpadLeft);
+            yield return null;
+            bool hidden = InputMode.Pad && !Cursor.visible;
+            for (int i = 0; i < 10; i++) { MouseTo(at + new Vector2(i * 12f, 0f)); yield return null; }
+            yield return null;
+            bool shown = !InputMode.Pad && Cursor.visible;
+            t.Log($"{(hidden && shown ? "PASS" : "FAIL")} the pointer hides on pad input ({hidden}) and returns with the mouse ({shown})");
+            InputSystem.RemoveDevice(focusPad);
             t.Log(navOk && padAim && padFocus > 0.9f && padCd > 10f && padPaused && scaled ? "gamepad PASS" : "gamepad FAIL");
+            // What the input system sees on this machine (a real pad would be listed here).
+            foreach (var d in InputSystem.devices) t.Log($"device: {d.layout} \"{d.displayName}\" ({d.description.interfaceName} {d.description.product})");
             t.Log(promptsOk ? "prompts PASS" : "prompts FAIL");
             // The title's control strip in pad words.
             InputMode.Set(true);
@@ -496,7 +553,7 @@ namespace LastLight.Automation
             for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
-            for (int i = 0; i < 8; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            for (int i = 0; i < 9; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");

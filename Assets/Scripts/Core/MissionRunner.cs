@@ -98,6 +98,7 @@ namespace LastLight.Core
             }
 
             Controls.Sensitivity = SaveData.Current.turnSpeed;
+            Controls.ToggleFocus = SaveData.Current.focusToggle;
             KeeperInput input = AutoPlay || Attract ? new KeeperInput { Turn = AttractTurn } : Controls.Read(World.Beam.Origin);
             int steps = 0;
             stepWatch.Start();

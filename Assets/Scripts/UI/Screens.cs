@@ -135,9 +135,16 @@ namespace LastLight.UI
             InputMode.Changed += () => footer.text = FooterText();
         }
 
-        static string FooterText() => InputMode.Pick(
-            "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause",
-            "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
+        static string FooterText() => SaveData.Current.focusToggle
+            ? InputMode.Pick(
+                "Mouse  turn the light     ·     Left button  focus on and off     ·     Space  foghorn     ·     Esc  pause",
+                "Right stick  turn the light     ·     RT  focus on and off     ·     A  foghorn     ·     Start  pause")
+            : InputMode.Pick(
+                "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause",
+                "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
+
+        /// <summary>Settings changed the focus mode: reword the control strip.</summary>
+        public void RefreshFooter() => footer.text = FooterText();
 
         UiButton AddItem(string label, Action click)
         {

@@ -44,6 +44,7 @@ namespace LastLight.Core
         public int difficulty;                   // 0 Standard (the game as tuned), 1 Hard
         public float hudScale = 1f;              // HUD and radio text size: 1, 1.15 or 1.3
         public Difficulty Difficulty => difficulty == 1 ? Difficulty.Hard : Difficulty.Standard;
+        public bool focusToggle;                 // focus: hold the button (false) or press to switch it on and off
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
         public bool hints = true;

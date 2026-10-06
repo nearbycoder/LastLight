@@ -28,6 +28,8 @@ namespace LastLight.Core
 
         public void Play(Game game, Action done) => StartCoroutine(Run(game, done));
 
+        static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", "Hold A to put out the light");
+
         void Build()
         {
             if (canvas != null) return;
@@ -42,7 +44,8 @@ namespace LastLight.Core
             holdFill.fillMethod = Image.FillMethod.Radial360;
             holdFill.fillOrigin = (int)Image.Origin360.Top;
             holdFill.fillAmount = 0f;
-            promptText = UiKit.Text("Text", prompt, "Hold the left button, or Space, to put out the light", UiKit.Italic, 30, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed(0.8f, 2f);
+            promptText = UiKit.Text("Text", prompt, PromptText(), UiKit.Italic, 30, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed(0.8f, 2f);
+            InputMode.Changed += () => { if (promptText != null) promptText.text = PromptText(); };
             promptText.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), Vector2.zero, new Vector2(900, 40));
 
             var card = UiKit.Rect("Card", canvas.transform).Fill();

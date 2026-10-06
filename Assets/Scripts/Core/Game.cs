@@ -149,6 +149,7 @@ namespace LastLight.Core
             pause.OnSettings = () => { pause.Hide(); ShowSettings(State.Paused); };
             pause.OnLogbook = () => { pause.Hide(); Time.timeScale = 1f; ShowLogbook(State.Title); };
             pause.OnTitle = () => { Time.timeScale = 1f; pause.Hide(); ShowTitle(); };
+            settings.OnFocusMode = title.RefreshFooter;
             settings.OnBack = () =>
             {
                 settings.Hide();
@@ -344,6 +345,7 @@ namespace LastLight.Core
             briefing.Hide();
             Current = State.Playing;
             Runner.Holding = false;
+            Runner.Controls.IgnorePresses();
             Hud.Show(true, 1f);
             Sfx.Play("ui_begin", 0.7f);
             previousBest = Watching ? SaveData.Current.watchBest : SaveData.Current.best[Night - 1];
@@ -378,6 +380,7 @@ namespace LastLight.Core
             pause.Hide();
             Time.timeScale = 1f;
             Current = State.Playing;
+            Runner?.Controls.IgnorePresses();
         }
 
         void ShowResults()
@@ -458,6 +461,8 @@ namespace LastLight.Core
         {
             ShaderGlobals.PushMood();
             InputMode.Update();
+            // The pointer means nothing to a pad player: hide it until the mouse moves again.
+            if (Cursor.visible == InputMode.Pad) Cursor.visible = !InputMode.Pad;
             float dt = Time.deltaTime;
             Radio.TextSpeed = SaveData.Current.textSpeed;
             if (Current == State.Playing || Current == State.Results || Current == State.Ending) Radio.Update(dt);

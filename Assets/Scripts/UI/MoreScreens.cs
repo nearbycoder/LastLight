@@ -94,7 +94,12 @@ namespace LastLight.UI
             ["fog"] = "Fog swallows the light. Hold RT to focus, A for the horn.",
         };
 
-        static string NewText(string id, string keys) => InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys;
+        static string NewText(string id, string keys)
+        {
+            if (id == "fog" && SaveData.Current.focusToggle)
+                return InputMode.Pick("Fog swallows the light. Click to focus, Space for the horn.", "Fog swallows the light. Press RT to focus, A for the horn.");
+            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys;
+        }
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
         {
@@ -207,7 +212,7 @@ namespace LastLight.UI
 
     public sealed class SettingsScreen : UiScreen
     {
-        public Action OnBack;
+        public Action OnBack, OnFocusMode;
         RectTransform panel;
 
         /// <summary>"Native" first, then the desktop's modes from 1280x720 up, smallest first.</summary>
@@ -281,6 +286,7 @@ namespace LastLight.UI
             column = 410f;
             Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i));
             Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
+            Row("Focus", UiStepper.Create(panel, new[] { "Hold", "Toggle" }, save.focusToggle ? 1 : 0, i => { save.focusToggle = i == 1; OnFocusMode?.Invoke(); }));
             Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
             var sizes = Resolutions();
