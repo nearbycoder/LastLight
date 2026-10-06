@@ -398,7 +398,11 @@ namespace LastLight.Automation
             yield return Tour.Wait(3.5f);
             g.TourBegin();
             string again = null;
-            while (g.Runner.World.Time < 20f) { if (g.Hud.HintOnScreen != null && again == null) again = g.Hud.HintOnScreen; yield return null; }
+            while (g.Runner.World.Time < 20f)
+            {
+                foreach (var id in seen) if (again == null && g.Hud.HintShowing(id)) again = g.Hud.HintOnScreen;
+                yield return null;
+            }
             bool once = seen.Count > 0 && again == null;
             t.Log($"{(once ? "PASS" : "FAIL")} hints seen once ({string.Join(", ", seen)}) stay away on the next night{(again != null ? ": showed \"" + again + "\"" : "")}");
             promptsOk &= padWords && keyWords && once;
