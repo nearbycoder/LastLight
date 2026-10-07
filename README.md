@@ -62,15 +62,21 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) |
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
 
+The keyboard keys for turning, focus and the foghorn can be changed in **Settings ▸ Keys** (three
+keys each; Esc and P always pause). The mouse buttons and the gamepad keep theirs.
+
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
 along with text speed, hints, screen shake, **focus** (hold the button, or toggle: press once to
 focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
-fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp)
-**reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength),
-HUD text size, difficulty and **game speed**.
+fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
+**brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
+menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
+a tenth of its strength), HUD text size, difficulty, **game speed** and the keyboard **keys**.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
-the controls for the device you're using. The mouse pointer hides while you play with a gamepad.
+the controls for the device you're using. Restarting, leaving or opening the logbook from it asks
+first, with **Stay** selected, because they throw the night away; in a Night Watch the question
+offers **End the watch**, which keeps it. The mouse pointer hides while you play with a gamepad.
 Menus and the HUD fit screens of other shapes (checked at 16:10, 5:4 and 21:9 as well as 16:9),
 and on screens narrower than 16:9 the camera widens its view so the whole bay stays in sight.
 
@@ -93,7 +99,8 @@ table of best watches say when it was Hard.
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
-They also follow the Focus setting, so in Toggle they say "press" or "click" rather than "hold".
+They also follow the Focus setting, so in Toggle they say "press" or "click" rather than "hold",
+and name the keys you've chosen in Settings ▸ Keys.
 
 ### The rules in brief
 
@@ -153,7 +160,10 @@ every lightning strike lights the whole bay and charts every reef for a moment.
 
 The Corleys sweep lanterns from the cliffs that imitate your light. A ship caught in a false beam
 while you're elsewhere is **Lured** toward the rocks. Hold your beam on the lantern to douse it,
-or light the ship to break the spell. On night 11, one false light copies your every sweep.
+or light the ship to break the spell. On night 11, one false light copies your every sweep. Two of
+the lanterns, Corley Cove and West Point, sit just past the edges of a 16:9 screen; while one burns
+there, a lantern marker at the edge points to it, and a lured ship out of frame keeps its mark on
+screen the same way.
 
 ### Every ship counts
 <img src="docs/media/wreck.jpg" width="100%" alt="A trawler left in the dark strikes an uncharted reef and burns, its ring turned red">
@@ -269,7 +279,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (58 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (64 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -282,7 +292,9 @@ contains a copy of it.
   check that the AutoKeeper wins all twelve nights on Hard, that its Standard scores match the
   tuned game exactly, and that Hard really is harder: shorter charts and buoys, no warning, closer
   watch ships. Two check the pause menu's radio log: calls kept in order, capped, and cleared each
-  night. One checks that only a Night Watch can be stood down, and that its score stands.
+  night. One checks that only a Night Watch can be stood down, and that its score stands. Six cover the
+  rebindable keys: the defaults, moving a key between actions, clearing, Esc and P staying as
+  pause, reset, repairing a damaged save, and the save format (none of them touch the real save).
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -299,7 +311,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
   The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
   staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
@@ -310,7 +322,13 @@ and checks each control both ways, checks the pointer hides for pad play, and lo
 devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
   at whatever window size the player starts with (`LL_W` and `LL_H`), that every menu panel is on
   screen, that the HUD's blocks don't overlap (night 11, the longest top bar), and that the harbour and
-  every hazard are in view. `watchend` ends a Night Watch from the pause menu and checks it was kept.
+  every hazard are in view (judged from the play view at rest; the live view, which leans toward
+  the beam, is logged beside it). `watchend` ends a Night Watch from the pause menu and checks it was kept.
+  `offscreen` waits for Corley Cove's and West Point's lanterns to burn (nights 9 and 10) and checks
+  their edge markers and a lured ship's mark stay on screen. `confirm` checks the pause menu's
+  questions with keys, the simulated pad and clicks. `brightness` measures the scene at each
+  Brightness step. `keys` rebinds keys through Settings with the simulated keyboard and plays a
+  night with them.
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
@@ -444,11 +462,17 @@ Linux. Here's what is still unproven or rough:
   under Wayland.
 - **Screen shapes were checked in windows, on one machine.** The `screens` tour passes at
   1280×800, 1280×1024, 1600×900 and 2560×1080 windows on KDE Wayland. Fullscreen at those shapes, real
-  4:3 or 16:10 monitors, and a Steam Deck haven't been tried. Westpoint's false light and the rock it
-  lures ships onto sit just past the left edge of the frame (as released, at every shape), so a ship
-  lured there wrecks a little off screen. When the game was started in a 1280×1024 window, the `ui`
-  tour's switch to 1280×720 didn't take (the window stayed 1280×1024). Started at 1600×900, it
-  works. That wasn't investigated further.
+  4:3 or 16:10 monitors, and a Steam Deck haven't been tried. West Point's false light and the rock it
+  lures ships onto sit just past the left edge of the frame at 16:9 and narrower (Corley Cove's
+  lantern just past the right), as released. The camera wasn't reframed, because that would change
+  every capture and the trailer; instead a marker at the edge points to a burning lantern there, and
+  a lured ship's mark stays on screen, though the ship itself still wrecks a little off screen.
+  Once, in round 4, the `ui` tour's switch from a 1280×1024 window to 1280×720 didn't take. It
+  didn't happen again in three runs in round 5 (the resize took effect within 0.01 s), so the cause
+  is unknown.
+- **Rebinding covers the keyboard only.** The gamepad's buttons are fixed (there's no real pad to
+  check a remap on). Key names come from the keyboard layout, so an AZERTY keyboard should show "Q"
+  for the default turn-left key, but only a US layout has been tried.
 - **Game speed shares records.** A night kept at 70% counts in the logbook like any other, and only
   the dawn card and the watch table mark it. Whether slowed scores should be kept apart is open.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled

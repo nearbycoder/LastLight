@@ -598,3 +598,58 @@ I'll say so.
 - **Gamepad remapping**: no real pad to check it on.
 - **Fullscreen at other shapes and a Steam Deck**: switching this shared machine's display to
   fullscreen would disturb the other sessions, and there's no Deck.
+
+## Round 5 results (2026-10-07)
+
+Four items landed on `improvements-5`, one commit each, and item 5 was investigated. Verification
+was on the built Linux player: 64/64 EditMode tests (58 before, plus six for the key bindings),
+and a final pass of 16 tour runs (`input`, `ui`, `status`, `radiolog`, `ending`, `endingskip`,
+`watchend`, `speed`, the new `offscreen`, `confirm`, `brightness` and `keys`, and `screens` at
+four window sizes with 130% HUD text). All had 0 errors: 177 checks passed and none failed
+(`Builds/round5/final.log`), at load averages of 10 to 19. No simulation code changed, so the
+pinned Standard scores still pass and balance is unchanged on both difficulties; the validation
+report wasn't re-run. The real prefs file's checksum was the same before and after. Its timestamp
+moved when a batch editor build rewrote it with identical contents, and the test runner updated
+`TestResults.xml` beside it, as in rounds 3 and 4. Captures are in
+`docs/media/improvements/round5/`.
+
+1. **Edge markers.** As planned, with one addition: a lantern within 28 px of the edge counts as
+   out of frame, because West Point's sits at viewport x 0.00 at 16:9, cut in half. The marker
+   stays below the top bar and clear of the radio panel (Corley Cove's would otherwise sit on it).
+   A lured ship heading for West Point's rock is out of frame for only a moment before it strikes,
+   because the rock is just 5% outside, so the tour checks its mark on the first frame after it
+   leaves the view. `offscreen` passes at 1600×900, 1280×1024 and 2560×1080. At 21:9 both
+   lanterns are in frame and no marker shows, as intended. The tour turns screen shake off,
+   because the camera's lean toward each wreck moved the frame in the first run.
+2. **Ask before throwing a night away.** As planned. `confirm` checks the keyboard (Enter twice
+   stays, Esc backs out to the menu, the night doesn't move), a click on Restart, and the simulated
+   pad (A asks, B backs out, A then down and A opens the logbook). In a watch, Leave offers Stay,
+   End the watch or Leave anyway, and Leave anyway keeps nothing. The card fits at all four shapes.
+3. **Brightness.** As planned. The upper steps were widened after the first measurement, because
+   +0.7 stop brightened the scene by only a third. The steps are −0.5, −0.25, 0, +0.5 and +1 stop
+   on the graded exposure of 0.45. The scene's mean brightness on a held frame of night III was
+   0.133, 0.148, 0.164, 0.202 and 0.246. Standard measured the same before and after the sweep.
+   The Settings panel is 60 units taller.
+4. **Rebindable keys.** As planned. Binding is keyboard-only: Enter (or a click) on a slot turns
+   menu navigation off until the key is chosen, so arrows and Enter can be bound, and turns it back
+   on a frame later so the key doesn't also move the selection. Esc and P back out of waiting and
+   can't be bound. The `keys` tour rebinds the horn to H, focus to J and ↓ to turn left, moves W
+   from focus to the horn, then plays night V: H sounds the horn and Space doesn't, J focuses and
+   Shift doesn't, and ↓ turns the lens. The title strip, fog card, horn gauge and pause card name
+   H and J. Reset puts the defaults back. The briefing's "press Space" and the ending's "hold
+   Space" are menu-like and stay on Space, so their prompts are still right. Key names come from
+   the keyboard layout through the Input System, but only a US layout was tried.
+5. **The resolution switch at 5:4.** Not reproduced. The `ui` tour's switch from a 1280×1024
+   window to 1280×720 passed three times (loads 22 to 43), and the window size changed within
+   0.01 s. The check now waits up to 5 s and logs how long the resize took, so a slow compositor
+   would show up as a number. Round 4's failure remains unexplained.
+
+**Found on the way.** The `screens` tour's framing check failed twice at 5:4 (West Point's lantern
+at −0.07, against its −0.06 limit) and passed on re-runs at −0.02 and −0.03. In play the camera
+sways and leans toward the beam, and the check measured that live view. It now measures the play
+view at rest (0.00 at 16:9, 16:10 and 5:4) and logs the live view beside it.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, human playtests,
+fullscreen and real-hardware checks of other screen shapes (a Steam Deck in particular), non-US
+keyboard layouts, Windows (module install) and macOS signing (Developer ID).

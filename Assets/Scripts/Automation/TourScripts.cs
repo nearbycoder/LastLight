@@ -139,9 +139,13 @@ namespace LastLight.Automation
             save.fullscreen = false;
             save.resWidth = 1280; save.resHeight = 720;
             save.Apply();
-            yield return Tour.Wait(1.5f);
+            // The compositor resizes the window in its own time: wait up to 5 s and say how long
+            // it took (round 4 saw a FAIL here once, at a load average near 80, after 1.5 s).
+            float took = 0f;
+            while (took < 5f && !(Screen.width == 1280 && Screen.height == 720)) { took += Time.unscaledDeltaTime; yield return null; }
+            yield return Tour.Wait(0.5f);
             bool resized = Screen.width == 1280 && Screen.height == 720;
-            t.Log($"{(resized ? "PASS" : "FAIL")} resolution 1280x720 applied (screen {Screen.width}x{Screen.height})");
+            t.Log($"{(resized ? "PASS" : "FAIL")} resolution 1280x720 applied (screen {Screen.width}x{Screen.height}, after {took:0.00} s, from {w0}x{h0})");
             save.resWidth = w0; save.resHeight = h0;
             save.Apply();
             yield return Tour.Wait(1.5f);
