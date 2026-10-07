@@ -48,6 +48,7 @@ namespace LastLight.Core
         public float gameSpeed = 1f;             // an assist: the simulation at 1, 0.85 or 0.7 of full speed
         public Difficulty Difficulty => difficulty == 1 ? Difficulty.Hard : Difficulty.Standard;
         public bool focusToggle;                 // focus: hold the button (false) or press to switch it on and off
+        public KeyBindings keys = new KeyBindings();   // the keyboard's keys for turning, focus and the horn
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
         public bool hints = true;
@@ -106,6 +107,8 @@ namespace LastLight.Core
                 current.homeNames ??= new List<string>();
                 current.hintsSeen ??= new List<string>();
                 current.watches ??= new List<WatchRecord>();
+                current.keys ??= new KeyBindings();
+                current.keys.Validate();
                 // Saves from before the table: the one best watch becomes its first entry.
                 if (current.watches.Count == 0 && current.watchBest > 0)
                     current.watches.Add(new WatchRecord { score = current.watchBest, ships = current.watchShips, seconds = current.watchSeconds });

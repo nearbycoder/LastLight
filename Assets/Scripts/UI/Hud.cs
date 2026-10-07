@@ -183,11 +183,22 @@ namespace LastLight.UI
             hornIcon.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -48), new Vector2(60, 60));
             var label = UiKit.Text("Label", hornPanel, "HORN", UiKit.BodyBold, 16, UiKit.Muted, TextAnchor.MiddleCenter);
             label.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -48), new Vector2(100, 30));
-            hornKey = UiKit.Text("Key", hornPanel, InputMode.Pick("SPACE", "A"), UiKit.BodyBold, 18, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed();
+            hornKey = UiKit.Text("Key", hornPanel, HornKeyText(), UiKit.BodyBold, 18, UiKit.Paper, TextAnchor.MiddleCenter).Shadowed();
             hornKey.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(120, 30));
-            InputMode.Changed += () => hornKey.text = InputMode.Pick("SPACE", "A");
+            hornKey.horizontalOverflow = HorizontalWrapMode.Overflow;   // a long key name ("BACKSPACE") runs wider than the gauge
+            InputMode.Changed += () => hornKey.text = HornKeyText();
             hornPanel.gameObject.SetActive(false);
         }
+
+        /// <summary>The horn's key under its gauge: the first bound key, the right button, or A.</summary>
+        static string HornKeyText()
+        {
+            string key = SaveData.Current.keys.First(KeeperAction.Horn);
+            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", "A");
+        }
+
+        /// <summary>For the tours: the key shown under the horn's gauge.</summary>
+        public string HornKeyShown => hornKey.text;
 
         void BuildHint()
         {
@@ -209,6 +220,7 @@ namespace LastLight.UI
         {
             runner = r;
             this.radio = radio;
+            hornKey.text = HornKeyText();   // the keys may have changed in Settings
             foreach (var g in glyphs.Values)
             {
                 Destroy(g.Root.gameObject);

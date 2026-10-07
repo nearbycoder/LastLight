@@ -103,6 +103,12 @@ namespace LastLight.Core
                 return InputMode.Pad ? ("Press the right trigger to focus: a narrow beam that reaches further. Press again to widen it.", "RT")
                     : ("Click the left button to focus: a narrow beam that reaches further. Click again to widen it.", "lmb");
             var h = HintText[id];
+            if (id == "horn" && !InputMode.Pad)
+            {
+                // The horn's key is the keeper's choice (or none: then the right button).
+                string key = SaveData.Current.keys.First(KeeperAction.Horn);
+                return key == "" ? ("Fog! Click the right button to sound the foghorn.", "rmb") : ($"Fog! Press {key.ToUpperInvariant()} to sound the foghorn.", key.ToUpperInvariant());
+            }
             return InputMode.Pad && h.padText != null ? (h.padText, h.padIcon) : (h.text, h.icon);
         }
 

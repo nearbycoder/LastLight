@@ -7,8 +7,9 @@ namespace LastLight.Core
 {
     /// <summary>
     /// Reads the keeper's hands: the mouse aims the lens (with its weight handled by the sim),
-    /// LMB/Shift/RT focuses, Space/RMB/A sounds the foghorn, A-D/arrows turn the lens directly,
-    /// and the right stick points it. With <see cref="ToggleFocus"/> a press switches focus on or
+    /// LMB/RT or the focus keys focus, RMB/A or the horn keys sound the foghorn, the turn keys turn
+    /// the lens directly, and the right stick points it. The keys are the player's (see KeyBindings;
+    /// by default Shift/W/↑, Space, and A-D/arrows). With <see cref="ToggleFocus"/> a press switches focus on or
     /// off instead of having to be held.
     /// </summary>
     public sealed class KeeperControls
@@ -55,9 +56,10 @@ namespace LastLight.Core
 
             if (kb != null)
             {
+                var keys = SaveData.Current.keys;
                 float turn = 0f;
-                if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) turn -= 1f;
-                if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) turn += 1f;
+                if (keys.Held(kb, KeeperAction.TurnLeft)) turn -= 1f;
+                if (keys.Held(kb, KeeperAction.TurnRight)) turn += 1f;
                 if (turn != 0f)
                 {
                     usingMouse = false;
@@ -68,9 +70,9 @@ namespace LastLight.Core
                 {
                     input.HasTarget = false;
                 }
-                if (kb.leftShiftKey.isPressed || kb.wKey.isPressed || kb.upArrowKey.isPressed) focusHeld = true;
-                if (kb.leftShiftKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame) focusPressed = true;
-                if (kb.spaceKey.wasPressedThisFrame) hornLatch = true;
+                if (keys.Held(kb, KeeperAction.Focus)) focusHeld = true;
+                if (keys.Pressed(kb, KeeperAction.Focus)) focusPressed = true;
+                if (keys.Pressed(kb, KeeperAction.Horn)) hornLatch = true;
             }
 
             if (pad != null)

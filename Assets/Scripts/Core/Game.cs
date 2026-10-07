@@ -501,6 +501,7 @@ namespace LastLight.Core
                 if (Current == State.Playing) Pause();
                 else if (Current == State.Paused && pause.Visible && pause.Confirming) pause.Cancel();
                 else if (Current == State.Paused && pause.Visible) Resume();
+                else if (settings.Visible && settings.Back()) { }
                 else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
                 else if (Current == State.Briefing) { briefing.Hide(); ShowTitle(); }
                 else if (Current == State.Logbook && logbook.Visible) { logbook.Hide(); ShowTitle(false); }

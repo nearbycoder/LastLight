@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using LastLight.Core;
 using LastLight.Sim;
 using LastLight.UI;
+using LastLight.View;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -38,6 +39,10 @@ namespace LastLight.Automation
             yield return Tour.Wait(1.2f);
             yield return t.Shot("03_settings");
             CheckScreen(t, "settings", g.TourScreen("settings"));
+            ((SettingsScreen)g.TourScreen("settings")).TourShowKeys();
+            yield return Tour.Wait(0.5f);
+            yield return t.Shot("03b_keys");
+            CheckScreen(t, "keys", g.TourScreen("settings"));
             g.TourHideAll();
 
             // Night 11: twelve ships in the manifest, the longest top bar.
@@ -59,7 +64,21 @@ namespace LastLight.Automation
             yield return t.Shot("05_play");
             CheckHud(t, g.Hud);
             t.Log($"top bar: manifest scale {g.Hud.TopLayout.manifestScale:0.00}, hint at {g.Hud.TopLayout.hintY:0}");
-            CheckMap(t, g.Rig.Cam);
+            // The framing is checked from the play view at rest: in play the camera sways and leans
+            // a little toward the beam, which moved Westpoint's lantern from -0.02 to -0.07 between
+            // runs. The live view is logged beside it.
+            var live = g.Rig.Cam;
+            var rest = new GameObject("RestView").AddComponent<Camera>();
+            rest.CopyFrom(live);
+            rest.enabled = false;
+            rest.transform.position = CameraRig.PlayPose.Position;
+            rest.transform.rotation = Quaternion.LookRotation(CameraRig.PlayPose.LookAt - CameraRig.PlayPose.Position, Vector3.up);
+            rest.fieldOfView = CameraRig.FitFov(CameraRig.PlayPose.Fov, live.aspect);
+            var wl = MapData.Load().WreckerSites["westpoint"];
+            var lv = live.WorldToViewportPoint(new Vector3(wl.Pos.x, wl.Height, wl.Pos.y));
+            t.Log($"live view (swaying, leaning toward the beam): westpoint lantern ({lv.x:0.00},{lv.y:0.00})");
+            CheckMap(t, rest);
+            Object.Destroy(rest.gameObject);
             g.TourPause();
             yield return Tour.Wait(1.2f);
             yield return t.Shot("06_pause");

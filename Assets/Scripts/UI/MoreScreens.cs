@@ -15,6 +15,9 @@ namespace LastLight.UI
     {
         public Action OnStart;
         Text number, title, date, speech, newTitle, newText, prompt, stakes;
+
+        /// <summary>The "new tonight" card's words as shown; for tours.</summary>
+        public string NewThingShown => newText.text;
         Image newIcon;
         RectTransform card, newCard;
         string full = "";
@@ -100,9 +103,11 @@ namespace LastLight.UI
 
         static string NewText(string id, string keys)
         {
+            string horn = SaveData.Current.keys.First(KeeperAction.Horn);
+            if (horn == "") horn = "right-click";
             if (id == "fog" && SaveData.Current.focusToggle)
-                return InputMode.Pick("Fog swallows the light. Click to focus, Space for the horn.", "Fog swallows the light. Press RT to focus, A for the horn.");
-            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys;
+                return InputMode.Pick($"Fog swallows the light. Click to focus, {horn} for the horn.", "Fog swallows the light. Press RT to focus, A for the horn.");
+            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys.Replace("{horn}", horn);
         }
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
@@ -111,7 +116,7 @@ namespace LastLight.UI
             ["chart"] = ("NEW: HIDDEN REEFS", "Sweep the light ahead of a ship to chart the rocks.", "reef"),
             ["buoy"] = ("NEW: BUOYS", "Light a buoy and it guides ships for a while.", "buoy"),
             ["shoal"] = ("NEW: STEAMERS AND SANDBANKS", "Deep hulls run aground on shoals. Chart the sands for them.", "steamer"),
-            ["fog"] = ("NEW: SEA FRET", "Fog swallows the light. Hold to focus, Space for the horn.", "lmb"),
+            ["fog"] = ("NEW: SEA FRET", "Fog swallows the light. Hold to focus, {horn} for the horn.", "lmb"),
             ["ferry"] = ("NEW: THE FERRY", "The Evening Star carries passengers. Worth the most, lost the hardest.", "ferry"),
             ["damaged"] = ("NEW: DAMAGED SHIPS", "No lamps. Find them by their flares, then light them home.", "flare"),
             ["storm"] = ("NEW: STORM", "The current pushes ships ashore. Lightning shows the rocks.", "storm"),
@@ -295,6 +300,8 @@ namespace LastLight.UI
                 replay.Label.text = "Hints will show again";
             }, TextAnchor.MiddleCenter);
             Row("Seen hints", replay);
+            keysButton = UiButton.Create(panel, "Change keys", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
+            Row("Keyboard keys", keysButton);
 
             row = 0;
             column = 410f;
@@ -329,8 +336,206 @@ namespace LastLight.UI
                 };
                 order[i].navigation = nav;
             }
-            FirstSelected = back;
+            FirstSelected = settingsFirst = back;
+            BuildKeys();
         }
+
+        // ---------------------------------------------------------------- keys
+
+        // The keyboard's keys for turning, focus and the horn: three slots each. Choose a slot,
+        // press a key. The panel takes the settings panel's place while it's open.
+        RectTransform keysPanel;
+        UiButton keysButton, keysDone, settingsFirst;
+        readonly UiButton[,] slots = new UiButton[4, KeyBindings.Slots];
+        readonly Image[,] cells = new Image[4, KeyBindings.Slots];
+        Text keysNote;
+        KeeperAction listenAction;
+        int listenSlot = -1, listenFrame, restoreNavFrame = -1;
+
+        /// <summary>The keys panel is open, and whether it's waiting for a key; for tours.</summary>
+        public bool KeysOpen => keysPanel != null && keysPanel.gameObject.activeSelf;
+        public bool Listening => listenSlot >= 0;
+
+        const string KeysHelp = "Choose a slot, then press a key. Backspace empties it, Esc cancels.\nEsc and P always pause. The mouse and gamepad keep their buttons.";
+
+        void BuildKeys()
+        {
+            keysPanel = UiKit.Rect("Keys", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 940));
+            Frames.Add(keysPanel);
+            var bg = UiKit.Image("Bg", keysPanel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
+            bg.rectTransform.Fill();
+            Label(keysPanel, "Keys", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
+            var rule = UiKit.Image("Rule", keysPanel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f));
+            rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -146), new Vector2(620, 3));
+            for (int r = 0; r < 4; r++)
+            {
+                var action = KeyBindings.Actions[r];
+                float y = -236 - r * 92;
+                var l = Label(keysPanel, KeyBindings.ActionName(action), UiKit.BodyMedium, 30, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-560, y), new Vector2(380, 56));
+                l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                l.Shadowed();
+                for (int c = 0; c < KeyBindings.Slots; c++)
+                {
+                    int slot = c;
+                    var b = UiButton.Create(keysPanel, "", UiKit.BodyBold, 28, () => Listen(action, slot), TextAnchor.MiddleCenter);
+                    b.name = $"Slot {action} {slot + 1}";
+                    ((RectTransform)b.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(-110 + c * 320, y), new Vector2(290, 64));
+                    var cell = cells[r, c] = UiKit.Image("Cell", b.transform, SpriteFactory.Rounded, CellIdle, true);
+                    cell.rectTransform.Fill();
+                    cell.raycastTarget = false;
+                    cell.transform.SetAsFirstSibling();
+                    slots[r, c] = b;
+                }
+            }
+            keysNote = Label(keysPanel, "", UiKit.Italic, 27, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(1400, 40));
+            var help = Label(keysPanel, KeysHelp, UiKit.BodyMedium, 24, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -700), new Vector2(1400, 80));
+            help.lineSpacing = 1.1f;
+            var reset = UiButton.Create(keysPanel, "Reset keys", UiKit.Heading, 40, () =>
+            {
+                StopListening();
+                SaveData.Current.keys.Reset();
+                RefreshKeys("The keys are back as they were.");
+            }, TextAnchor.MiddleCenter);
+            ((RectTransform)reset.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-240, 36), new Vector2(340, 60));
+            keysDone = UiButton.Create(keysPanel, "Done", UiKit.Heading, 44, () => HideKeys(), TextAnchor.MiddleCenter);
+            ((RectTransform)keysDone.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(240, 36), new Vector2(300, 60));
+
+            // A grid for the pad and arrows: across the slots, down the actions, then Reset and Done.
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < KeyBindings.Slots; c++)
+                    slots[r, c].navigation = new Navigation
+                    {
+                        mode = Navigation.Mode.Explicit,
+                        selectOnLeft = slots[r, (c + KeyBindings.Slots - 1) % KeyBindings.Slots],
+                        selectOnRight = slots[r, (c + 1) % KeyBindings.Slots],
+                        selectOnUp = r > 0 ? slots[r - 1, c] : keysDone,
+                        selectOnDown = r < 3 ? slots[r + 1, c] : c == 0 ? reset : keysDone,
+                    };
+            reset.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = keysDone, selectOnLeft = keysDone, selectOnUp = slots[3, 0], selectOnDown = slots[0, 0] };
+            keysDone.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = reset, selectOnRight = reset, selectOnUp = slots[3, KeyBindings.Slots - 1], selectOnDown = slots[0, 0] };
+            keysPanel.gameObject.SetActive(false);
+        }
+
+        void RefreshKeys(string note = null)
+        {
+            var keys = SaveData.Current.keys;
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < KeyBindings.Slots; c++)
+                {
+                    bool waiting = Listening && listenAction == KeyBindings.Actions[r] && listenSlot == c;
+                    var k = keys.Get(KeyBindings.Actions[r], c);
+                    slots[r, c].Label.text = waiting ? "<i>press a key…</i>" : k == UnityEngine.InputSystem.Key.None ? "<color=#8A8F96>—</color>" : KeyBindings.KeyName(k);
+                }
+            if (note != null) keysNote.text = note;
+            OnFocusMode?.Invoke();   // the title's control strip names the horn key
+        }
+
+        void ShowKeys()
+        {
+            panel.gameObject.SetActive(false);
+            keysPanel.gameObject.SetActive(true);
+            FirstSelected = slots[0, 0];
+            RefreshKeys("");
+            if (UnityEngine.EventSystems.EventSystem.current != null) UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(slots[0, 0].gameObject);
+            Sfx.Play("ui_page", 0.4f, 1.1f);
+        }
+
+        void HideKeys(bool select = true)
+        {
+            if (keysPanel == null || !KeysOpen) return;
+            StopListening();
+            keysPanel.gameObject.SetActive(false);
+            panel.gameObject.SetActive(true);
+            FirstSelected = settingsFirst;
+            if (select && UnityEngine.EventSystems.EventSystem.current != null) UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(keysButton.gameObject);
+        }
+
+        /// <summary>Wait for a key for this slot. Menu navigation is off meanwhile, so an arrow or
+        /// Enter can be bound rather than moving the selection.</summary>
+        void Listen(KeeperAction action, int slot)
+        {
+            listenAction = action;
+            listenSlot = slot;
+            listenFrame = Time.frameCount;
+            restoreNavFrame = -1;
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            if (es != null) es.sendNavigationEvents = false;
+            RefreshKeys($"{KeyBindings.ActionName(action)}, key {slot + 1}: press a key.");
+        }
+
+        void StopListening(string note = null)
+        {
+            if (!Listening) return;
+            listenSlot = -1;
+            restoreNavFrame = Time.frameCount + 1;   // not this frame: the key just pressed mustn't also navigate
+            RefreshKeys(note);
+        }
+
+        /// <summary>Esc, P or B: stop waiting for a key, or close the keys panel. False when there's
+        /// nothing here to back out of (Settings itself then closes).</summary>
+        public bool Back()
+        {
+            if (Listening) { StopListening("Nothing changed."); return true; }
+            if (KeysOpen) { HideKeys(); return true; }
+            return false;
+        }
+
+        static readonly Color CellIdle = new Color(1f, 1f, 1f, 0.045f);
+        static readonly Color CellHot = new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.32f);
+
+        void Update()
+        {
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            if (KeysOpen)
+            {
+                // The selected slot (and the one waiting for a key) lights up, even when empty.
+                var sel = es != null ? es.currentSelectedGameObject : null;
+                for (int r = 0; r < 4; r++)
+                    for (int c = 0; c < KeyBindings.Slots; c++)
+                    {
+                        bool hot = slots[r, c].gameObject == sel || (Listening && listenAction == KeyBindings.Actions[r] && listenSlot == c);
+                        cells[r, c].color = Color.Lerp(cells[r, c].color, hot ? CellHot : CellIdle, Unscaled.Delta * 12f);
+                    }
+            }
+            if (restoreNavFrame >= 0 && Time.frameCount >= restoreNavFrame)
+            {
+                restoreNavFrame = -1;
+                if (es != null) es.sendNavigationEvents = true;
+            }
+            if (!Listening || Time.frameCount <= listenFrame) return;
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return;
+            foreach (var c in kb.allKeys)
+            {
+                if (c == null || !c.wasPressedThisFrame) continue;
+                var key = c.keyCode;
+                if (KeyBindings.Reserved(key)) return;   // Esc and P back out (see Back)
+                var keys = SaveData.Current.keys;
+                string what = $"{KeyBindings.ActionName(listenAction)}, key {listenSlot + 1}";
+                if (key == UnityEngine.InputSystem.Key.Backspace) { keys.Clear(listenAction, listenSlot); StopListening($"{what} is empty."); return; }
+                if (keys.Bind(listenAction, listenSlot, key, out var from))
+                    StopListening(from != null ? $"{KeyBindings.KeyName(key)} moved from {KeyBindings.ActionName(from.Value)} to {KeyBindings.ActionName(listenAction)}." : $"{what} is {KeyBindings.KeyName(key)}.");
+                else StopListening($"{KeyBindings.KeyName(key)} can't be used.");
+                return;
+            }
+        }
+
+        public override void Show()
+        {
+            HideKeys(false);
+            base.Show();
+        }
+
+        public override void Hide(float time = 0.35f)
+        {
+            StopListening();
+            base.Hide(time);
+        }
+
+        /// <summary>For tours: open the keys panel, and the label a slot shows.</summary>
+        public void TourShowKeys() => ShowKeys();
+        public string SlotLabel(KeeperAction a, int slot) => slots[(int)a, slot].Label.text;
+        public string KeysNote => keysNote.text;
     }
 
     // ==================================================================== results

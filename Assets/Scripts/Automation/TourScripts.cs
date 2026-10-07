@@ -557,7 +557,7 @@ namespace LastLight.Automation
             yield return null;
             g.TourShowSettings();
             yield return Tour.Wait(1.2f);
-            for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            for (int i = 0; i < 11; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // ten rows on the left since Keyboard keys
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
             for (int i = 0; i < 11; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness

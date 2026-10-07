@@ -3,6 +3,7 @@
     "rootNamespace": "LastLight.Tests",
     "references": [
         "LastLight.Runtime",
+        "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

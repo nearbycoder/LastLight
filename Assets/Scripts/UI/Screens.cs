@@ -140,15 +140,23 @@ namespace LastLight.UI
             InputMode.Changed += () => footer.text = FooterText();
         }
 
-        static string FooterText() => SaveData.Current.focusToggle
-            ? InputMode.Pick(
-                "Mouse  turn the light     ·     Left button  focus on and off     ·     Space  foghorn     ·     Esc  pause",
-                "Right stick  turn the light     ·     RT  focus on and off     ·     A  foghorn     ·     Start  pause")
-            : InputMode.Pick(
-                "Mouse  turn the light     ·     Hold left button  focus     ·     Space  foghorn     ·     Esc  pause",
-                "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
+        static string FooterText()
+        {
+            string horn = SaveData.Current.keys.First(KeeperAction.Horn);
+            if (horn == "") horn = "Right button";
+            return SaveData.Current.focusToggle
+                ? InputMode.Pick(
+                    $"Mouse  turn the light     ·     Left button  focus on and off     ·     {horn}  foghorn     ·     Esc  pause",
+                    "Right stick  turn the light     ·     RT  focus on and off     ·     A  foghorn     ·     Start  pause")
+                : InputMode.Pick(
+                    $"Mouse  turn the light     ·     Hold left button  focus     ·     {horn}  foghorn     ·     Esc  pause",
+                    "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
+        }
 
-        /// <summary>Settings changed the focus mode: reword the control strip.</summary>
+        /// <summary>The control strip as shown; for tours.</summary>
+        public string FooterShown => footer.text;
+
+        /// <summary>Settings changed the focus mode or the keys: reword the control strip.</summary>
         public void RefreshFooter() => footer.text = FooterText();
 
         UiButton AddItem(string label, Action click)
@@ -517,9 +525,12 @@ namespace LastLight.UI
         {
             bool toggle = SaveData.Current.focusToggle;
             string Line(string keys, string what) => $"<color=#C9A35A>{keys}</color>   {what}";
+            var bound = SaveData.Current.keys;
+            string turn = bound.TurnPair(), focus = bound.First(KeeperAction.Focus), horn = bound.First(KeeperAction.Horn);
+            string focusKeys = (toggle ? "Left button" : "Hold left button") + (focus != "" ? " or " + focus : "");
             var lines = InputMode.Pad
                 ? new[] { Line("Right stick", "turn the light"), Line(toggle ? "RT" : "Hold RT", toggle ? "focus on and off" : "focus"), Line("A", "foghorn"), Line("Start", "pause  ·  B  back") }
-                : new[] { Line("Mouse, or A / D", "turn the light"), Line(toggle ? "Left button or Shift" : "Hold left button or Shift", toggle ? "focus on and off" : "focus"), Line("Space or right button", "foghorn"), Line("Esc", "pause") };
+                : new[] { Line(turn != "" ? "Mouse, or " + turn : "Mouse", "turn the light"), Line(focusKeys, toggle ? "focus on and off" : "focus"), Line(horn != "" ? horn + " or right button" : "Right button", "foghorn"), Line("Esc", "pause") };
             return string.Join("\n", lines);
         }
 
