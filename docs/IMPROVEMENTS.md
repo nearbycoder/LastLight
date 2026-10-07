@@ -787,3 +787,76 @@ kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, h
 and real-hardware checks of other screen shapes (a Steam Deck in particular), the frame-rate caps'
 effect on a real laptop's battery, non-US keyboard layouts, Windows (module install) and macOS
 signing (Developer ID).
+
+## Round 7 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records).
+These items come from playing the game through as a returning player would. The dawn card tells
+you in words what went wrong ("struck the Hen's Chicks, uncharted"), but you never see the night
+as a whole: where each ship went, where it lost its way, where the lure took it. The three lamps
+are judged only at dawn, so during a night you can't tell that the steady-hand lamp went out ten
+seconds in, and a replayed night's briefing doesn't say which lamp is still missing. And there's
+no way to start the season again (for a second player on the same computer, or to play it fresh)
+short of deleting files by hand. None of the items changes the simulation, so the pinned Standard
+scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `confirm`, `notes` and
+`screens` tours at 0 errors. Captures go to `docs/media/improvements/round7/`. Tour output and logs
+stay under `Builds/round7/`. The real save directory is checksummed before and after
+(`Builds/round7/save_before.txt`).
+
+### 1. The night's chart
+- The dawn card gains a **Chart** button. It opens a chart of Merrow Bay drawn like the logbook's
+  paper: the coast, the harbour, the light, the sea stacks, and every ship's track that night.
+  A track is inked solid while the captain was steering, dotted red with a **?** where they lost
+  their way, and dashed amber with a lantern where a false light had them, so the states differ by
+  pattern and mark as well as colour. A wreck is a cross with the ship's name. Reefs and sandbanks
+  you charted that night are drawn and named, as are the false lights that burned; reefs never
+  charted stay hidden, as in play.
+- The tracks come from a `NightLog` that reads the simulation after each step and never changes
+  it. It keeps a point when a ship has moved a little or changed state, so a 30-minute watch stays
+  small.
+- Esc, B or "Back to dawn" returns to the card.
+- **Verify:** EditMode tests: on a night where the bot neglects a ship, every wrecked ship's track
+  ends at its wreck, a ship that was lost has a lost stretch, and a generated Night Watch's log
+  stays under its cap. A `chart` tour stages a wreck on night II and a lure on night X, opens the
+  chart with the mouse, keys and the simulated pad, checks that each wreck cross sits where the
+  sim's wreck position projects on the chart, and checks back returns to the card. `screens` checks
+  the chart fits at all four shapes. Screenshots read by me, and the lost and lured stretches put
+  through `Tools/cvd_sim.py`.
+
+### 2. Lamps at stake
+- During a night (not the Night Watch, which has its own strip), three small lamps sit under the
+  score. The third goes out the moment any ship is first lost or lured, with a short line under
+  them naming the ship ("Steady hand: the Kittiwake lost its way"); the second goes out at the
+  first wreck. So the player knows what's still in play.
+- The briefing of a night already kept says what's left: "Kept with two lamps, best 880. Still to
+  earn: a steady hand, no ship ever lost or lured." Or, with all three, just the best score. Its
+  prompt also says how to go back (Esc or B).
+- **Verify:** a `lamps` tour plays night II with a neglected ship and checks every frame that the
+  HUD's lamps match the simulation (the third out exactly when the first ship is lost or lured, the
+  second at the first wreck), and that at dawn they match the card's lamps. It reads the briefing
+  line on a sample save for a three-lamp night, a two-lamp night and an unplayed one. `screens`
+  checks the taller score block stays clear of the manifest at 130% HUD text at all four shapes.
+
+### 3. A new season
+- The logbook gains **Start a new season**. It asks first, with **Stay** selected: the nights,
+  lamps, scores, ships brought home, the ending and the Night Watch records are cleared and the
+  hints come back; settings and keys stay. The season being cleared is kept in the save file under
+  a second key, so an owner or support can put it back by hand.
+- A save that can't be read is kept aside under its own key rather than being overwritten by the
+  next save.
+- **Verify:** an EditMode test of the reset itself (what's cleared and what's kept), without
+  touching the save. A `season` tour runs the built player against a throwaway config directory
+  under `Builds/round7/` seeded with a finished season: it checks Stay changes nothing, then that
+  confirming leaves the title on "Begin the watch" without the Night Watch, the logbook with only
+  night I open, and the old season under the backup key. A second run seeded with a damaged save
+  checks the game starts fresh and the damaged text is kept aside. The real save's checksum must
+  match before and after.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp and slowed records**: the owner's call.
+- **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts**: no
+  hardware here to check them on.
+- **Re-cutting the trailer**: the owner's call.
