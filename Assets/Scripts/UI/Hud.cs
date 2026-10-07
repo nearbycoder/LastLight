@@ -12,7 +12,7 @@ namespace LastLight.UI
     /// The in-night HUD: title, manifest of ships, score, the radio panel, foghorn dial, hint
     /// prompts, incoming chevrons at the screen edge, distress markers and floating score text.
     /// </summary>
-    public sealed class Hud : MonoBehaviour
+    public sealed partial class Hud : MonoBehaviour
     {
         Canvas canvas;
         RectTransform root;
@@ -119,6 +119,7 @@ namespace LastLight.UI
             group = root.Group(0f);
             group.blocksRaycasts = false;
             markerLayer = UiKit.Rect("Markers", root).Fill();
+            namesLayer = UiKit.Rect("Names", root).Fill();
             statusLayer = UiKit.Rect("ShipStatus", root).Fill();
             edgeLayer = UiKit.Rect("EdgeMarkers", root).Fill();
 
@@ -261,6 +262,7 @@ namespace LastLight.UI
             HideHint(true);
             foreach (var m in markers) if (m.Rt != null) Destroy(m.Rt.gameObject);
             markers.Clear();
+            ClearNames();
         }
 
         void BuildWatchStrip(MissionDef def)
@@ -411,6 +413,7 @@ namespace LastLight.UI
             radio.Started += OnRadio;
             radioGroup.alpha = 0f;
             HideHint(true);
+            ClearNames();
             foreach (Transform c in root) c.gameObject.SetActive(c == radioPanel);
             Show(true, 0.5f);
         }
@@ -611,6 +614,7 @@ namespace LastLight.UI
             float dt = Unscaled.Delta;
             UpdateRadio(dt);
             UpdateMarkers(dt);
+            UpdateNames(dt);
             if (runner == null || runner.World == null) return;
             var w = runner.World;
 

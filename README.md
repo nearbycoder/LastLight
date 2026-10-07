@@ -96,6 +96,14 @@ the crew give no breakers warning, and Night Watch ships come about 15% closer t
 change takes effect from the next night. Records are shared, and the dawn card, the HUD and the
 table of best watches say when it was Hard.
 
+**Names on the water.** When a ship is on the radio, or a call names one ("before the Auk gets
+there"), its name shows under its hull for the length of the call. A call that names a place you
+can see (a buoy such as the Hen Bell, a wreckers' cliff, a sea stack or Porthkell harbour) labels
+it on the water for a few seconds, and a reef group or sandbank gets its name the first time it's
+charted each night, so the debrief's "struck the Hen's Chicks" is a place you've seen named. A
+hidden hazard is never pointed at before it's charted. Names out of frame stay at the screen's
+edge with a chevron.
+
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.

@@ -104,6 +104,7 @@ namespace LastLight.Automation
             g.AutoPlay = true;
             var save = SaveData.Current;
             save.hints = false;
+            UI.Hud.NamesShown = false;     // names on the water came after the released trailer and stills
             save.music = 0f;            // the score is laid in the edit, under the game's own sound
             Sfx.MusicVolume = 0f;
             return new Ctx { Tour = t, Cam = TrailerCam.Create(g.Rig), Stills = stills };

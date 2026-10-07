@@ -34,6 +34,7 @@ namespace LastLight.Core
             this.hud = hud;
             this.radio = radio;
             runner.OnEvent += Handle;
+            radio.Started += OnRadioCall;
             InputMode.Changed += RefreshHint;
             EnsureLoops();
             var storm = runner.Def.storm;
@@ -64,7 +65,42 @@ namespace LastLight.Core
         public void Detach()
         {
             runner.OnEvent -= Handle;
+            radio.Started -= OnRadioCall;
             InputMode.Changed -= RefreshHint;
+        }
+
+        // ---------------------------------------------------------------- names on the water
+
+        readonly List<SimShip> shipsNamed = new List<SimShip>();
+        readonly List<PlaceNames.Place> placesNamed = new List<PlaceNames.Place>();
+        readonly Dictionary<string, float> namedAt = new Dictionary<string, float>();
+
+        static Color ShipColor(SimShip s) =>
+            Radio.Speakers.TryGetValue(string.IsNullOrEmpty(s.Captain) ? "crew" : s.Captain, out var sp) ? sp.Color : Radio.Speakers["crew"].Color;
+
+        /// <summary>A call goes out: tag the ship on the air and any ship it names, and label the
+        /// places it names that can be seen.</summary>
+        void OnRadioCall(RadioMessage m)
+        {
+            var w = runner.World;
+            if (w == null) return;
+            float hold = radio.HoldDuration(m);
+            // The ship on the air: its title is the ship's name, or the captain's role names it.
+            PlaceNames.FindShips(w, m.Title, shipsNamed);
+            foreach (var s in shipsNamed) hud.NameShip(s, ShipColor(s), hold);
+            PlaceNames.FindShips(w, m.Text, shipsNamed);
+            foreach (var s in shipsNamed) hud.NameShip(s, ShipColor(s), hold);
+            PlaceNames.FindPlaces(w, m.Text, placesNamed);
+            foreach (var p in placesNamed) NamePlace(p.Key, p.Label, p.World, Mathf.Clamp(hold, 5f, 8f));
+        }
+
+        /// <summary>A place's label, at most once in a while (arrivals keep saying "harbour").</summary>
+        void NamePlace(string key, string label, Vector3 world, float seconds)
+        {
+            float now = runner.World.Time;
+            if (namedAt.TryGetValue(key, out float at) && now - at < 25f) return;
+            namedAt[key] = now;
+            hud.NamePlace(key, label, world, seconds);
         }
 
         bool First(string key) => fired.Add(key);
@@ -235,10 +271,20 @@ namespace LastLight.Core
                     Sfx.PlayAt("chart", pos3, 0.5f, Random.Range(0.92f, 1.1f), 0.08f);
                     FX.ChartPing(pos3, w.Reefs[e.Index].Radius);
                     if (First("charted")) { Cue("firstCharted"); Dismiss("chart"); }
+                    {
+                        // The first time a group is found tonight, its name over the white water
+                        // (not in a lightning flash, which charts everything at once).
+                        string group = w.Reefs[e.Index].Group;
+                        if (w.Flash < 0.3f && First("named:" + group)) NamePlace("reefs:" + group, PlaceNames.GroupLabel(group), PlaceNames.GroupCentre(w, group), 5f);
+                    }
                     break;
                 case SimEventType.ShoalCharted:
                     Sfx.PlayAt("chart", pos3, 0.55f, 0.8f, 0.08f);
                     if (First("shoal")) { Cue("firstShoal"); Dismiss("shoal"); }
+                    {
+                        var bank = w.Shoals[e.Index].Def;
+                        if (w.Flash < 0.3f && First("named:" + bank.Id)) NamePlace("shoal:" + bank.Id, bank.Name, new Vector3(bank.Pos.x, 1f, bank.Pos.y), 5f);
+                    }
                     break;
                 case SimEventType.BuoyLit:
                 {
