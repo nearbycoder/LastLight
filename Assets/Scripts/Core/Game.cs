@@ -589,6 +589,7 @@ namespace LastLight.Core
         public Ending TourEndingScene => ending;
         public (int shown, string newest) TourPauseLog => (pause.LogShown, pause.LogNewest);
         public string TourPauseItem(int i) => pause.ItemLabel(i);
+        public string TourPauseControls => pause.ControlsShown;
         public void TourPauseChoose(int i) => pause.Choose(i);
     }
 }

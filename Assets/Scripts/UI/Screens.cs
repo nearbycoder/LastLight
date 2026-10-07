@@ -340,6 +340,7 @@ namespace LastLight.UI
         public Action OnResume, OnRestart, OnEndWatch, OnSettings, OnLogbook, OnTitle;
         readonly List<UiButton> buttons = new List<UiButton>();
         bool watch;
+        Text controls;
         RectTransform logPanel;
         Text logText;
         // The calls' area at most: the panel hangs from beside the title and stops short of the
@@ -387,6 +388,20 @@ namespace LastLight.UI
                 Frames.Add((RectTransform)b.transform);
             }
 
+            // The controls, for a keeper who forgot: a card left of the menu, mirroring the radio log.
+            var card = UiKit.Rect("Controls", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(1, 1), new Vector2(-340, 290), new Vector2(500, 200));
+            var cardBg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.05f, 0.07f, 0.78f), true);
+            cardBg.rectTransform.Fill();
+            var cardEdge = UiKit.Image("Edge", card, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.5f));
+            cardEdge.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -3), new Vector2(-20, 1));
+            var cardCaption = UiKit.Text("Caption", card, UiKit.Spaced("CONTROLS"), UiKit.BodyBold, 18, UiKit.Brass, TextAnchor.MiddleLeft);
+            cardCaption.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(26, -50), new Vector2(-20, -16));
+            controls = UiKit.Text("Lines", card, "", UiKit.BodyMedium, 24, UiKit.Paper, TextAnchor.UpperLeft);
+            controls.rectTransform.Stretch(Vector2.zero, Vector2.one, new Vector2(26, 14), new Vector2(-20, -58));
+            controls.lineSpacing = 1.15f;
+            InputMode.Changed += () => controls.text = ControlLines();
+            Frames.Add(card);
+
             // The radio log: the night's latest calls, newest at the bottom, beside the menu.
             logPanel = UiKit.Rect("RadioLog", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(340, 290), new Vector2(560, LogHeight + 78));
             var bg = UiKit.Image("Bg", logPanel, SpriteFactory.Rounded, new Color(0.03f, 0.05f, 0.07f, 0.78f), true);
@@ -409,6 +424,26 @@ namespace LastLight.UI
             watch = on;
             buttons[1].Label.text = on ? "End the watch" : "Restart the night";
         }
+
+        public override void Show()
+        {
+            controls.text = ControlLines();   // the Focus setting may have changed
+            base.Show();
+        }
+
+        /// <summary>The controls for the device in use and the Focus setting, a line each.</summary>
+        static string ControlLines()
+        {
+            bool toggle = SaveData.Current.focusToggle;
+            string Line(string keys, string what) => $"<color=#C9A35A>{keys}</color>   {what}";
+            var lines = InputMode.Pad
+                ? new[] { Line("Right stick", "turn the light"), Line(toggle ? "RT" : "Hold RT", toggle ? "focus on and off" : "focus"), Line("A", "foghorn"), Line("Start", "pause  ·  B  back") }
+                : new[] { Line("Mouse, or A / D", "turn the light"), Line(toggle ? "Left button or Shift" : "Hold left button or Shift", toggle ? "focus on and off" : "focus"), Line("Space or right button", "foghorn"), Line("Esc", "pause") };
+            return string.Join("\n", lines);
+        }
+
+        /// <summary>The controls as shown; for tours.</summary>
+        public string ControlsShown => controls.text;
 
         /// <summary>The menu's labels, top to bottom; for tours.</summary>
         public string ItemLabel(int i) => buttons[i].Label.text;

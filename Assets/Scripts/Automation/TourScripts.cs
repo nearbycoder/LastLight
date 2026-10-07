@@ -363,6 +363,8 @@ namespace LastLight.Automation
             Key(UnityEngine.InputSystem.Key.Escape, false);
             yield return Tour.Wait(0.5f);
             t.Log($"{(Time.timeScale == 0f ? "PASS" : "FAIL")} escape pauses");
+            string keysStrip = g.TourPauseControls;
+            t.Log($"{(keysStrip.Contains("Mouse") && keysStrip.Contains("Esc") ? "PASS" : "FAIL")} the pause menu's controls are in mouse and key words: \"{keysStrip}\"");
             CheckRadioLog(t, g);
             yield return t.Shot("input_pause");
             t.Log(allOk ? "aim PASS" : "aim FAIL");
@@ -449,10 +451,15 @@ namespace LastLight.Automation
             promptsOk &= padWords && keyWords && once;
 
             // ---- Nobody at the lamp: losing focus pauses, and so does unplugging the pad in use.
+            yield return PadPress(pad, GamepadButton.DpadLeft);   // the pad in hand again
             g.FocusLost();
             yield return Tour.Wait(0.4f);
             bool focusPause = g.TourPaused && Time.timeScale == 0f;
             t.Log($"{(focusPause ? "PASS" : "FAIL")} losing window focus pauses the night");
+            string padStrip = g.TourPauseControls;
+            bool padStripOk = InputMode.Pad && padStrip.Contains("Right stick") && padStrip.Contains("Start");
+            t.Log($"{(padStripOk ? "PASS" : "FAIL")} the pause menu's controls are in pad words: \"{padStrip}\"");
+            yield return t.Shot("input_pause_pad");
             g.TourResume();
             yield return PadPress(pad, GamepadButton.DpadLeft);
             InputSystem.RemoveDevice(pad);
@@ -553,7 +560,7 @@ namespace LastLight.Automation
             for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
-            for (int i = 0; i < 9; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
+            for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // ten rows on the right since Game speed
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
