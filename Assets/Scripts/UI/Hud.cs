@@ -65,6 +65,7 @@ namespace LastLight.UI
         RectTransform markerLayer;
         readonly List<Marker> markers = new List<Marker>();
 
+        RectTransform nightBlock, scoreBlock;
         MissionRunner runner;
         Radio radio;
         int shownScore;
@@ -100,6 +101,18 @@ namespace LastLight.UI
             scaler.referenceResolution = new Vector2(1920f, 1080f) / scale;
         }
 
+        /// <summary>The HUD's blocks that must stay on screen and clear of each other (for the
+        /// screens tour), with whether each is showing.</summary>
+        public IEnumerable<(string name, RectTransform rect, bool shown)> TourBlocks()
+        {
+            yield return ("night", nightBlock, true);
+            yield return ("manifest", manifest, true);
+            yield return ("score", scoreBlock, true);
+            yield return ("horn", hornPanel, hornPanel.gameObject.activeSelf);
+            yield return ("hint", hintPanel, hintGroup.alpha > 0.5f);
+            yield return ("radio", radioPanel, radioGroup.alpha > 0.5f);
+        }
+
         void Build()
         {
             root = UiKit.Rect("Root", canvas.transform).Fill();
@@ -109,7 +122,7 @@ namespace LastLight.UI
             statusLayer = UiKit.Rect("ShipStatus", root).Fill();
 
             // Top-left: the night.
-            var tl = UiKit.Rect("Night", root).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(46, -34), new Vector2(560, 120));
+            var tl = nightBlock = UiKit.Rect("Night", root).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(46, -34), new Vector2(560, 120));
             nightLabel = UiKit.Text("Number", tl, "", UiKit.BodyBold, 20, UiKit.Brass, TextAnchor.UpperLeft).Shadowed();
             nightLabel.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -26), new Vector2(0, 0));
             titleLabel = UiKit.Text("Title", tl, "", UiKit.Heading, 44, UiKit.Paper, TextAnchor.UpperLeft).Shadowed(0.8f, 2f);
@@ -120,7 +133,7 @@ namespace LastLight.UI
             manifest = UiKit.Rect("Manifest", root).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -38), new Vector2(900, 44));
 
             // Top-right: score.
-            var tr = UiKit.Rect("Score", root).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-46, -34), new Vector2(300, 90));
+            var tr = scoreBlock = UiKit.Rect("Score", root).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-46, -34), new Vector2(300, 90));
             var scoreCaption = UiKit.Text("Caption", tr, UiKit.Spaced("TONIGHT"), UiKit.BodyBold, 18, UiKit.Brass, TextAnchor.UpperRight).Shadowed();
             scoreCaption.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -24), Vector2.zero);
             scoreLabel = UiKit.Text("Value", tr, "0", UiKit.BodyBold, 40, UiKit.Paper, TextAnchor.UpperRight).Shadowed(0.8f, 2f);
@@ -177,7 +190,7 @@ namespace LastLight.UI
 
         void BuildHint()
         {
-            hintPanel = UiKit.Rect("Hint", root).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(820, 86));
+            hintPanel = UiKit.Rect("Hint", root).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(820, 86));
             hintGroup = hintPanel.Group(0f);
             var bg = UiKit.Image("Bg", hintPanel, SpriteFactory.Pill, new Color(0.03f, 0.05f, 0.07f, 0.72f), true);
             bg.rectTransform.Fill();
@@ -230,6 +243,8 @@ namespace LastLight.UI
             radioGroup.alpha = 0f;
             radio.Started -= OnRadio;
             radio.Started += OnRadio;
+            laidOutWidth = -1f;   // lay the top bar out again next frame, once the old icons are gone
+            boundFrame = Time.frameCount;
             HideHint(true);
             foreach (var m in markers) if (m.Rt != null) Destroy(m.Rt.gameObject);
             markers.Clear();
@@ -268,6 +283,58 @@ namespace LastLight.UI
             allowanceText = UiKit.Text("Caption", allowanceRow, "", UiKit.BodyBold, 17, UiKit.Brass, TextAnchor.MiddleLeft).Shadowed();
             allowanceText.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(allowed * 48 + 6, 0), new Vector2(480, 26));
         }
+
+        float laidOutWidth = -1f;
+        int boundFrame;
+        string laidOutCaption;
+        float hintY = -100f;
+        const float TopGap = 28f;
+
+        /// <summary>
+        /// Keeps the top bar's blocks apart at any screen shape and HUD text size. The manifest stays
+        /// centred while it fits between the night's title and the score; otherwise it centres in the
+        /// space between them, and shrinks if it must. A hint drops below the night's block when the
+        /// two would meet.
+        /// </summary>
+        void LayoutTop()
+        {
+            float canvasW = ((RectTransform)canvas.transform).rect.width;
+            laidOutWidth = canvasW;
+            laidOutCaption = allowanceText != null ? allowanceText.text : null;
+            float nightRight = 46f + Mathf.Max(nightLabel.preferredWidth, titleLabel.preferredWidth);
+            if (allowanceRow.gameObject.activeSelf && allowanceText != null)
+                nightRight = Mathf.Max(nightRight, 46f + 2f + allowanceText.rectTransform.anchoredPosition.x + allowanceText.preferredWidth);
+            float scoreLeft = canvasW - 46f - 200f;   // room for a five-digit score
+            float centre = canvasW * 0.5f;
+
+            manifest.localScale = Vector3.one;
+            manifest.anchoredPosition = new Vector2(0, -38);
+            float lo = float.MaxValue, hi = float.MinValue;
+            foreach (RectTransform c in manifest)
+            {
+                if (!c.gameObject.activeSelf) continue;
+                float w = c.rect.width;
+                var text = c.GetComponent<Text>();
+                if (text != null) w = Mathf.Min(w, text.preferredWidth);
+                float left = c.anchoredPosition.x - c.rect.width * c.pivot.x;
+                lo = Mathf.Min(lo, left);
+                hi = Mathf.Max(hi, left + w);
+            }
+            if (lo < hi && (centre + lo < nightRight + TopGap || centre + hi > scoreLeft - TopGap))
+            {
+                float room = scoreLeft - nightRight - 2f * TopGap;
+                float k = Mathf.Clamp(room / (hi - lo), 0.5f, 1f);
+                manifest.localScale = new Vector3(k, k, 1f);
+                manifest.anchoredPosition = new Vector2((nightRight + scoreLeft) * 0.5f - centre - (lo + hi) * 0.5f * k, -38);
+            }
+
+            // The hint sits under the manifest's marks, or under the night's block if it would cover it.
+            hintY = nightRight + TopGap > centre - hintPanel.rect.width * 0.5f ? -152f : -100f;
+            if (hintGroup.alpha > 0f) Tween.Move(hintPanel, new Vector2(0, hintY), 0.3f);
+        }
+
+        /// <summary>Where the top bar's manifest and hint ended up; for tours.</summary>
+        public (float manifestScale, float hintY) TopLayout => (manifest.localScale.x, hintY);
 
         /// <summary>The wrecks left before the Board ends the night, in words as well as hulls.</summary>
         public static string AllowanceCaption(int allowed, int wrecks)
@@ -397,9 +464,9 @@ namespace LastLight.UI
             hintId = id;
             hintTimer = duration;
             SetHintContent(text, icon);
-            hintPanel.anchoredPosition = new Vector2(0, -76);
+            hintPanel.anchoredPosition = new Vector2(0, hintY + 20f);
             Tween.Fade(hintGroup, 1f, 0.4f);
-            Tween.Move(hintPanel, new Vector2(0, -96), 0.5f, 0f, Tween.EaseOutBack);
+            Tween.Move(hintPanel, new Vector2(0, hintY), 0.5f, 0f, Tween.EaseOutBack);
             Sfx.Play("ui_hint", 0.45f);
         }
 
@@ -544,6 +611,8 @@ namespace LastLight.UI
 
             if (watchText != null) UpdateWatchStrip(w);
             if (allowanceText != null) UpdateAllowance(w);
+            float width = ((RectTransform)canvas.transform).rect.width;
+            if (Time.frameCount > boundFrame && (width != laidOutWidth || (allowanceText != null && allowanceText.text != laidOutCaption))) LayoutTop();
 
             // Manifest states.
             int spawned = w.SpawnedShips;

@@ -17,6 +17,8 @@ namespace LastLight.UI
         protected CanvasGroup Group;
         public bool Visible { get; private set; }
         protected Selectable FirstSelected;
+        /// <summary>The panels that must fit on screen at any shape (checked by the screens tour).</summary>
+        public readonly List<RectTransform> Frames = new List<RectTransform>();
 
         protected void Init(Transform canvas, string name)
         {
@@ -118,6 +120,7 @@ namespace LastLight.UI
             }
             tagline = Label(Root, "Twelve nights at Gannet Head", UiKit.Italic, 32, new Color(0.8f, 0.82f, 0.86f), TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(158, 95), new Vector2(900, 50));
             tagline.Shadowed();
+            Frames.Add(title);
             var bar = UiKit.Image("Bar", Root, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.8f));
             bar.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(150, 62), new Vector2(560, 4));
 
@@ -132,6 +135,8 @@ namespace LastLight.UI
 
             footer = Label(Root, FooterText(), UiKit.Body, 22, new Color(0.65f, 0.7f, 0.76f, 0.85f), TextAnchor.MiddleCenter, new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(1600, 40));
             footer.Shadowed();
+            Frames.Add(menu);
+            Frames.Add(footer.rectTransform);
             InputMode.Changed += () => footer.text = FooterText();
         }
 
@@ -220,6 +225,7 @@ namespace LastLight.UI
             // Leather boards just proud of the pages, then the open spread.
             var cover = UiKit.Image("Cover", page, SpriteFactory.Rounded, new Color(0.2f, 0.09f, 0.06f), true);
             cover.rectTransform.Fill(-18f);
+            Frames.Add(cover.rectTransform);
             var coverShadow = cover.gameObject.AddComponent<Shadow>();
             coverShadow.effectColor = new Color(0, 0, 0, 0.55f);
             coverShadow.effectDistance = new Vector2(10, -14);
@@ -375,6 +381,7 @@ namespace LastLight.UI
                 var b = UiButton.Create(Root, label, UiKit.Heading, 42, act, TextAnchor.MiddleCenter);
                 ((RectTransform)b.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60 - i * 66), new Vector2(520, 60));
                 if (i == 0) FirstSelected = b;
+                Frames.Add((RectTransform)b.transform);
             }
 
             // The radio log: the night's latest calls, newest at the bottom, beside the menu.
@@ -390,6 +397,7 @@ namespace LastLight.UI
             logText.lineSpacing = 1.08f;
             logText.verticalOverflow = VerticalWrapMode.Overflow;
             logPanel.gameObject.SetActive(false);
+            Frames.Add(logPanel);
         }
 
         /// <summary>Fill the log from the radio: as many of the latest calls as fit, oldest first.</summary>

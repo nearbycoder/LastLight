@@ -48,7 +48,9 @@ namespace LastLight.UI
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 0.5f;
+            // The whole 1920x1080 layout stays on screen at any shape: 16:10, 5:4 and 21:9 add
+            // room around it rather than cropping it.
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             go.AddComponent<GraphicRaycaster>();
             UnityEngine.Object.DontDestroyOnLoad(go);
             return canvas;

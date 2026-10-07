@@ -126,7 +126,20 @@ namespace LastLight.View
             transform.position = pos;
             var look = p.LookAt + lookOffset * sway;
             transform.rotation = Quaternion.LookRotation(look - pos, Vector3.up) * Quaternion.Euler(0, 0, (Mathf.PerlinNoise(time * 18f, 9f) - 0.5f) * shake * 3f);
-            if (Cam != null) Cam.fieldOfView = p.Fov;
+            if (Cam != null) Cam.fieldOfView = FitFov(p.Fov, Cam.aspect);
+        }
+
+        const float DesignAspect = 16f / 9f;
+
+        /// <summary>
+        /// Poses are framed for 16:9. A narrower screen (16:10, 4:3, 5:4) widens the vertical field
+        /// of view so the bay's full width stays in view; a wider one simply sees more coast.
+        /// </summary>
+        public static float FitFov(float fov, float aspect)
+        {
+            if (aspect >= DesignAspect || aspect <= 0f) return fov;
+            float half = Mathf.Atan(Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * DesignAspect / aspect);
+            return 2f * half * Mathf.Rad2Deg;
         }
 
         /// <summary>Mouse ray onto the sea plane (y = 0).</summary>

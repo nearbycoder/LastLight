@@ -556,6 +556,11 @@ namespace LastLight.Core
         public void TourResume() => Resume();
         public void TourEnding() => StartEnding();
         public void TourTitle() => ShowTitle();
+        public UiScreen TourScreen(string name) => name switch
+        {
+            "title" => title, "logbook" => logbook, "settings" => settings, "briefing" => briefing,
+            "pause" => pause, "results" => results, _ => null,
+        };
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;
         public (int shown, string newest) TourPauseLog => (pause.LogShown, pause.LogNewest);
