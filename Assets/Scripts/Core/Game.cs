@@ -157,6 +157,13 @@ namespace LastLight.Core
             title.OnQuit = Quit;
             logbook.OnPick = n => { logbook.Hide(); ShowBriefing(n); };
             logbook.OnBack = () => { logbook.Hide(); ShowTitle(false); };
+            logbook.OnNewSeason = () =>
+            {
+                SaveData.Current.NewSeason();
+                logbook.Refresh(MissionLibrary.All, SaveData.Current);
+                title.RefreshFooter();
+                Sfx.Play("ui_begin", 0.5f);
+            };
             briefing.OnStart = BeginWatch;
             pause.OnResume = Resume;
             pause.OnRestart = () => { Time.timeScale = 1f; pause.Hide(); RestartNight(); };
@@ -565,6 +572,7 @@ namespace LastLight.Core
                 else if (notes.Visible) CloseNotes();
                 else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
                 else if (Current == State.Briefing) { briefing.Hide(); ShowTitle(); }
+                else if (Current == State.Logbook && logbook.Visible && logbook.Confirming) logbook.Cancel();
                 else if (Current == State.Logbook && logbook.Visible) { logbook.Hide(); ShowTitle(false); }
                 else if (Current == State.Title && settings.Visible) { settings.Hide(); SaveData.Current.Save(); ShowTitle(false); }
             }

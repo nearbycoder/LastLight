@@ -182,6 +182,10 @@ namespace LastLight.UI
 
         public void SetBeginLabel(string text) => begin.Label.text = text;
 
+        // For tours.
+        public string BeginLabel => begin.Label.text;
+        public bool WatchShown => watch.gameObject.activeSelf;
+
         public override void Show()
         {
             base.Show();
@@ -213,10 +217,12 @@ namespace LastLight.UI
     public sealed class LogbookScreen : UiScreen
     {
         public Action<int> OnPick;
-        public Action OnBack;
+        public Action OnBack, OnNewSeason;
         RectTransform page;
         readonly List<RectTransform> entries = new List<RectTransform>();
         Text summary;
+        UiButton newSeason, stay, startAfresh;
+        RectTransform confirm;
 
         public static LogbookScreen Create(Transform canvas)
         {
@@ -273,7 +279,63 @@ namespace LastLight.UI
             ((RectTransform)back.transform).Pin(new Vector2(0.75f, 0), new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(320, 54));
             var hint = Label(page, "Choose a night to keep again", UiKit.Italic, 21, new Color(0.38f, 0.3f, 0.21f, 0.8f), TextAnchor.MiddleCenter, new Vector2(0.25f, 0), new Vector2(0, 52), new Vector2(500, 30));
             hint.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+            // Starting the season again, for a second keeper or a fresh go. It asks first.
+            newSeason = UiButton.Create(page, "Start a new season", UiKit.Heading, 26, Ask, TextAnchor.MiddleCenter);
+            newSeason.Normal = new Color(0.45f, 0.24f, 0.14f);
+            newSeason.Hover = new Color(0.62f, 0.3f, 0.1f);
+            newSeason.Label.GetComponent<Shadow>().enabled = false;
+            ((RectTransform)newSeason.transform).Pin(new Vector2(0.25f, 0), new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(320, 44));
+            hint.rectTransform.anchoredPosition = new Vector2(0, 92);
+
+            confirm = UiKit.Rect("Confirm", Root).Fill();
+            var shade = UiKit.Image("Shade", confirm, null, new Color(0, 0.01f, 0.02f, 0.55f));
+            shade.rectTransform.Fill();   // also stops clicks reaching the book behind
+            var card = UiKit.Rect("Card", confirm).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 420));
+            var bg = UiKit.Image("Bg", card, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.97f), true);
+            bg.rectTransform.Fill();
+            Frames.Add(card);
+            Label(card, "Start a new season?", UiKit.Heading, 46, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(900, 60)).Shadowed(0.8f, 2f);
+            var body = Label(card, "The logbook starts again at night I: its lamps, best scores, ships brought home, the ending and the Night Watch records are cleared, and the hints come back. Settings and keys stay as they are.",
+                UiKit.Italic, 27, UiKit.Muted, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(820, 120));
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            stay = UiButton.Create(card, "Stay", UiKit.Heading, 40, Cancel, TextAnchor.MiddleCenter);
+            ((RectTransform)stay.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(-200, 70), new Vector2(340, 58));
+            startAfresh = UiButton.Create(card, "Start afresh", UiKit.Heading, 40, () => { Cancel(false); OnNewSeason?.Invoke(); }, TextAnchor.MiddleCenter);
+            ((RectTransform)startAfresh.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(200, 70), new Vector2(340, 58));
+            stay.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = startAfresh, selectOnRight = startAfresh, selectOnUp = startAfresh, selectOnDown = startAfresh };
+            startAfresh.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = stay, selectOnRight = stay, selectOnUp = stay, selectOnDown = stay };
+            confirm.gameObject.SetActive(false);
         }
+
+        /// <summary>The logbook is asking whether to start a new season.</summary>
+        public bool Confirming => confirm.gameObject.activeSelf;
+
+        /// <summary>Ask, with Stay chosen, so a second press changes nothing.</summary>
+        void Ask()
+        {
+            confirm.gameObject.SetActive(true);
+            confirm.SetAsLastSibling();
+            Tween.Fade(confirm.Group(0f), 1f, 0.25f);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(stay.gameObject);
+            Sfx.Play("ui_page", 0.4f, 1.1f);
+        }
+
+        /// <summary>Back to the book, on "Start a new season".</summary>
+        public void Cancel() => Cancel(true);
+
+        void Cancel(bool select)
+        {
+            if (!Confirming) return;
+            confirm.gameObject.SetActive(false);
+            if (select && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(newSeason.gameObject);
+        }
+
+        // For tours.
+        public void TourAsk() => newSeason.OnClick?.Invoke();
+        public bool NewSeasonShown => newSeason.gameObject.activeSelf;
+        public string Selected => EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null ? EventSystem.current.currentSelectedGameObject.name : "nothing";
+        public void TourConfirm(bool afresh) { if (Confirming) (afresh ? startAfresh : stay).OnClick?.Invoke(); }
 
         static Text Centered(Text t)
         {
@@ -331,7 +393,12 @@ namespace LastLight.UI
                 }
             }
             summary.text = $"{save.TotalLamps} of 36 lamps lit  ·  {save.shipsHome} ships brought home";
+            newSeason.gameObject.SetActive(save.HasProgress);
+            if (Confirming) Cancel(false);
         }
+
+        /// <summary>How the book stands, for tours: the nights open, and the lamps lit.</summary>
+        public string Summary => summary.text;
 
         public override void Show()
         {

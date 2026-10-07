@@ -18,7 +18,7 @@ namespace LastLight.Core
         public int speed;                        // game speed in percent when below full; 0 = full speed
     }
 
-    /// <summary>Progress and preferences, stored as JSON in PlayerPrefs.</summary>
+    /// <summary>Progress and preferences, stored as JSON in save.json (see <see cref="SaveStore"/>).</summary>
     [Serializable]
     public sealed class SaveData
     {
@@ -56,7 +56,6 @@ namespace LastLight.Core
         public bool hints = true;
         public List<string> hintsSeen = new List<string>();   // each onboarding hint shows once per save
 
-        const string Key = "lastlight.save";
         static SaveData current;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -68,6 +67,7 @@ namespace LastLight.Core
             {
                 if (current != null) return current;
                 current = new SaveData();
+                bool migrate = false;
                 if (Game.HasArg("-llFresh"))
                 {
                     // Tours can start mid-season (seven nights kept) to show a filled-in logbook.
@@ -98,11 +98,22 @@ namespace LastLight.Core
                     }
                     return current;
                 }
-                var json = PlayerPrefs.GetString(Key, "");
-                if (!string.IsNullOrEmpty(json))
+                string json = "", from = "";
+                try { json = SaveStore.Read(SaveStore.Dir, out from); }
+                catch (Exception e) { Debug.LogWarning("[Save] could not open the save: " + e.Message); }
+                if (!SaveStore.TryParse(json, current, out var error))
                 {
-                    try { JsonUtility.FromJsonOverwrite(json, current); }
-                    catch (Exception e) { Debug.LogWarning("[Save] could not read save: " + e.Message); }
+                    // Start afresh, but keep the damaged text: the next save would overwrite it.
+                    Debug.LogWarning($"[Save] could not read the save ({error}); kept it as {SaveStore.UnreadableName}");
+                    current = new SaveData();
+                    try { SaveStore.Write(SaveStore.Dir, SaveStore.UnreadableName, json); }
+                    catch (Exception e) { Debug.LogWarning("[Save] could not keep the damaged save: " + e.Message); }
+                }
+                else if (from == "prefs" && !string.IsNullOrEmpty(json))
+                {
+                    // A save from an older build: carry it over to the file (the old entry stays put).
+                    Debug.Log("[Save] carried the save over from PlayerPrefs to " + SaveStore.FileName);
+                    migrate = true;
                 }
                 if (current.lamps == null || current.lamps.Length != 12) current.lamps = new int[12];
                 if (current.best == null || current.best.Length != 12) current.best = new int[12];
@@ -114,6 +125,7 @@ namespace LastLight.Core
                 // Saves from before the table: the one best watch becomes its first entry.
                 if (current.watches.Count == 0 && current.watchBest > 0)
                     current.watches.Add(new WatchRecord { score = current.watchBest, ships = current.watchShips, seconds = current.watchSeconds });
+                if (migrate && !Application.isEditor) current.Save();
                 return current;
             }
         }
@@ -121,8 +133,41 @@ namespace LastLight.Core
         public void Save()
         {
             if (Game.HasArg("-llFresh")) return;
-            PlayerPrefs.SetString(Key, JsonUtility.ToJson(this));
-            PlayerPrefs.Save();
+            try { SaveStore.Write(SaveStore.Dir, SaveStore.FileName, JsonUtility.ToJson(this)); }
+            catch (Exception e) { Debug.LogWarning("[Save] could not write the save: " + e.Message); }
+        }
+
+        /// <summary>Whether there's a season to clear: a night kept, or a watch on the table.</summary>
+        public bool HasProgress => unlocked > 1 || TotalLamps > 0 || shipsHome > 0 || endingSeen || watches.Count > 0 || watchBest > 0;
+
+        /// <summary>Clears the season: the nights, lamps and scores, the ships brought home, the
+        /// ending and the Night Watch records; the hints come back. Settings and keys stay. Doesn't
+        /// save (see <see cref="NewSeason"/>).</summary>
+        public void ClearSeason()
+        {
+            unlocked = 1;
+            lamps = new int[12];
+            best = new int[12];
+            shipsHome = 0;
+            homeNames = new List<string>();
+            endingSeen = false;
+            tutorialSeen = false;
+            watchBest = watchShips = watchSeconds = 0;
+            watches = new List<WatchRecord>();
+            hintsSeen = new List<string>();
+        }
+
+        /// <summary>"Start a new season": the season so far is kept as save.previous.json, then
+        /// cleared and saved.</summary>
+        public void NewSeason()
+        {
+            if (!Game.HasArg("-llFresh"))
+            {
+                try { SaveStore.Write(SaveStore.Dir, SaveStore.PreviousName, JsonUtility.ToJson(this)); }
+                catch (Exception e) { Debug.LogWarning("[Save] could not keep the old season: " + e.Message); }
+            }
+            ClearSeason();
+            Save();
         }
 
         public void RecordNight(int night, int lamps, int score, IEnumerable<string> names)
