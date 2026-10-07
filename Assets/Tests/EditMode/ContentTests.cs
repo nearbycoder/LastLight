@@ -73,6 +73,28 @@ namespace LastLight.Tests
         }
 
         [Test]
+        public void OnlyANightWatchCanBeStoodDown()
+        {
+            var watch = new SimWorld(map, NightWatch.Generate(map, 11), 7);
+            var bot = new AutoKeeper();
+            for (int i = 0; i < 60 * 120; i++) watch.Step(1f / 60f, bot.Decide(watch, 1f / 60f));
+            Assert.AreEqual(MissionOutcome.Running, watch.Outcome, "the bot keeps a watch for two minutes");
+            int score = watch.Score, ships = watch.Arrivals;
+            watch.StandDown();
+            Assert.IsTrue(watch.StoodDown);
+            Assert.AreEqual(MissionOutcome.Failed, watch.Outcome, "a stood-down watch ends as a watch does");
+            Assert.AreEqual(score, watch.Score);
+            Assert.AreEqual(ships, watch.Arrivals);
+            Assert.AreEqual(NightWatch.LampsFor(ships), watch.Lamps);
+
+            var night = new SimWorld(map, missions[1], 7);
+            night.Step(1f / 60f, default);
+            night.StandDown();
+            Assert.IsFalse(night.StoodDown);
+            Assert.AreEqual(MissionOutcome.Running, night.Outcome, "the twelve nights can't be stood down");
+        }
+
+        [Test]
         public void HardIsHarder()
         {
             // The same night, the same keeper: charts fade sooner, buoys burn shorter, no warnings.

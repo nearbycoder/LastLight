@@ -55,6 +55,7 @@ namespace LastLight.Sim
         public Vector2 Current;
         public float Rain;
         public bool Frozen;              // stop ships (used by the ending)
+        public bool StoodDown { get; private set; }   // the keeper ended a Night Watch from the pause menu
         public static bool DebugSteering;   // fill SimShip.SteerDebug (allocates; for traces only)
         public static bool LateChartReprieve = true;   // full astern for hazards charted too close (tests turn it off to compare)
         public bool ShipsDone => nextSpawn >= schedule.Length && !Ships.Exists(s => s.Active);
@@ -228,6 +229,17 @@ namespace LastLight.Sim
                 Outcome = MissionOutcome.Won;
                 Emit(SimEventType.MissionWon);
             }
+        }
+
+        /// <summary>
+        /// The keeper ends a Night Watch by choice: it's over now, kept and scored as if the last
+        /// wreck had ended it. The twelve nights can't be stood down.
+        /// </summary>
+        public void StandDown()
+        {
+            if (!Mission.endless || Outcome != MissionOutcome.Running) return;
+            StoodDown = true;
+            Outcome = MissionOutcome.Failed;
         }
 
         void Emit(SimEventType type, SimShip ship = null, int index = -1, Vector2 pos = default, string text = null)

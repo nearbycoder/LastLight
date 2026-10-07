@@ -410,7 +410,9 @@ namespace LastLight.UI
         {
             heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH" + (w.Hard ? "  ·  HARD" : ""));
             title.text = "The watch ends";
-            verdict.text = w.Arrivals == 0 ? "Not one ship home. The Board will hear of it."
+            string home = w.Arrivals == 0 ? "not one ship home" : w.Arrivals == 1 ? "one ship home" : $"{w.Arrivals} ships home";
+            verdict.text = w.StoodDown ? $"You stood the watch down after {UiKit.Clock(w.Time)}, {home}."
+                : w.Arrivals == 0 ? "Not one ship home. The Board will hear of it."
                 : w.Arrivals == 1 ? $"One ship home in {UiKit.Clock(w.Time)}." : $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}.";
             stats.text = $"Ships home  <b>{w.Arrivals}</b>          Wrecked  <b>{w.Wrecks}</b>          Watch kept  <b>{UiKit.Clock(w.Time)}</b>";
             scoreLine.text = w.Score.ToString("N0");

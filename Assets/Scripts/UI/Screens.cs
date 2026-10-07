@@ -337,7 +337,9 @@ namespace LastLight.UI
 
     public sealed class PauseScreen : UiScreen
     {
-        public Action OnResume, OnRestart, OnSettings, OnLogbook, OnTitle;
+        public Action OnResume, OnRestart, OnEndWatch, OnSettings, OnLogbook, OnTitle;
+        readonly List<UiButton> buttons = new List<UiButton>();
+        bool watch;
         RectTransform logPanel;
         Text logText;
         // The calls' area at most: the panel hangs from beside the title and stops short of the
@@ -370,7 +372,7 @@ namespace LastLight.UI
             var items = new (string, Action)[]
             {
                 ("Resume", () => OnResume?.Invoke()),
-                ("Restart the night", () => OnRestart?.Invoke()),
+                ("Restart the night", () => { if (watch) OnEndWatch?.Invoke(); else OnRestart?.Invoke(); }),
                 ("Settings", () => OnSettings?.Invoke()),
                 ("Keeper's logbook", () => OnLogbook?.Invoke()),
                 ("Leave the lighthouse", () => OnTitle?.Invoke()),
@@ -381,6 +383,7 @@ namespace LastLight.UI
                 var b = UiButton.Create(Root, label, UiKit.Heading, 42, act, TextAnchor.MiddleCenter);
                 ((RectTransform)b.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60 - i * 66), new Vector2(520, 60));
                 if (i == 0) FirstSelected = b;
+                buttons.Add(b);
                 Frames.Add((RectTransform)b.transform);
             }
 
@@ -399,6 +402,19 @@ namespace LastLight.UI
             logPanel.gameObject.SetActive(false);
             Frames.Add(logPanel);
         }
+
+        /// <summary>A Night Watch can't be restarted, only ended (and kept); a night only restarted.</summary>
+        public void SetWatch(bool on)
+        {
+            watch = on;
+            buttons[1].Label.text = on ? "End the watch" : "Restart the night";
+        }
+
+        /// <summary>The menu's labels, top to bottom; for tours.</summary>
+        public string ItemLabel(int i) => buttons[i].Label.text;
+
+        /// <summary>Choose a menu item as a click would; for tours.</summary>
+        public void Choose(int i) => buttons[i].OnClick?.Invoke();
 
         /// <summary>Fill the log from the radio: as many of the latest calls as fit, oldest first.</summary>
         public void SetRadioLog(RadioLog log)

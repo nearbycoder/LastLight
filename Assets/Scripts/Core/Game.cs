@@ -146,6 +146,7 @@ namespace LastLight.Core
             briefing.OnStart = BeginWatch;
             pause.OnResume = Resume;
             pause.OnRestart = () => { Time.timeScale = 1f; pause.Hide(); RestartNight(); };
+            pause.OnEndWatch = EndWatch;
             pause.OnSettings = () => { pause.Hide(); ShowSettings(State.Paused); };
             pause.OnLogbook = () => { pause.Hide(); Time.timeScale = 1f; ShowLogbook(State.Title); };
             pause.OnTitle = () => { Time.timeScale = 1f; pause.Hide(); ShowTitle(); };
@@ -370,6 +371,7 @@ namespace LastLight.Core
             if (Current != State.Playing) return;
             Current = State.Paused;
             Time.timeScale = 0f;
+            pause.SetWatch(Watching);
             pause.Show();
             pause.SetRadioLog(Radio.Log);
             Sfx.Play("ui_page", 0.4f, 1.2f);
@@ -381,6 +383,17 @@ namespace LastLight.Core
             Time.timeScale = 1f;
             Current = State.Playing;
             Runner?.Controls.IgnorePresses();
+        }
+
+        /// <summary>The keeper stands a Night Watch down: dawn now, and the watch is kept and ranked.</summary>
+        void EndWatch()
+        {
+            if (!Watching || Runner == null || Current != State.Paused) return;
+            pause.Hide();
+            Time.timeScale = 1f;
+            Runner.World.StandDown();
+            Radio.Say("ianto", "Right you are, keeper. I'll write the watch up in the log.", 3);
+            ShowResults();
         }
 
         void ShowResults()
@@ -564,5 +577,7 @@ namespace LastLight.Core
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;
         public (int shown, string newest) TourPauseLog => (pause.LogShown, pause.LogNewest);
+        public string TourPauseItem(int i) => pause.ItemLabel(i);
+        public void TourPauseChoose(int i) => pause.Choose(i);
     }
 }
