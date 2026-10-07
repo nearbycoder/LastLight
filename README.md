@@ -108,7 +108,8 @@ can see (a buoy such as the Hen Bell, a wreckers' cliff, a sea stack or Porthkel
 it on the water for a few seconds, and a reef group or sandbank gets its name the first time it's
 charted each night, so the debrief's "struck the Hen's Chicks" is a place you've seen named. A
 hidden hazard is never pointed at before it's charted. Names out of frame stay at the screen's
-edge with a chevron.
+edge with a chevron, and a name whose spot is taken (by another name, or a lost or lured ship's
+mark) steps a line up or down rather than covering it.
 
 Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
@@ -197,9 +198,15 @@ and by which false light, and who lost their way. **Chart** on the dawn card ope
 chart, Merrow Bay drawn on paper with every ship's track: solid while the captain was on course,
 dotted red with a **?** where they lost their way, dashed amber with a lantern where a false light
 had them, and a cross at each wreck, with the reefs, sandbanks and false lights you saw that night.
+The chart's names are set clear of each other and of the crosses, most important first. Under
+the score, the dawn card says where it came from ("6 ships home 750 · 6 steady hands +300"; a
+ship that ran dark counts double). If the same night fails twice running, the card points to
+Settings ▸ Game speed (or Difficulty, on Hard); it changes nothing by itself.
 During a night, three small lamps under the score show what's still in play: the third goes out
 the moment a ship first loses its way or is lured, the second at the first wreck, with a note
-naming the ship. The keeper's logbook keeps your best for each night so you can go back for a
+naming the ship. On a night you've kept before, and in a Night Watch, "BEST 880" sits under the
+score, and turns to "PAST YOUR BEST" (or "NEW BEST" in a watch) the moment you pass it. The
+keeper's logbook keeps your best for each night so you can go back for a
 cleaner watch, and a kept night's briefing says which lamp is still to earn. **Start a new season**
 in the logbook clears the nights, lamps, scores and watch records (it asks first, and keeps your
 settings and keys). Finish the season and the **Night Watch** opens: an
@@ -241,7 +248,10 @@ night 9, and the later nights combine them:
 Around the nights you'll find a live title scene, briefing cards, the radio, pause and settings
 menus, dawn results, an ending, and credits that name every ship you brought home. Progress and
 settings are saved locally, in `save.json` in the game's data folder (on Linux
-`~/.config/unity3d/Gannet Head/Last Light/`).
+`~/.config/unity3d/Gannet Head/Last Light/`). If the save can't be read, the title says so and
+where the damaged copy was kept (`save.unreadable.json`); if it can't be written (a full disk, a
+read-only folder), the dawn card and the title say progress isn't being kept, and where the save
+should be. A save that's there but can't be opened is never written over.
 
 ## Screenshots
 
@@ -303,7 +313,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (79 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (93 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -326,7 +336,12 @@ contains a copy of it.
   its way or was lured is on its track, the log doesn't change the night, and a long watch's log
   thins itself and keeps every change of state. Three check starting a new season (what's cleared
   and what's kept), that a damaged save is reported rather than read, and that the save file is
-  replaced whole; they write only under the project's `Temp/` folder.
+  replaced whole; they write only under the project's `Temp/` folder. Four more, also under
+  `Temp/`, check what the keeper is told about the save: a good save loads quietly, a damaged one
+  is kept aside and said, one that can't be opened is never written over, and a failed write is
+  reported and clears once a write works. Five check the label placer behind names on the water
+  and the chart, three that the dawn card's score parts add up to the score on all twelve nights
+  (kept and shaky) and a watch, and two the offer of help after repeated failures.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -343,7 +358,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
   and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
   so Unity's window settings don't land in your `~/.config/unity3d` either.
@@ -370,16 +385,24 @@ devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log
   stages a wreck on night II and lost and lured ships on night IX, opens the dawn chart with a
   click, the arrows and the simulated pad, and checks each wreck's cross sits where the wreck lies.
   `lamps` (with `-llSampleSave`) checks the HUD's lamps against the simulation every frame and
-  against the dawn card, and reads the briefing's record line.
+  against the dawn card, and reads the briefing's record line. `names` also leaves the Little Auk
+  in the dark on night III and checks every frame that no name covers another or a ship's mark,
+  and `chart` that none of the chart's names covers another or a cross (`-llNamesOverlap` draws
+  names as before round 8, to show the checks catch it). `best` stages bests of 880 on night III
+  and 600 for a watch and checks every frame that the line under the score matches the
+  simulation. `help` fails night II again and again from the dawn card and checks the offer of
+  help at each step.
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
   any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
-- `Tools/season_tour.sh <reset|damaged|migrate> <dir>` runs the `season` tour, which uses a real
-  save, against a throwaway config directory under `<dir>` seeded with one: a finished season
-  cleared from the logbook, a damaged save, or an older build's save carried over. It refuses to
+- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable> <dir>` runs the `season`
+  tour, which uses a real save, against a throwaway config directory under `<dir>` seeded with
+  one: a finished season cleared from the logbook, a damaged save, an older build's save carried
+  over, a save folder that can't be written (made read-only for the run), or something at
+  `save.json` that can't be opened. It refuses to
   run anywhere else, and checks your own save folder is unchanged.
 - `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
   as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
@@ -400,8 +423,8 @@ fps, with the game's audio mix and music muted. `Tools/make_trailer.py` cuts the
 of the title waltz, which it re-synthesizes from the game's own music generator. It also animates
 the captions in the game's fonts, ducks the music under the game's sound, normalizes to −16 LUFS
 and encodes the trailer, the poster and the teaser loop. `Tools/make_trailer.sh --edit` re-edits
-an existing shoot. The shoot turns off names on the water and the lamps at stake, which came after
-the released trailer, so a re-shoot matches it.
+an existing shoot. The shoot turns off names on the water, the lamps at stake and the score to
+beat, which came after the released trailer, so a re-shoot matches it.
 
 ## Project structure
 
@@ -543,6 +566,15 @@ Linux. Here's what is still unproven or rough:
   This was checked on Linux only; macOS and Windows use Unity's usual data folder, untested.
 - **The dawn chart and the lamps at stake are judged by tours, not people.** Whether the chart
   is worth opening, whether a busy night's tracks read, and whether the lamps under the score
-  help or distract need a playtest.
+  help or distract need a playtest. The same goes for round 8's score to beat, the score's parts
+  on the dawn card and the offer of help after two failures (its wording, and whether two is the
+  right number, are guesses).
+- **Save trouble was checked on Linux only.** The notices for a save that can't be read, opened
+  or written were checked with a read-only folder and an unopenable `save.json` in a throwaway
+  config. A full disk wasn't tried, and the wording of the reasons comes from the exception, so on
+  macOS and Windows it may read differently.
+- **Names step aside, but only a line or two.** On a crowded spot (two wrecks at the same rock on
+  the chart) the names stack up beside each other; when no clear place is near, a name takes the
+  least covered one.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.

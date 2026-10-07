@@ -1001,3 +1001,78 @@ after (`Builds/round8/save_before.txt`).
 - **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts, the
   save on macOS and Windows**: no hardware or platforms here to check them on.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 8 results (2026-10-07)
+
+All four planned items and the optional fifth landed on `improvements-8`, one commit each.
+Verification was on the built Linux player from the final commit: 93/93 EditMode tests (79
+before, plus five for the label placer, four for save trouble, three for the score's parts and two
+for the offer of help), and a final pass of 28 tour runs (`Builds/round8/final.log`): `input`,
+`ui`, `status`, `radiolog`, `ending`, `endingskip`, `offscreen`, `brightness`, `keys`, `names`,
+`notes`, `chart`, `lamps`, `watchend`, `confirm`, `speed`, the new `best` and `help`, `screens` at
+four window sizes with 130% HUD text, `framerate`, and the `season` tour five ways (two of them
+new). Every run had 0 errors; 305 checks passed and one failed (see below). The pass ran at load
+averages of 2 to 13. Captures are in `docs/media/improvements/round8/`.
+
+The only simulation change is that a ship's points are now worked out in `ScoreParts`, with the
+same formula. The test that pins the AutoKeeper's Standard scores on all twelve nights still
+passes, so balance is unchanged on both difficulties. The validation report wasn't re-run.
+
+1. **Names that don't sit on each other.** As planned. `LabelPlacer` is a small pure class (five
+   tests). On the water a name keeps its place while that's clear, so it doesn't flick between
+   places as a mark bobs. The `names` tour leaves the Little Auk in the dark on night III and checks
+   all 5,400 frames: no name covers another or a ship's mark. The Hen's Chicks stepped up a line
+   at 5.5 s, where it used to land on the Hen Bell, and the Black Hen stepped down at 12.3 s. Run
+   with `-llNamesOverlap` (names as round 7 drew them), the same check fails at 5.5 s on exactly
+   that pair (`names_before_after_night3.jpg`). On the chart the old drawing failed with 11 clashes
+   on night IX. The worst was the Dunlin's name, hidden under the Evening Star's where both wrecked
+   at the same rock. The first new version still left two wreck names touching their own crosses:
+   they were set 26 px under a 32 px cross. They now sit 31 px under, and the check passes on
+   nights II and IX (`chart_names_before_after.jpg`).
+2. **Save trouble told.** As planned, plus one fix found on the way. A path that exists but isn't a
+   readable file (here a folder named `save.json`) used to fall through to the PlayerPrefs
+   migration. It now counts as a save that can't be opened. The title's notice says what happened
+   and where; the dawn card says when a kept night or watch wasn't saved. A damaged save that can't
+   even be copied aside also stops saving rather than risk the only copy. The `season` tour's
+   `readonly` run (the throwaway save folder made read-only for the run) and `unopenable` run
+   keep night I and check the dawn card, the title and that the seeded save is byte-for-byte
+   unchanged. The reasons ("permission was refused", "the disk is full") come from the exception,
+   and a full disk wasn't tried.
+3. **The score explained.** As planned, worded "6 ships home 750 · 6 steady hands +300" (a ship
+   that ran dark adds "1 ran dark, double +150"). The test plays all twelve nights twice, kept and
+   with a shaky keeper who neglects a ship, plus a ten-minute watch: the parts always add up, and
+   both the dark-ship and wavering cases occur.
+4. **The score to beat.** As planned, with one wording change. A night's best counts only if the
+   night is kept, so passing it on one of the twelve nights reads "PAST YOUR BEST"; in a watch,
+   which is always kept, it reads "NEW BEST". The `best` tour compared the line with the
+   simulation every frame (6,838 on night III, 1,440 in the watch) with no mismatched frame. It
+   turned at 1,000 against 880 and at 750 against 600, and the lamps and horn stay clear of it.
+   With no best (night IV, never kept) nothing shows and the lamps stay where they were.
+5. **An offer of help.** Done. After the same night fails twice running, the dawn card points to
+   Settings ▸ Game speed, or to Difficulty on Hard, and says nothing once both are as easy as they
+   go. The `help` tour passes 7/7: the first failure is silent, the second offers game speed, 70%
+   on Standard offers nothing, Hard offers Difficulty, and a kept night or a different night starts
+   the count again. The wording and the threshold of two are guesses for a playtest to settle.
+
+**The one failed check.** In the final pass, the `ui` tour's resolution switch (a 1600×900 window
+to 1280×720) failed. The window reached 1280×720 within 0.01 s but was back at 1600×900 half a
+second later. Round 8 doesn't touch that code. The same tour passed earlier this session and in
+two reruns straight after the pass (load about 1), each resizing within 0.01 s. Round 4 saw one
+such failure too. It looks like the compositor occasionally undoing the resize, but that's
+unproven.
+
+**Process notes.** Items 2 to 5 share `Game.cs` and the dawn card's code. They were built and
+toured together, then committed one at a time by taking each shared file back to its state for
+that item. So only the last commit (all items) was built and toured on its own. The first `help`
+run hit `tour.sh`'s 600 s limit two checks before the end while the shared GPU was fully busy. It
+was re-run with a longer limit and passed, and the final pass gives `help` 1,500 s. My own save
+folder held the editor's `prefs` (same checksum; its timestamp moved during a batch build) and the
+test runner's `TestResults.xml` (rewritten by each test run) before and after, and no `save.json`,
+as in round 7.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, human playtests
+(now including the score to beat, the score's parts and the offer of help), fullscreen and
+real-hardware checks of other screen shapes (a Steam Deck in particular), non-US keyboard layouts,
+the save's location and its trouble notices on macOS and Windows, a full disk, Windows (module
+install) and macOS signing (Developer ID).
