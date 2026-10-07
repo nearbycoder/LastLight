@@ -136,7 +136,8 @@ and name the keys you've chosen in Settings ▸ Keys.
   exceed that night's allowance: one wreck on most nights, two on nights 8, 10, 11 and 12. The
   briefing says how many, and hulls under the night's title count them down, ending on "next
   wreck ends the night". You earn a lamp for keeping the light through the night, a second
-  for losing no ship, and a third for a **steady hand**: no ship ever Lost or Lured.
+  for losing no ship, and a third for a **steady hand**: no ship ever Lost or Lured. The three
+  lamps under the score go out as they're lost, so you can see what's still in play.
 
 ## Features
 
@@ -192,8 +193,16 @@ grumble, joke, panic and thank you in typed text over synthesized gibberish voic
 
 Dawn tallies every night with up to three lamps and a short debrief of every ship that had a bad
 night: which reef it struck and whether that reef was uncharted or charted too late, who was lured
-and by which false light, and who lost their way. The keeper's logbook keeps your best for each
-night so you can go back for a cleaner watch. Finish the season and the **Night Watch** opens: an
+and by which false light, and who lost their way. **Chart** on the dawn card opens the night's
+chart, Merrow Bay drawn on paper with every ship's track: solid while the captain was on course,
+dotted red with a **?** where they lost their way, dashed amber with a lantern where a false light
+had them, and a cross at each wreck, with the reefs, sandbanks and false lights you saw that night.
+During a night, three small lamps under the score show what's still in play: the third goes out
+the moment a ship first loses its way or is lured, the second at the first wreck, with a note
+naming the ship. The keeper's logbook keeps your best for each night so you can go back for a
+cleaner watch, and a kept night's briefing says which lamp is still to earn. **Start a new season**
+in the logbook clears the nights, lamps, scores and watch records (it asks first, and keeps your
+settings and keys). Finish the season and the **Night Watch** opens: an
 endless score attack with every reef, sandbank and buoy out and no end to the ships. Each watch
 brings its own weather: one to three fog banks in different places, squalls that blow through
 every few minutes with current, rain and lightning (stronger as the night wears on), and wreckers
@@ -231,7 +240,8 @@ night 9, and the later nights combine them:
 
 Around the nights you'll find a live title scene, briefing cards, the radio, pause and settings
 menus, dawn results, an ending, and credits that name every ship you brought home. Progress and
-settings are saved locally.
+settings are saved locally, in `save.json` in the game's data folder (on Linux
+`~/.config/unity3d/Gannet Head/Last Light/`).
 
 ## Screenshots
 
@@ -293,7 +303,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (71 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (79 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -311,7 +321,12 @@ contains a copy of it.
   pause, reset, repairing a damaged save, and the save format (none of them touch the real save).
   Four check what a radio call points at for names on the water (whole words, the longest name
   first, and no hidden reef or sandbank before it's charted), and three check that the keeper's
-  notes open with the season and name the device, keys and difficulty in play.
+  notes open with the season and name the device, keys and difficulty in play. Five check the
+  night's log behind the dawn chart: every track ends where its ship ended, every time a ship lost
+  its way or was lured is on its track, the log doesn't change the night, and a long watch's log
+  thins itself and keeps every change of state. Three check starting a new season (what's cleared
+  and what's kept), that a damaged save is reported rather than read, and that the save file is
+  replaced whole; they write only under the project's `Temp/` folder.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -328,8 +343,10 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate> <dir> -llFresh` plays the built
-  game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps> <dir> -llFresh` plays the built
+  game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
+  and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
+  so Unity's window settings don't land in your `~/.config/unity3d` either.
   The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
   staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
   keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
@@ -349,13 +366,21 @@ devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log
   are labelled where they are (and the Teeth not before they're charted). `notes` opens the
   keeper's notes from the title with a new and a finished season, walks them with keys and a
   pad, checks every entry fits, and opens them from the pause menu on night V. `framerate`
-  measures a night at each Frame rate choice (`-llFrameNight 1` plays a cheaper night).
+  measures a night at each Frame rate choice (`-llFrameNight 1` plays a cheaper night). `chart`
+  stages a wreck on night II and lost and lured ships on night IX, opens the dawn chart with a
+  click, the arrows and the simulated pad, and checks each wreck's cross sits where the wreck lies.
+  `lamps` (with `-llSampleSave`) checks the HUD's lamps against the simulation every frame and
+  against the dawn card, and reads the briefing's record line.
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
   any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
+- `Tools/season_tour.sh <reset|damaged|migrate> <dir>` runs the `season` tour, which uses a real
+  save, against a throwaway config directory under `<dir>` seeded with one: a finished season
+  cleared from the logbook, a damaged save, or an older build's save carried over. It refuses to
+  run anywhere else, and checks your own save folder is unchanged.
 - `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
   as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
   colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it, and checks that each
@@ -375,7 +400,8 @@ fps, with the game's audio mix and music muted. `Tools/make_trailer.py` cuts the
 of the title waltz, which it re-synthesizes from the game's own music generator. It also animates
 the captions in the game's fonts, ducks the music under the game's sound, normalizes to −16 LUFS
 and encodes the trailer, the poster and the teaser loop. `Tools/make_trailer.sh --edit` re-edits
-an existing shoot.
+an existing shoot. The shoot turns off names on the water and the lamps at stake, which came after
+the released trailer, so a re-shoot matches it.
 
 ## Project structure
 
@@ -505,5 +531,18 @@ Linux. Here's what is still unproven or rough:
   about 30 fps even at 640×360. When it freed up, night I at 1280×720 (50% render scale, low fog)
   measured 120.0, 60.0 and 30.0 fps for Display (a 120 Hz screen), 60 and 30. Battery and heat
   savings on a real laptop or handheld haven't been measured.
+- **The save moved in round 7.** The built Linux player turned out to keep its PlayerPrefs, and
+  so the whole save, in `~/.config/unity3d/unknown/unknown/prefs`, a file that every Unity player
+  with the same fault shares (on the development machine other games write to it too), where
+  another game could overwrite or clear it. The save is now `save.json` in the game's own data
+  folder (`~/.config/unity3d/Gannet Head/Last Light/` on Linux), written to a temporary file and
+  swapped in whole. The first launch of this build carries an older save over from PlayerPrefs
+  and leaves the old entry where it was. A save that can't be read is kept as
+  `save.unreadable.json`, and "Start a new season" keeps the season it clears as
+  `save.previous.json`; neither can be restored from inside the game, only by renaming the file.
+  This was checked on Linux only; macOS and Windows use Unity's usual data folder, untested.
+- **The dawn chart and the lamps at stake are judged by tours, not people.** Whether the chart
+  is worth opening, whether a busy night's tracks read, and whether the lamps under the score
+  help or distract need a playtest.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.

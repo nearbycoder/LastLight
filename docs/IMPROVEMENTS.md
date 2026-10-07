@@ -860,3 +860,69 @@ stay under `Builds/round7/`. The real save directory is checksummed before and a
 - **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts**: no
   hardware here to check them on.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 7 results (2026-10-07)
+
+All three items landed on `improvements-7`, one commit each, plus a small follow-up so the trailer
+shoot hides the new HUD lamps. Verification was on the built Linux player from the final commit:
+79/79 EditMode tests (71 before, plus five for the night's log and three for the season and the
+save file), and a final pass of 24 tour runs: `input`, `ui`, `status`, `radiolog`, `ending`,
+`endingskip`, `offscreen`, `brightness`, `keys`, `names`, `notes`, the new `chart` and `lamps`,
+`watchend`, `confirm`, `speed`, `screens` at four window sizes with 130% HUD text, `framerate`,
+and the new `season` tour three ways. 289 checks passed, none failed, and every run had 0 errors
+(`Builds/round7/final.log`). The final pass waited for the load average to drop below 24 before
+each tour, and ran at loads of 9 to 23. No simulation code changed (the night's log only reads
+the simulation, and a test shows a logged night scores exactly as an unlogged one), so the pinned
+Standard scores still pass and balance is unchanged on both difficulties; the validation report
+wasn't re-run. Captures are in `docs/media/improvements/round7/`.
+
+1. **The night's chart.** As planned. `NightLog` keeps a point when a ship has moved 2.5 units or
+   changed state; a 30-minute watch kept 16,594 points, under the 20,000 at which it thins itself
+   (a test forces the thinning with a smaller cap and checks every change of state survives). The
+   chart is drawn as vector ink (`ChartInk`, one UI mesh), so it's sharp at any size. The `chart`
+   tour checks each wreck's cross against the wreck's position projected independently onto the
+   chart's frame on screen (within 3 px; all six crosses were exact), that the "?" and lantern
+   marks match the log and the ships' own counts (a doused lure can leave a ship lost, which gets a
+   "?" on the chart but isn't a "lost its way" in the debrief), and that a click, the arrows and
+   Enter, and the simulated pad's A open it while Esc, B and "Back to dawn" return. The dawn card's
+   buttons had no left and right navigation before (they were laid out in a row with vertical-only
+   navigation); they now walk with the arrows and the d-pad. `chart_cvd.jpg` shows the lost and
+   lured stretches staying apart by pattern and mark under deuteranopia and protanopia, though the
+   red and amber themselves converge. The chart fits at all four screen shapes.
+2. **Lamps at stake.** As planned, except where the note goes: under the lamps in two short lines
+   ("STEADY HAND GONE / the Little Auk lost its way"), because a single line beside them would meet
+   the hint panel at 130% HUD text. The foghorn gauge moved down to make room (it stays where it
+   was in a Night Watch and in trailer shoots). The `lamps` tour compared the HUD's lamps with the
+   simulation every frame: at most one frame behind (they update in turn), and equal to the dawn
+   card's lamps on night II (a wreck: three to one) and night III (a lost ship: three to two). The
+   briefing's record line reads, for example, "Two lamps, best 880. Still to earn: a steady hand."
+   The keeper's notes mention both, and the longest entry still fits (514 of 640).
+3. **A new season, and the save moved.** The logbook's "Start a new season" works as planned. Its
+   tour found something bigger: **the built Linux player keeps its PlayerPrefs, and so the whole
+   save, in `~/.config/unity3d/unknown/unknown/prefs`**, a file every Unity player with the same
+   fault shares, not in `Gannet Head/Last Light/prefs` (that file is the editor's). Other sessions'
+   games write that shared file on this machine (its timestamp moved while no tour of mine was
+   running), so another game could overwrite or clear Last Light's progress. The save now lives in
+   `save.json` in the game's data folder, written to a temporary file and swapped in whole; the
+   first launch carries an older build's PlayerPrefs save over; a damaged save is kept as
+   `save.unreadable.json`; and the cleared season is kept as `save.previous.json`. The `season`
+   tour runs the player against a throwaway config directory (`Tools/season_tour.sh`, which sets
+   `XDG_CONFIG_HOME`; Unity honours it) and refuses to run anywhere else. It checks the reset with
+   keys and the pad, a 120-character damaged save, and the migration from PlayerPrefs.
+
+**Process notes.** Two consequences of the PlayerPrefs finding. First, rounds 3 to 6 checksummed
+`Gannet Head/Last Light/prefs` as "the real save"; it never held the player's save. Tours run with
+`-llFresh`, which never reads or writes the save, so no progress was at risk, but Unity itself
+wrote its window-size keys into the shared `unknown/unknown/prefs` at the end of every tour in
+every round. From this round `Tools/tour.sh` gives the player a config directory of its own
+(`Builds/tour-config`). Second, this round's "real save" check is the game's whole data folder:
+before and after, it held the editor's `prefs` (same checksum), the test runner's
+`TestResults.xml` (rewritten by each test run, as in earlier rounds) and no `save.json`. Also,
+waiting loops in my shell were cut short twice, so I waited on the final pass through a monitor
+instead; nothing was run twice because of it.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, human playtests
+(now including whether the chart and the lamps at stake help), fullscreen and real-hardware checks
+of other screen shapes (a Steam Deck in particular), non-US keyboard layouts, the save's location
+on macOS and Windows (untested), Windows (module install) and macOS signing (Developer ID).
