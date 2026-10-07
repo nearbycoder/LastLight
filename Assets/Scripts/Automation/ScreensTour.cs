@@ -109,6 +109,10 @@ namespace LastLight.Automation
             yield return Tour.Wait(3f);
             yield return t.Shot("07_results");
             CheckScreen(t, "results", g.TourScreen("results"));
+            g.TourShowChart();
+            yield return Tour.Wait(1.2f);
+            yield return t.Shot("08_chart");
+            CheckScreen(t, "chart", g.TourScreen("chart"));
             t.Log(failures == 0 ? "PASS every screen fits" : $"FAIL {failures} layout checks failed");
         }
 

@@ -41,6 +41,7 @@ namespace LastLight.Core
         NotesScreen notes;
         State notesReturn;
         ResultsScreen results;
+        ChartScreen chart;
         Fader fader;
         Feedback feedback;
         State settingsReturn;
@@ -144,6 +145,7 @@ namespace LastLight.Core
             settings = SettingsScreen.Create(menus.transform);
             notes = NotesScreen.Create(menus.transform);
             results = ResultsScreen.Create(menus.transform);
+            chart = ChartScreen.Create(menus.transform);
             fader = Fader.Create(menus.transform);
 
             title.OnBegin = () => ShowBriefing(SaveData.Current.unlocked);
@@ -179,6 +181,28 @@ namespace LastLight.Core
             };
             results.OnRetry = () => { results.Hide(); RestartNight(); };
             results.OnLogbook = () => { results.Hide(); ShowLogbook(State.Title); };
+            results.OnChart = ShowChart;
+            chart.OnBack = CloseChart;
+        }
+
+        /// <summary>The night's chart, from the dawn card.</summary>
+        void ShowChart()
+        {
+            if (Runner == null || Current != State.Results) return;
+            var w = Runner.World;
+            string title = Watching ? "The Night Watch" : $"Night {UiKit.Roman(Night)}  ·  {Runner.Def.title}";
+            string home = Watching ? $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}" : $"{w.Arrivals} of {w.TotalShips} ships home";
+            if (w.Wrecks > 0) home += w.Wrecks == 1 ? ", one wrecked" : $", {w.Wrecks} wrecked";
+            results.Hide(0.2f);
+            chart.Setup(World.Map, w, Runner.Log, title, home);
+            chart.Show();
+        }
+
+        void CloseChart()
+        {
+            if (!chart.Visible) return;
+            chart.Hide(0.2f);
+            if (Current == State.Results) results.ShowAgain();
         }
 
         void Start()
@@ -465,7 +489,7 @@ namespace LastLight.Core
         {
             Current = State.Ending;
             Hud.Show(false);
-            foreach (var s in new UiScreen[] { title, logbook, briefing, pause, settings, notes, results })
+            foreach (var s in new UiScreen[] { title, logbook, briefing, pause, settings, notes, results, chart })
                 if (s.Visible) s.Hide();
             if (ending == null) ending = gameObject.AddComponent<Ending>();
             ending.Play(this, () =>
@@ -536,6 +560,7 @@ namespace LastLight.Core
                 if (Current == State.Playing) Pause();
                 else if (Current == State.Paused && pause.Visible && pause.Confirming) pause.Cancel();
                 else if (Current == State.Paused && pause.Visible) Resume();
+                else if (chart.Visible) CloseChart();
                 else if (settings.Visible && settings.Back()) { }
                 else if (notes.Visible) CloseNotes();
                 else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
@@ -605,7 +630,7 @@ namespace LastLight.Core
 
         public void TourShowLogbook() => ShowLogbook(State.Title);
         public void TourShowSettings() => ShowSettings(State.Title);
-        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); notes.Hide(0f); title.Hide(0f); if (results.Visible) results.Hide(0f); }
+        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); notes.Hide(0f); title.Hide(0f); if (results.Visible) results.Hide(0f); if (chart.Visible) chart.Hide(0f); }
         public void TourShowNotes() => ShowNotes(State.Title);
         public NotesScreen TourNotes => notes;
         public void TourBriefing(int night) => ShowBriefing(night);
@@ -621,8 +646,11 @@ namespace LastLight.Core
         public UiScreen TourScreen(string name) => name switch
         {
             "title" => title, "logbook" => logbook, "settings" => settings, "briefing" => briefing,
-            "pause" => pause, "results" => results, "notes" => notes, _ => null,
+            "pause" => pause, "results" => results, "notes" => notes, "chart" => chart, _ => null,
         };
+        public ChartScreen TourChart => chart;
+        public ResultsScreen TourResults => results;
+        public void TourShowChart() => ShowChart();
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;
         public bool TourShowingTitle => Current == State.Title;

@@ -29,6 +29,8 @@ namespace LastLight.Core
         public float SlowestSpeed { get; private set; } = 1f;
         public event Action<SimEvent> OnEvent;
         public KeeperControls Controls { get; } = new KeeperControls();
+        /// <summary>The night's tracks, for the chart at dawn.</summary>
+        public NightLog Log { get; } = new NightLog();
         public AutoKeeper Bot { get; } = new AutoKeeper();
         /// <summary>Automation: adjusts the keeper's input each step (staging shots for the trailer).</summary>
         public Func<SimWorld, KeeperInput, KeeperInput> InputFilter;
@@ -118,6 +120,7 @@ namespace LastLight.Core
                 lastInput = input;
                 if (input.Horn) { Controls.ConsumeHorn(); input.Horn = false; }
                 foreach (var v in ships.Values) v.AfterStep();
+                if (!Attract) Log.Record(World);
                 Dispatch();
                 accumulator -= StepTime;
                 steps++;

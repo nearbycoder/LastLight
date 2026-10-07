@@ -546,11 +546,11 @@ namespace LastLight.UI
     /// <summary>Dawn: how the night went, lamps lighting up one by one.</summary>
     public sealed class ResultsScreen : UiScreen
     {
-        public Action OnNext, OnRetry, OnLogbook;
+        public Action OnNext, OnRetry, OnLogbook, OnChart;
         Text heading, title, verdict, stats, scoreLine, best, debrief;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
-        UiButton next, retry, logbook;
+        UiButton next, retry, logbook, chart;
         RectTransform card;
         int lampCount;
         float lampTimer;
@@ -599,6 +599,8 @@ namespace LastLight.UI
             ((RectTransform)retry.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(300, 60));
             logbook = UiButton.Create(card, "Logbook", UiKit.Heading, 42, () => OnLogbook?.Invoke(), TextAnchor.MiddleCenter);
             ((RectTransform)logbook.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(300, 50), new Vector2(300, 60));
+            chart = UiButton.Create(card, "Chart", UiKit.Heading, 42, () => OnChart?.Invoke(), TextAnchor.MiddleCenter);
+            ((RectTransform)chart.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(300, 50), new Vector2(300, 60));
         }
 
         static string SpeedMark(int speed) => speed < 100 ? $"  ·  {speed}% SPEED" : "";
@@ -699,13 +701,42 @@ namespace LastLight.UI
             }
         }
 
-        /// <summary>Space the visible buttons evenly along the bottom of the card.</summary>
+        /// <summary>Space the visible buttons evenly along the bottom of the card, and let the
+        /// arrows and the pad move along them.</summary>
         void LayoutButtons()
         {
             var shown = new List<UiButton>();
-            foreach (var b in new[] { next, retry, logbook }) if (b.gameObject.activeSelf) shown.Add(b);
+            foreach (var b in new[] { next, retry, chart, logbook }) if (b.gameObject.activeSelf) shown.Add(b);
+            // Four buttons sit closer; "Keep watch again" only ever shares the row with two.
+            float step = shown.Count >= 4 ? 236f : 300f;
             for (int i = 0; i < shown.Count; i++)
-                ((RectTransform)shown[i].transform).anchoredPosition = new Vector2((i - (shown.Count - 1) * 0.5f) * 300f, 50f);
+            {
+                var rt = (RectTransform)shown[i].transform;
+                rt.anchoredPosition = new Vector2((i - (shown.Count - 1) * 0.5f) * step, 50f);
+                rt.sizeDelta = new Vector2(step - 8f, 60f);
+                var left = shown[(i + shown.Count - 1) % shown.Count];
+                var right = shown[(i + 1) % shown.Count];
+                shown[i].navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = left, selectOnRight = right, selectOnUp = left, selectOnDown = right };
+            }
+        }
+
+        /// <summary>Back from the chart: the card as it was, with Chart still chosen.</summary>
+        public void ShowAgain()
+        {
+            Show();
+            if (UnityEngine.EventSystems.EventSystem.current != null && (InputMode.Pad || UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject != null))
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(chart.gameObject);
+        }
+
+        /// <summary>The buttons shown along the bottom, left to right; for tours.</summary>
+        public string ButtonLabels
+        {
+            get
+            {
+                var labels = new List<string>();
+                foreach (var b in new[] { next, retry, chart, logbook }) if (b.gameObject.activeSelf) labels.Add(b.Label.text);
+                return string.Join(", ", labels);
+            }
         }
 
         public override void Show()
