@@ -34,6 +34,7 @@ namespace LastLight.Core
         {
             bool hard = save.difficulty == 1, toggle = save.focusToggle;
             var keys = save.keys ?? new KeyBindings();
+            var buttons = PadButtons.For(PadButtons.StyleFor(save));
             string turnKeys = keys.TurnPair(), focusKey = keys.First(KeeperAction.Focus), hornKey = keys.First(KeeperAction.Horn);
             string turn = pad ? "Point the right stick to turn the light."
                 : turnKeys != "" ? $"Move the mouse to turn the light, or use {turnKeys}." : "Move the mouse to turn the light.";
@@ -41,8 +42,8 @@ namespace LastLight.Core
                 ? (toggle ? "Press the right trigger to focus, and again to widen the beam." : "Hold the right trigger to focus.")
                 : (toggle ? "Click the left button" + (focusKey != "" ? $" or press {focusKey}" : "") + " to focus, and again to widen the beam."
                           : "Hold the left button" + (focusKey != "" ? $" or {focusKey}" : "") + " to focus.");
-            string horn = pad ? "Press A" : hornKey != "" ? $"Press {hornKey} or click the right button" : "Click the right button";
-            string pause = pad ? "Start" : "Esc";
+            string horn = pad ? $"Press {buttons.south}" : hornKey != "" ? $"Press {hornKey} or click the right button" : "Click the right button";
+            string pause = pad ? buttons.start : "Esc";
             int chart = hard ? 15 : 22, buoy = hard ? 20 : 28;
 
             return new List<Entry>

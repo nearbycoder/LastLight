@@ -244,6 +244,7 @@ namespace LastLight.Core
             title.SetBeginLabel(save.unlocked > 1 || save.lamps[0] > 0 ? $"Continue: night {UiKit.Roman(save.unlocked)}" : "Begin the watch");
             title.SetWatchUnlocked(save.WatchUnlocked);
             title.SetNotice(SaveData.Trouble);
+            title.RefreshFooter();   // the keys, Focus or Pad buttons may have changed
             title.Show();
             Music.PlayTrack("music_title", 3f);
             ShaderGlobals.DawnAmount = 0f;

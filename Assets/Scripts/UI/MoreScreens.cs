@@ -18,6 +18,7 @@ namespace LastLight.UI
 
         /// <summary>The "new tonight" card's words as shown; for tours.</summary>
         public string NewThingShown => newText.text;
+        public string PromptShown => prompt.text;
         Image newIcon;
         RectTransform card, newCard;
         string full = "";
@@ -94,7 +95,7 @@ namespace LastLight.UI
             };
         }
 
-        static string PromptText() => InputMode.Pick("click, or press Space     ·     Esc to go back", "press A     ·     B to go back");
+        static string PromptText() => InputMode.Pick("click, or press Space     ·     Esc to go back", $"press {PadButtons.South}     ·     {PadButtons.East} to go back");
 
         /// <summary>The line under the title (the date, or a watch's records); for tours.</summary>
         public string DateLine => date.text;
@@ -103,7 +104,7 @@ namespace LastLight.UI
         static readonly Dictionary<string, string> PadNewThings = new Dictionary<string, string>
         {
             ["aim"] = "Point the right stick to turn the light.",
-            ["fog"] = "Fog swallows the light. Hold RT to focus, A for the horn.",
+            ["fog"] = "Fog swallows the light. Hold {RT} to focus, {A} for the horn.",
         };
 
         static string NewText(string id, string keys)
@@ -111,8 +112,8 @@ namespace LastLight.UI
             string horn = SaveData.Current.keys.First(KeeperAction.Horn);
             if (horn == "") horn = "right-click";
             if (id == "fog" && SaveData.Current.focusToggle)
-                return InputMode.Pick($"Fog swallows the light. Click to focus, {horn} for the horn.", "Fog swallows the light. Press RT to focus, A for the horn.");
-            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad : keys.Replace("{horn}", horn);
+                return InputMode.Pick($"Fog swallows the light. Click to focus, {horn} for the horn.", $"Fog swallows the light. Press {PadButtons.RightTrigger} to focus, {PadButtons.South} for the horn.");
+            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad.Replace("{RT}", PadButtons.RightTrigger).Replace("{A}", PadButtons.South) : keys.Replace("{horn}", horn);
         }
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
@@ -160,6 +161,7 @@ namespace LastLight.UI
                 newCard.gameObject.SetActive(true);
                 newTitle.text = UiKit.Spaced(n.title);
                 newText.text = NewText(def.newThing, n.text);
+                prompt.text = PromptText();   // Settings ▸ Pad buttons may have changed
                 SetNewIcon(n.icon);
             }
             else newCard.gameObject.SetActive(false);
@@ -334,7 +336,7 @@ namespace LastLight.UI
             void Row(string label, Component control, string about)
             {
                 // Label and control share a centre line.
-                float y = -196 - row * 60;
+                float y = -196 - row * 56;
                 var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(column - 170, y), new Vector2(380, 50));
                 l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
@@ -393,6 +395,8 @@ namespace LastLight.UI
                 "Hold: the beam is focused while the button is held. Toggle: press once to focus, again to widen.");
             Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)),
                 "How fast the keys turn the lens. The mouse and the sticks point it directly.");
+            Row("Pad buttons", UiStepper.Create(panel, PadButtons.Choices, Mathf.Clamp(save.padStyle, 0, 3), i => { save.padStyle = i; OnFocusMode?.Invoke(); }),
+                "The names prompts give the gamepad's buttons. Auto goes by the pad's name. Nintendo goes by position: the bottom button is B.");
             Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }),
                 "In a window, or filling the screen.");
             var sizes = Resolutions();
@@ -414,8 +418,8 @@ namespace LastLight.UI
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
             order.Add(back);
             // What the chosen setting does, in the space under the right-hand column.
-            // Between the right column's last row (Reduce flashing, centred at -796) and Done: two lines.
-            about = Label(panel, "", UiKit.Italic, 23, new Color(0.78f, 0.8f, 0.83f), TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(430, -852), new Vector2(780, 62));
+            // Between the last rows (both columns end at -812) and Done (from -904): two lines across the panel.
+            about = Label(panel, "", UiKit.Italic, 23, new Color(0.78f, 0.8f, 0.83f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -873), new Vector2(1440, 56));
             about.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             about.lineSpacing = 1f;
             about.Shadowed(0.7f, 1.5f);

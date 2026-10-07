@@ -50,6 +50,7 @@ namespace LastLight.Core
         public float gameSpeed = 1f;             // an assist: the simulation at 1, 0.85 or 0.7 of full speed
         public Difficulty Difficulty => difficulty == 1 ? Difficulty.Hard : Difficulty.Standard;
         public bool focusToggle;                 // focus: hold the button (false) or press to switch it on and off
+        public int padStyle;                     // the pad's button names: 0 Auto, 1 Xbox, 2 PlayStation, 3 Nintendo (see PadButtons)
         public KeyBindings keys = new KeyBindings();   // the keyboard's keys for turning, focus and the horn
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier

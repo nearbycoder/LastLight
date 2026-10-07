@@ -180,10 +180,10 @@ namespace LastLight.UI
             return SaveData.Current.focusToggle
                 ? InputMode.Pick(
                     $"Mouse  turn the light     ·     Left button  focus on and off     ·     {horn}  foghorn     ·     Esc  pause",
-                    "Right stick  turn the light     ·     RT  focus on and off     ·     A  foghorn     ·     Start  pause")
+                    $"Right stick  turn the light     ·     {PadButtons.RightTrigger}  focus on and off     ·     {PadButtons.South}  foghorn     ·     {PadButtons.Start}  pause")
                 : InputMode.Pick(
                     $"Mouse  turn the light     ·     Hold left button  focus     ·     {horn}  foghorn     ·     Esc  pause",
-                    "Right stick  turn the light     ·     Hold RT  focus     ·     A  foghorn     ·     Start  pause");
+                    $"Right stick  turn the light     ·     Hold {PadButtons.RightTrigger}  focus     ·     {PadButtons.South}  foghorn     ·     {PadButtons.Start}  pause");
         }
 
         /// <summary>The control strip as shown; for tours.</summary>
@@ -630,7 +630,7 @@ namespace LastLight.UI
             string turn = bound.TurnPair(), focus = bound.First(KeeperAction.Focus), horn = bound.First(KeeperAction.Horn);
             string focusKeys = (toggle ? "Left button" : "Hold left button") + (focus != "" ? " or " + focus : "");
             var lines = InputMode.Pad
-                ? new[] { Line("Right stick", "turn the light"), Line(toggle ? "RT" : "Hold RT", toggle ? "focus on and off" : "focus"), Line("A", "foghorn"), Line("Start", "pause  ·  B  back") }
+                ? new[] { Line("Right stick", "turn the light"), Line(toggle ? PadButtons.RightTrigger : "Hold " + PadButtons.RightTrigger, toggle ? "focus on and off" : "focus"), Line(PadButtons.South, "foghorn"), Line(PadButtons.Start, $"pause  ·  {PadButtons.East}  back") }
                 : new[] { Line(turn != "" ? "Mouse, or " + turn : "Mouse", "turn the light"), Line(focusKeys, toggle ? "focus on and off" : "focus"), Line(horn != "" ? horn + " or right button" : "Right button", "foghorn"), Line("Esc", "pause") };
             return string.Join("\n", lines);
         }

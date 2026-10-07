@@ -123,11 +123,11 @@ namespace LastLight.Core
             ["aim"] = ("Move the mouse to turn the light.", "mouse", "Point the right stick to turn the light.", "RS"),
             ["ships"] = ("Ships lose their nerve in the dark. Keep them in your light.", "ring", null, null),
             ["chart"] = ("Sweep the light ahead of a ship to chart the hidden reefs.", "ring", null, null),
-            ["focus"] = ("Hold the left button to focus: a narrow beam that reaches further.", "lmb", "Hold the right trigger to focus: a narrow beam that reaches further.", "RT"),
+            ["focus"] = ("Hold the left button to focus: a narrow beam that reaches further.", "lmb", "Hold the right trigger to focus: a narrow beam that reaches further.", "{RT}"),
             ["buoy"] = ("Sweep the light over a buoy to light it. It guides ships for a while.", "lamp", null, null),
-            ["horn"] = ("Fog! Press SPACE to sound the foghorn.", "SPACE", "Fog! Press A to sound the foghorn.", "A"),
+            ["horn"] = ("Fog! Press SPACE to sound the foghorn.", "SPACE", "Fog! Press {A} to sound the foghorn.", "{A}"),
             ["flare"] = ("A ship with no lamps. Watch for its flares.", "ring", null, null),
-            ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lmb", "A false light! Hold your beam on its lantern to douse it.", "RT"),
+            ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lmb", "A false light! Hold your beam on its lantern to douse it.", "{RT}"),
             ["shoal"] = ("Steamers run aground on sandbanks. Light the sands to chart them.", "ring", null, null),
             ["storm"] = ("The storm pushes ships towards the rocks. Lightning reveals them.", "ring", null, null),
             ["breakers"] = ("Breakers ahead! A flickering ring means rock in that ship's path. Light the water in front of it.", "ring", null, null),
@@ -136,7 +136,7 @@ namespace LastLight.Core
         static (string text, string icon) HintFor(string id)
         {
             if (id == "focus" && SaveData.Current.focusToggle)
-                return InputMode.Pad ? ("Press the right trigger to focus: a narrow beam that reaches further. Press again to widen it.", "RT")
+                return InputMode.Pad ? ("Press the right trigger to focus: a narrow beam that reaches further. Press again to widen it.", PadButtons.RightTrigger)
                     : ("Click the left button to focus: a narrow beam that reaches further. Click again to widen it.", "lmb");
             var h = HintText[id];
             if (id == "horn" && !InputMode.Pad)
@@ -145,8 +145,14 @@ namespace LastLight.Core
                 string key = SaveData.Current.keys.First(KeeperAction.Horn);
                 return key == "" ? ("Fog! Click the right button to sound the foghorn.", "rmb") : ($"Fog! Press {key.ToUpperInvariant()} to sound the foghorn.", key.ToUpperInvariant());
             }
-            return InputMode.Pad && h.padText != null ? (h.padText, h.padIcon) : (h.text, h.icon);
+            return InputMode.Pad && h.padText != null ? (PadWords(h.padText), PadWords(h.padIcon)) : (h.text, h.icon);
         }
+
+        /// <summary>A hint's words and icon as they'd show now; for tours.</summary>
+        public static (string text, string icon) TourHint(string id) => HintFor(id);
+
+        /// <summary>The pad's button names as the keeper's pad labels them.</summary>
+        static string PadWords(string s) => s?.Replace("{A}", PadButtons.South).Replace("{RT}", PadButtons.RightTrigger);
 
         /// <summary>Each hint shows once per save (Settings can bring them all back).</summary>
         void ShowHint(string id)

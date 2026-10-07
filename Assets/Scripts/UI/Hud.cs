@@ -197,7 +197,7 @@ namespace LastLight.UI
         static string HornKeyText()
         {
             string key = SaveData.Current.keys.First(KeeperAction.Horn);
-            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", "A");
+            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", PadButtons.South.ToUpperInvariant());
         }
 
         /// <summary>For the tours: the key shown under the horn's gauge.</summary>
@@ -620,6 +620,8 @@ namespace LastLight.UI
             float dt = Unscaled.Delta;
             UpdateRadio(dt);
             UpdateMarkers(dt);
+            // The horn's key follows Settings ▸ Pad buttons, and a pad of another make picked up mid-night.
+            if (InputMode.Pad && Time.frameCount % 20 == 0) { string k = HornKeyText(); if (hornKey.text != k) hornKey.text = k; }
             if (runner == null || runner.World == null) { UpdateNames(dt); return; }
             var w = runner.World;
 

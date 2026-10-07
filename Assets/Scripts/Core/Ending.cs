@@ -63,7 +63,7 @@ namespace LastLight.Core
             }
         }
 
-        static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", "Hold A to put out the light");
+        static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", $"Hold {PadButtons.South} to put out the light");
 
         void Build()
         {

@@ -591,9 +591,9 @@ namespace LastLight.Automation
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
             yield return t.Shot("input_settings_about_pad");
-            for (int i = 0; i < 11; i++)
+            for (int i = 0; i < 12; i++)
             {
-                yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness
+                yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the right since Pad buttons
                 walked.Add(settings.AboutShown ?? "nothing");
             }
             string last = Selected();
@@ -645,6 +645,51 @@ namespace LastLight.Automation
                 if (WorldRect(settings.RowControl(name)).Overlaps(aboutRect)) covers.Add(name);
             }
             t.Log($"{(covers.Count == 0 ? "PASS" : "FAIL")} the description's box covers no row and not Done{(covers.Count > 0 ? ": " + string.Join(", ", covers) : "")}");
+
+            // ---- Settings ▸ Pad buttons: the stepper sets the names, and every pad prompt uses them.
+            var pad3 = InputSystem.AddDevice<Gamepad>("TourPad3");
+            yield return null;
+            int styleBefore = SaveData.Current.padStyle;
+            es.SetSelectedGameObject(settings.RowControl("Pad buttons").gameObject);
+            yield return PadPress(pad3, GamepadButton.DpadRight);
+            yield return PadPress(pad3, GamepadButton.DpadRight);
+            int styleAfter = SaveData.Current.padStyle;
+            t.Log($"{(styleBefore == 0 && styleAfter == (int)PadStyle.PlayStation && settings.AboutShown == "Pad buttons" ? "PASS" : "FAIL")} Pad buttons starts on Auto ({PadButtons.Choices[styleBefore]}, which reads {PadButtons.Detect(pad3)} for a pad called {pad3.name}), and right twice on the pad chooses {PadButtons.Choices[styleAfter]}");
+            var titleScreen = (TitleScreen)g.TourScreen("title");
+            var briefing = (BriefingScreen)g.TourScreen("briefing");
+            foreach (var style in new[] { PadStyle.PlayStation, PadStyle.Nintendo, PadStyle.Xbox })
+            {
+                SaveData.Current.padStyle = (int)style;
+                var (south, east, trigger, start) = PadButtons.For(style);
+                InputMode.Set(true);
+                g.TourHideAll();
+                g.TourTitle();
+                yield return Tour.Wait(1f);
+                string footer = titleScreen.FooterShown;
+                var hint = Feedback.TourHint("horn");
+                var focusHint = Feedback.TourHint("focus");
+                g.TourBriefing(5);
+                yield return Tour.Wait(2.5f);
+                string prompt = briefing.PromptShown, card = briefing.NewThingShown;
+                if (style == PadStyle.PlayStation) yield return t.Shot("input_pad_buttons_playstation_briefing");
+                g.TourBegin();
+                yield return Tour.Wait(1.5f);
+                g.TourPause();
+                yield return Tour.Wait(1f);
+                string pauseCard = g.TourPauseControls, hornKey = g.Hud.HornKeyShown;
+                if (style == PadStyle.Nintendo) yield return t.Shot("input_pad_buttons_nintendo_pause");
+                g.TourResume();
+                bool ok = footer.Contains($"{south}  foghorn") && footer.Contains($"{start}  pause") && footer.Contains(trigger)
+                    && hint.text.Contains($"Press {south} ") && hint.icon == south && focusHint.icon == trigger
+                    && prompt.Contains($"press {south} ") && prompt.Contains($"{east} to go back")
+                    && card.Contains($"{trigger} to focus, {south} for the horn")
+                    && pauseCard.Contains($">{south}<") && pauseCard.Contains($">{start}<") && pauseCard.Contains($"{east}  back")
+                    && hornKey == south.ToUpperInvariant();
+                t.Log($"{(ok ? "PASS" : "FAIL")} {style}: the title strip, the horn and focus hints, the briefing's prompt and fog card, the pause card and the HUD's horn key name {south}, {east}, {trigger} and {start}");
+                if (!ok) t.Log($"  strip \"{footer}\" | hint \"{hint.text}\" [{hint.icon}] focus [{focusHint.icon}] | prompt \"{prompt}\" | card \"{card}\" | pause \"{pauseCard.Replace("\n", " / ")}\" | horn {hornKey}");
+            }
+            SaveData.Current.padStyle = 0;
+            InputSystem.RemoveDevice(pad3);
             g.TourHideAll();
         }
 
