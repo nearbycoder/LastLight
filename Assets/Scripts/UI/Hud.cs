@@ -142,6 +142,7 @@ namespace LastLight.UI
             scoreLabel.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -80), new Vector2(0, -20));
 
             BuildLamps();
+            BuildBest();
             BuildRadio();
             BuildHorn();
             BuildHint();
@@ -258,6 +259,7 @@ namespace LastLight.UI
             // Under the lamps at stake on the twelve nights; where they'd be in a watch.
             hornPanel.anchoredPosition = new Vector2(-50, def.endless || !LampsAtStakeShown ? -130 : -212);
             BindLamps(def);
+            SetBest(0, def.endless);   // the game says what there is to beat as the night begins
             radioGroup.alpha = 0f;
             radio.Started -= OnRadio;
             radio.Started += OnRadio;
@@ -632,6 +634,7 @@ namespace LastLight.UI
             if (watchText != null) UpdateWatchStrip(w);
             if (allowanceText != null) UpdateAllowance(w);
             UpdateLamps(w, dt);
+            UpdateBest(w);
             float width = ((RectTransform)canvas.transform).rect.width;
             if (Time.frameCount > boundFrame && (width != laidOutWidth || (allowanceText != null && allowanceText.text != laidOutCaption))) LayoutTop();
 

@@ -417,6 +417,7 @@ namespace LastLight.Core
             Hud.Show(true, 1f);
             Sfx.Play("ui_begin", 0.7f);
             previousBest = Watching ? SaveData.Current.watchBest : SaveData.Current.best[Night - 1];
+            Hud.SetBest(previousBest, Watching);
         }
 
         void RestartNight()
