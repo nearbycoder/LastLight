@@ -653,3 +653,77 @@ Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed
 kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, human playtests,
 fullscreen and real-hardware checks of other screen shapes (a Steam Deck in particular), non-US
 keyboard layouts, Windows (module install) and macOS signing (Developer ID).
+
+## Round 6 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records).
+These items come from reading the game as a first-time player would. The radio, the hints and the
+dawn debrief all talk in place names ("Light the Hen Bell before the Auk gets there", "struck the
+Hen's Chicks, uncharted"), but nothing on screen says which buoy is the Hen Bell, which hull is
+the Auk or where the Hen's Chicks are. The rules are taught once per save by hints, and a
+returning player has nowhere to read them again. The game always renders at the display's
+refresh rate, which on a laptop or handheld means heat, fan noise and battery for no gain. None
+of the items changes the simulation, so the pinned Standard scores and both difficulties stay as
+they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `confirm`, `keys` and
+`screens` tours at 0 errors. Captures go to `docs/media/improvements/round6/`. Tour output and logs
+stay under `Builds/round6/`. The real save directory is checksummed before and after
+(`Builds/round6/save_before.txt`).
+
+### 1. Names on the water
+- When a ship's captain or crew is on the radio and the ship is afloat, a small name tag sits under
+  its hull for as long as the call is on screen. It stays inside the screen edge, with a chevron,
+  when the ship is out of frame. A call that names a ship afloat ("before the Auk gets there")
+  tags it the same way.
+- When a call names a place you can see (a buoy such as the Hen Bell, a wrecker's cliff such as
+  Corley Cove or West Point, a sea stack, or Porthkell harbour), a label appears on the water there
+  for a few seconds, pinned at the edge if it's out of frame.
+- Hidden hazards are never labelled before they're found: a reef group or sandbank gets its name
+  over the white water the first time it's charted each night ("The Merrow Teeth"), so the
+  debrief's place names are places the player has seen named. A call naming the Teeth before
+  they're charted doesn't point at them.
+- The trailer tour turns the labels off, so a re-shoot matches the released trailer.
+- **Verify:** a new `names` tour. Night 1: Ianto's "at the harbour" labels Porthkell at the
+  harbour. Night 3: the Hen Bell label sits on the buoy's projected position, and a call from the
+  Little Auk tags the Little Auk. Night 2: no reef label before the first chart, then "The Merrow
+  Teeth" at the charted group. Each check compares the label's canvas position with the projected
+  world position, and checks pinned labels are on screen. Screenshots read by me, also at 5:4 and
+  with 130% HUD text.
+
+### 2. Keeper's notes
+- A **Keeper's notes** screen, opened from the title menu and from the pause menu (it doesn't end
+  the night). It lists the rules in short entries: the light and focus, confidence and lost ships,
+  the lamps and the wreck allowance, then reefs and charting, breakers and full astern, buoys,
+  steamers and sandbanks, fog and the foghorn, the ferry, ships running dark, storms, wreckers and
+  lured ships, the mimic, and the Night Watch. An entry appears once its night is open, so the
+  notes don't give the season away. The words name the keys and buttons the player has bound, for
+  the device in use.
+- Topics on the left page, the chosen entry on the right. Mouse, keys and pad all work; Esc or B
+  closes it, back to wherever it was opened from.
+- **Verify:** a `notes` tour opens the notes from the title with a fresh save (three entries) and
+  a finished season (every entry), walks the topics with the simulated keyboard and pad, checks the
+  pause menu's notes return to the paused night without changing it, and checks the wording follows
+  the device and rebound keys. `screens` checks the screen fits at all four shapes. Screenshots.
+
+### 3. Frame-rate limit
+- Settings ▸ **Frame rate**: *Display* (as now: the display's refresh rate, at least 60), *60* or
+  *30*. A laptop or handheld can save power, and the fog nights' cost is capped.
+- **Verify:** a `framerate` tour measures frames per real second on night V at each setting, with
+  the load average recorded: 30 must read 28 to 31, 60 must read 57 to 61 (when the machine can
+  reach 60), and Display at least 60. `screens` checks the Settings panel still fits, and the
+  `input` tour's d-pad walk is updated for the extra row.
+
+### 4. Sound in the background (if time allows)
+- Settings ▸ **Sound in background**: *On* (as now) or *Off*, which mutes the game while its window
+  is out of focus. The night already pauses then.
+- **Verify:** the tour drives the focus handler (tours can't lose real focus) and checks the
+  listener is muted and comes back on focus.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp and slowed records**: the owner's call.
+- **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts**: no
+  hardware here to check them on, and switching this shared machine's display would disturb other
+  sessions.
+- **Re-cutting the trailer**: the owner's call.
