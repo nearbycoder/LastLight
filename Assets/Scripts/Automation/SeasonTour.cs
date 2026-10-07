@@ -120,6 +120,38 @@ namespace LastLight.Automation
                 t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");
                 yield break;
             }
+            if (run == "quitwatch" || run == "termwatch" || run == "quitnight")
+            {
+                // A watch (or night III) under way when the game is closed. The tour logs what the
+                // watch stood at and closes the game; Tools/season_tour.sh then reads save.json.
+                bool watch = run != "quitnight";
+                g.AutoPlay = true;
+                if (watch) g.TourWatch(); else g.TourBriefing(3);
+                yield return Tour.Wait(3.5f);
+                g.TourBegin();
+                g.Runner.TimeScale = 6f;
+                float waited = 0f;
+                while (waited < 60f && g.Runner.World.Time < 120f && g.Runner.World.Outcome == Sim.MissionOutcome.Running) { waited += Time.unscaledDeltaTime; yield return null; }
+                if (run == "quitwatch") g.TourPause();          // closed from the pause menu's night
+                else g.Runner.TimeScale = 0f;                     // still playing, held so the numbers stay put
+                yield return Tour.Wait(0.5f);
+                var w = g.Runner.World;
+                Check(t, w.Outcome == Sim.MissionOutcome.Running && w.Time > 60f, $"{(watch ? "a watch" : "night III")} is under way ({UiKit.Clock(w.Time)}, {(run == "quitwatch" ? "paused" : "playing")})");
+                // (A hint seen tonight saves, so the file itself may have been rewritten.)
+                var onDisk = new SaveData();
+                SaveStore.TryParse(SaveStore.ReadFile(data, SaveStore.FileName), onDisk, out _);
+                Check(t, onDisk.watches.Count == 3, $"no watch has been recorded yet ({onDisk.watches.Count} in {SaveStore.FileName}, as seeded)");
+                t.Log($"QUIT-AT score={w.Score} ships={w.Arrivals} seconds={Mathf.RoundToInt(w.Time)}");
+                t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures); the save is checked by Tools/season_tour.sh after the game closes");
+                if (run == "termwatch")
+                {
+                    // Tools/season_tour.sh sends this player SIGTERM, as a logout or shutdown does.
+                    t.Log("waiting to be closed");
+                    for (float held = 0f; held < 60f; held += Time.unscaledDeltaTime) yield return null;
+                    Check(t, false, "the player was closed within a minute");
+                }
+                yield break;   // the tour then quits the game, as the window's close button does
+            }
             if (run == "migrate")
             {
                 var carried = new SaveData();

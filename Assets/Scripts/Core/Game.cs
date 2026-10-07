@@ -556,6 +556,27 @@ namespace LastLight.Core
 
         public Fader Fader => fader;
 
+        // Closing the game (the window's close button, Alt+F4, a logout) during a Night Watch keeps
+        // the watch, as End the watch does. A night of the twelve is simply left, as before.
+        void OnApplicationQuit() => KeepWatchOnQuit();
+
+        /// <summary>A watch under way (playing, paused, or just ended and waiting for dawn) is stood
+        /// down and recorded before the game closes. True if one was kept.</summary>
+        public bool KeepWatchOnQuit()
+        {
+            // A watch the bot played from the command line (-llAuto) isn't the keeper's to keep.
+            if (!Watching || Runner == null || Runner.Attract || recorded || HasArg("-llAuto")) return false;
+            if (Current != State.Playing && Current != State.Paused) return false;
+            var w = Runner.World;
+            if (w.Outcome == MissionOutcome.Running) w.StandDown();
+            recorded = true;
+            var names = new List<string>();
+            foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
+            watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names, SpeedPercent);
+            Debug.Log($"[Game] the watch was kept as the game closed: {w.Score} points, {w.Arrivals} ships, {UiKit.Clock(w.Time)}, rank {watchRank}");
+            return true;
+        }
+
         void Quit()
         {
             SaveData.Current.Save();
