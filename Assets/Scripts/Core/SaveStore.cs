@@ -30,7 +30,9 @@ namespace LastLight.Core
         public static string Read(string dir, out string from)
         {
             var path = Path.Combine(dir, FileName);
-            if (File.Exists(path))
+            // Something there that can't be opened is still the save: it throws, rather than
+            // falling back to PlayerPrefs and later being written over.
+            if (File.Exists(path) || Directory.Exists(path))
             {
                 from = "file";
                 return File.ReadAllText(path);
@@ -49,6 +51,18 @@ namespace LastLight.Core
             File.WriteAllText(tmp, text);
             if (File.Exists(path)) File.Replace(tmp, path, null);
             else File.Move(tmp, path);
+        }
+
+        /// <summary>Why a save couldn't be opened or written, in a few plain words.</summary>
+        public static string Reason(Exception e)
+        {
+            if (e is UnauthorizedAccessException) return "permission was refused";
+            if (e is DirectoryNotFoundException) return "its folder is missing";
+            string m = e.Message ?? "";
+            if (m.IndexOf("space", StringComparison.OrdinalIgnoreCase) >= 0) return "the disk is full";
+            if (m.IndexOf("read-only", StringComparison.OrdinalIgnoreCase) >= 0) return "the folder is read-only";
+            if (m.IndexOf("denied", StringComparison.OrdinalIgnoreCase) >= 0) return "permission was refused";
+            return m.Length > 80 ? m.Substring(0, 80) + "..." : m;
         }
 
         public static string ReadFile(string dir, string name)

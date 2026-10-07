@@ -242,6 +242,7 @@ namespace LastLight.Core
             var save = SaveData.Current;
             title.SetBeginLabel(save.unlocked > 1 || save.lamps[0] > 0 ? $"Continue: night {UiKit.Roman(save.unlocked)}" : "Begin the watch");
             title.SetWatchUnlocked(save.WatchUnlocked);
+            title.SetNotice(SaveData.Trouble);
             title.Show();
             Music.PlayTrack("music_title", 3f);
             ShaderGlobals.DawnAmount = 0f;
@@ -478,6 +479,8 @@ namespace LastLight.Core
             Hud.Show(false, 1.2f);
             if (Watching) results.SetupWatch(w, previousBest, watchRank, SpeedPercent);
             else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won, SpeedPercent);
+            // Only a night that was kept (or a watch) tried to save.
+            results.SetSaveNote(Watching || won ? SaveData.Unsaved : null);
             results.Show();
             if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
             Music.PlayTrack(won ? "music_dawn" : "music_title", 2.5f);

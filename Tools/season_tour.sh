@@ -5,11 +5,13 @@
 #   Tools/season_tour.sh reset   <absolute outdir>   a finished season, cleared from the logbook
 #   Tools/season_tour.sh damaged <absolute outdir>   an unreadable save, kept aside
 #   Tools/season_tour.sh migrate <absolute outdir>   an older build's save in PlayerPrefs, carried over
+#   Tools/season_tour.sh readonly <absolute outdir>  the save folder can't be written: the keeper is told
+#   Tools/season_tour.sh unopenable <absolute outdir> something at save.json that can't be opened: never written over
 #
 # The game's data folder (where save.json lives) is checksummed before and after.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN="${1:?reset or damaged}"; OUT="${2:?an absolute output directory}"
+RUN="${1:?reset, damaged, migrate, readonly or unopenable}"; OUT="${2:?an absolute output directory}"
 case "$OUT" in /*) ;; *) echo "give the output directory as an absolute path" >&2; exit 2 ;; esac
 CFG="$OUT/config"
 DATA="$CFG/unity3d/Gannet Head/Last Light"
@@ -40,9 +42,16 @@ if run == "migrate":
     b64 = base64.b64encode(text.encode()).decode()
     open(os.path.join(prefs, "prefs"), "w").write('<unity_prefs version_major="1" version_minor="1">\n'
                           f'\t<pref name="lastlight.save" type="string">{b64}</pref>\n</unity_prefs>\n')
+elif run == "unopenable":
+    os.makedirs(os.path.join(data, "save.json"))
 else:
     open(os.path.join(data, "save.json"), "w").write(text)
 PY
+if [ "$RUN" = readonly ]; then
+  # The folder can't be written; give it back afterwards so it can be cleared away.
+  chmod a-w "$DATA"
+  trap 'chmod u+w "$DATA"' EXIT
+fi
 REAL="$HOME/.config/unity3d/Gannet Head/Last Light"
 sums() { find "$REAL" -maxdepth 1 -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum; }
 before="$(sums)"

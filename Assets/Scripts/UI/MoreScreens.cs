@@ -569,7 +569,8 @@ namespace LastLight.UI
     public sealed class ResultsScreen : UiScreen
     {
         public Action OnNext, OnRetry, OnLogbook, OnChart;
-        Text heading, title, verdict, stats, scoreLine, best, debrief;
+        Text heading, title, verdict, stats, scoreLine, best, debrief, saveNote;
+        float debriefExtra;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
         UiButton next, retry, logbook, chart;
@@ -615,6 +616,8 @@ namespace LastLight.UI
             debrief.lineSpacing = 1.1f;
             scoreLine = Label(card, "", UiKit.Heading, 54, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(900, 70));
             best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
+            // Said plainly when the night couldn't be saved.
+            saveNote = Label(card, "", UiKit.BodyMedium, 22, new Color(1f, 0.62f, 0.52f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -740), new Vector2(900, 34));
             next = UiButton.Create(card, "Next night", UiKit.Heading, 42, () => OnNext?.Invoke(), TextAnchor.MiddleCenter);
             ((RectTransform)next.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-300, 50), new Vector2(300, 60));
             retry = UiButton.Create(card, "Try again", UiKit.Heading, 42, () => OnRetry?.Invoke(), TextAnchor.MiddleCenter);
@@ -656,6 +659,7 @@ namespace LastLight.UI
             next.Label.text = finale ? "Dawn" : "Next night";
             retry.Label.text = won ? "Play again" : "Try again";
             FirstSelected = won && (hasNext || finale) ? next : retry;
+            Relayout();
         }
 
         /// <summary>The end of a Night Watch: how long it lasted, and lamps for ships brought home.</summary>
@@ -679,6 +683,7 @@ namespace LastLight.UI
             next.gameObject.SetActive(false);
             retry.Label.text = "Keep watch again";
             FirstSelected = retry;
+            Relayout();
         }
 
         static string Ordinal(int n) => n switch { 2 => "second", 3 => "third", 4 => "fourth", 5 => "fifth", _ => n.ToString() };
@@ -703,10 +708,30 @@ namespace LastLight.UI
             int rows = lines.Count == 0 ? 0 : Mathf.Min(lines.Count, MaxDebrief);
             float extra = rows == 0 ? 0f : rows * DebriefLine + 6f - 40f;   // the old card had room for about one line
             extra = Mathf.Max(0f, extra);
-            card.sizeDelta = new Vector2(1000, 860 + extra);
-            ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - extra);
-            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - extra);
+            debriefExtra = extra;
+            Relayout();
         }
+
+        /// <summary>The card's lower half: the score, the best, and a line if the night wasn't
+        /// saved; the card grows to fit.</summary>
+        void Relayout()
+        {
+            float note = saveNote.text != "" ? 44f : 0f;
+            card.sizeDelta = new Vector2(1000, 860 + debriefExtra + note);
+            ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - debriefExtra);
+            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - debriefExtra);
+            ((RectTransform)saveNote.transform).anchoredPosition = new Vector2(0, -740 - debriefExtra);
+        }
+
+        /// <summary>Why the night just kept wasn't saved, or null when it was.</summary>
+        public void SetSaveNote(string text)
+        {
+            saveNote.text = text ?? "";
+            Relayout();
+        }
+
+        /// <summary>The save line as shown; for tours.</summary>
+        public string SaveNoteShown => saveNote.text;
 
         void ResetLamps(int count)
         {

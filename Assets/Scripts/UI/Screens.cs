@@ -87,8 +87,9 @@ namespace LastLight.UI
         public Action OnBegin, OnWatch, OnLogbook, OnNotes, OnSettings, OnQuit;
         readonly List<Text> letters = new List<Text>();
         readonly List<UiButton> items = new List<UiButton>();
-        Text tagline, footer;
+        Text tagline, footer, noticeText;
         UiButton begin, watch;
+        RectTransform notice;
         RectTransform menu;
 
         public static TitleScreen Create(Transform canvas)
@@ -139,7 +140,38 @@ namespace LastLight.UI
             Frames.Add(menu);
             Frames.Add(footer.rectTransform);
             InputMode.Changed += () => footer.text = FooterText();
+
+            // Trouble with the save, said where the keeper will see it (bottom right, over the sea).
+            notice = UiKit.Rect("SaveNotice", Root).Pin(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-60, 110), new Vector2(NoticeWidth, 150));
+            var bg = UiKit.Image("Bg", notice, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.88f), true);
+            bg.rectTransform.Fill();
+            var edge = UiKit.Image("Edge", notice, SpriteFactory.Bar, new Color(1f, 0.55f, 0.42f, 0.8f));
+            edge.rectTransform.Stretch(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 12), new Vector2(4, -12));
+            var head = UiKit.Text("Heading", notice, UiKit.Spaced("THE SAVE"), UiKit.BodyBold, 18, new Color(1f, 0.62f, 0.52f), TextAnchor.UpperLeft);
+            head.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -42), new Vector2(-24, -16));
+            noticeText = UiKit.Text("Text", notice, "", UiKit.BodyMedium, 22, UiKit.Paper, TextAnchor.UpperLeft);
+            noticeText.rectTransform.Stretch(Vector2.zero, Vector2.one, new Vector2(30, 18), new Vector2(-24, -50));
+            noticeText.lineSpacing = 1.05f;
+            notice.gameObject.SetActive(false);
         }
+
+        const float NoticeWidth = 860f;
+
+        /// <summary>Shows what's wrong with the save (or hides the notice when nothing is).</summary>
+        public void SetNotice(string text)
+        {
+            bool on = !string.IsNullOrEmpty(text);
+            notice.gameObject.SetActive(on);
+            if (!on) { Frames.Remove(notice); return; }
+            noticeText.text = text;
+            float h = noticeText.preferredHeight;
+            notice.sizeDelta = new Vector2(NoticeWidth, Mathf.Max(110f, h + 70f));
+            if (!Frames.Contains(notice)) Frames.Add(notice);
+        }
+
+        /// <summary>The save notice as shown (empty when hidden); for tours.</summary>
+        public string NoticeShown => notice.gameObject.activeSelf ? noticeText.text : "";
+        public RectTransform NoticeRect => notice;
 
         static string FooterText()
         {

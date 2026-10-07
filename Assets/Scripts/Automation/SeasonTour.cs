@@ -66,10 +66,57 @@ namespace LastLight.Automation
                 Check(t, !save.HasProgress && save.unlocked == 1, $"an unreadable save starts a fresh season (unlocked {save.unlocked}, progress {save.HasProgress})");
                 Check(t, kept.StartsWith("{\"version\":1,\"unlocked\":12") && kept.Length == 120, $"the damaged text is kept as {SaveStore.UnreadableName} ({kept.Length} characters: \"{(kept.Length > 40 ? kept.Substring(0, 40) : kept)}...\")");
                 Check(t, title.BeginLabel == "Begin the watch", $"the title offers \"{title.BeginLabel}\"");
+                string notice = title.NoticeShown;
+                Check(t, notice.Contains("couldn't be read") && notice.Contains(SaveStore.UnreadableName) && notice.Contains(data), $"the title says so: \"{notice}\"");
+                yield return t.Shot("save_notice_damaged");
                 save.Save();
                 var written = new SaveData();
                 bool readable = SaveStore.TryParse(SaveStore.ReadFile(data, SaveStore.FileName), written, out _);
                 Check(t, (SaveStore.ReadFile(data, SaveStore.UnreadableName) ?? "") == kept && readable, $"a later save writes a whole {SaveStore.FileName} ({readable}) and leaves the damaged text where it is");
+                t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");
+                yield break;
+            }
+            if (run == "readonly" || run == "unopenable")
+            {
+                string savePath = System.IO.Path.Combine(data, SaveStore.FileName);
+                bool isDir = System.IO.Directory.Exists(savePath);
+                string seeded = isDir ? null : SaveStore.ReadFile(data, SaveStore.FileName);
+                string notice = title.NoticeShown;
+                if (run == "readonly")
+                {
+                    Check(t, save.unlocked == 12 && notice == "", $"a save in a read-only folder still loads ({save.unlocked} nights open), and the title says nothing yet (\"{notice}\")");
+                }
+                else
+                {
+                    Check(t, isDir && !save.HasProgress, $"a save that can't be opened leaves a blank season (progress {save.HasProgress})");
+                    Check(t, notice.Contains("couldn't be opened") && notice.Contains("won't be kept") && notice.Contains(data), $"the title says so: \"{notice}\"");
+                    yield return t.Shot("save_notice_unopenable");
+                }
+                // Keep night I with the AutoKeeper, quickly, and see what dawn says.
+                g.AutoPlay = true;
+                g.TourBriefing(1);
+                yield return Tour.Wait(3.5f);
+                g.TourBegin();
+                g.Runner.AutoPlay = true;
+                g.Runner.TimeScale = 4f;
+                float waited = 0f;
+                while (!g.ShowingResults && waited < 120f) { waited += Time.unscaledDeltaTime; yield return null; }
+                yield return Tour.Wait(2.5f);
+                var results = g.TourResults;
+                string note = results.SaveNoteShown;
+                Check(t, g.ShowingResults && note.Contains(run == "readonly" ? "couldn't be saved" : "wasn't saved"), $"the dawn card says the night wasn't saved: \"{note}\" (after {waited:0} s)");
+                yield return t.Shot("save_dawn_" + run);
+                g.TourHideAll();   // as the logbook would on the way back to the title
+                g.TourTitle();
+                yield return Tour.Wait(3f);
+                notice = title.NoticeShown;
+                if (run == "readonly")
+                    Check(t, notice.Contains("isn't being saved") && notice.Contains(data), $"and so does the title: \"{notice}\"");
+                else
+                    Check(t, notice.Contains("couldn't be opened"), $"and the title still says why: \"{notice}\"");
+                yield return t.Shot("save_title_" + run);
+                bool untouched = run == "readonly" ? SaveStore.ReadFile(data, SaveStore.FileName) == seeded : System.IO.Directory.Exists(savePath);
+                Check(t, untouched && !System.IO.File.Exists(savePath + ".tmp"), $"the save is as it was ({(run == "readonly" ? "the seeded text" : "still there, unopened")}), with nothing half-written beside it");
                 t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");
                 yield break;
             }

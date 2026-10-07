@@ -59,7 +59,7 @@ namespace LastLight.Core
         static SaveData current;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() => current = null;
+        static void ResetStatics() { current = null; LoadProblem = WriteProblem = writeReason = null; writeBlocked = false; }
 
         public static SaveData Current
         {
@@ -67,7 +67,6 @@ namespace LastLight.Core
             {
                 if (current != null) return current;
                 current = new SaveData();
-                bool migrate = false;
                 if (Game.HasArg("-llFresh"))
                 {
                     // Tours can start mid-season (seven nights kept) to show a filled-in logbook.
@@ -98,43 +97,115 @@ namespace LastLight.Core
                     }
                     return current;
                 }
-                string json = "", from = "";
-                try { json = SaveStore.Read(SaveStore.Dir, out from); }
-                catch (Exception e) { Debug.LogWarning("[Save] could not open the save: " + e.Message); }
-                if (!SaveStore.TryParse(json, current, out var error))
-                {
-                    // Start afresh, but keep the damaged text: the next save would overwrite it.
-                    Debug.LogWarning($"[Save] could not read the save ({error}); kept it as {SaveStore.UnreadableName}");
-                    current = new SaveData();
-                    try { SaveStore.Write(SaveStore.Dir, SaveStore.UnreadableName, json); }
-                    catch (Exception e) { Debug.LogWarning("[Save] could not keep the damaged save: " + e.Message); }
-                }
-                else if (from == "prefs" && !string.IsNullOrEmpty(json))
-                {
-                    // A save from an older build: carry it over to the file (the old entry stays put).
-                    Debug.Log("[Save] carried the save over from PlayerPrefs to " + SaveStore.FileName);
-                    migrate = true;
-                }
-                if (current.lamps == null || current.lamps.Length != 12) current.lamps = new int[12];
-                if (current.best == null || current.best.Length != 12) current.best = new int[12];
-                current.homeNames ??= new List<string>();
-                current.hintsSeen ??= new List<string>();
-                current.watches ??= new List<WatchRecord>();
-                current.keys ??= new KeyBindings();
-                current.keys.Validate();
-                // Saves from before the table: the one best watch becomes its first entry.
-                if (current.watches.Count == 0 && current.watchBest > 0)
-                    current.watches.Add(new WatchRecord { score = current.watchBest, ships = current.watchShips, seconds = current.watchSeconds });
+                current = Load(SaveStore.Dir, out var problem, out writeBlocked, out bool migrate);
+                LoadProblem = problem;
                 if (migrate && !Application.isEditor) current.Save();
                 return current;
             }
         }
 
+        /// <summary>Trouble reading the save at startup, in words for the keeper (null if none).</summary>
+        public static string LoadProblem { get; private set; }
+        /// <summary>Why the last save couldn't be written (null once one has been).</summary>
+        public static string WriteProblem { get; private set; }
+        /// <summary>The save is there but couldn't be opened: this session never writes over it.</summary>
+        static bool writeBlocked;
+        static string writeReason;
+
+        /// <summary>For the dawn card: why the night just kept wasn't saved (null if it was).</summary>
+        public static string Unsaved => writeBlocked ? "This night wasn't saved: the save couldn't be opened when the game started."
+            : writeReason != null ? $"This night couldn't be saved ({writeReason}). The title says where the save should be." : null;
+
+        /// <summary>What to tell the keeper about the save, if anything: the title shows it, and the
+        /// dawn card shows the part about progress not being kept.</summary>
+        public static string Trouble => LoadProblem != null && WriteProblem != null && !writeBlocked ? LoadProblem + "\n" + WriteProblem : LoadProblem ?? WriteProblem;
+
+        /// <summary>Reads the save in <paramref name="dir"/>. A save that can't be opened leaves the
+        /// keeper a blank season and <paramref name="blocked"/> set, so it's never written over; one
+        /// that opens but can't be read is kept aside as save.unreadable.json and a season begins
+        /// afresh. Either way <paramref name="problem"/> says so in words.</summary>
+        public static SaveData Load(string dir, out string problem, out bool blocked, out bool migrate)
+        {
+            var data = new SaveData();
+            problem = null;
+            blocked = migrate = false;
+            string json, from;
+            try { json = SaveStore.Read(dir, out from); }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Save] could not open the save: " + e.Message);
+                blocked = true;
+                problem = $"Your save couldn't be opened ({SaveStore.Reason(e)}), so this season won't be kept. The save itself is left as it was, in\n{dir}";
+                return data;
+            }
+            if (!SaveStore.TryParse(json, data, out var error))
+            {
+                // Start afresh, but keep the damaged text: the next save would overwrite it.
+                Debug.LogWarning($"[Save] could not read the save ({error}); kept it as {SaveStore.UnreadableName}");
+                data = new SaveData();
+                try
+                {
+                    SaveStore.Write(dir, SaveStore.UnreadableName, json);
+                    problem = $"Your save couldn't be read, so a new season has begun. The damaged save was kept as {SaveStore.UnreadableName}, in\n{dir}";
+                }
+                catch (Exception e)
+                {
+                    // It couldn't be kept aside either: don't write over the only copy.
+                    Debug.LogWarning("[Save] could not keep the damaged save: " + e.Message);
+                    blocked = true;
+                    problem = $"Your save couldn't be read or copied ({SaveStore.Reason(e)}), so this season won't be kept. The save itself is left as it was, in\n{dir}";
+                }
+            }
+            else if (from == "prefs" && !string.IsNullOrEmpty(json))
+            {
+                // A save from an older build: carry it over to the file (the old entry stays put).
+                Debug.Log("[Save] carried the save over from PlayerPrefs to " + SaveStore.FileName);
+                migrate = true;
+            }
+            if (data.lamps == null || data.lamps.Length != 12) data.lamps = new int[12];
+            if (data.best == null || data.best.Length != 12) data.best = new int[12];
+            data.homeNames ??= new List<string>();
+            data.hintsSeen ??= new List<string>();
+            data.watches ??= new List<WatchRecord>();
+            data.keys ??= new KeyBindings();
+            data.keys.Validate();
+            // Saves from before the table: the one best watch becomes its first entry.
+            if (data.watches.Count == 0 && data.watchBest > 0)
+                data.watches.Add(new WatchRecord { score = data.watchBest, ships = data.watchShips, seconds = data.watchSeconds });
+            return data;
+        }
+
         public void Save()
         {
             if (Game.HasArg("-llFresh")) return;
-            try { SaveStore.Write(SaveStore.Dir, SaveStore.FileName, JsonUtility.ToJson(this)); }
-            catch (Exception e) { Debug.LogWarning("[Save] could not write the save: " + e.Message); }
+            SaveTo(SaveStore.Dir);
+        }
+
+        /// <summary>Writes the save to <paramref name="dir"/>, unless this session mustn't (see
+        /// <see cref="Load"/>); a failure is kept in <see cref="WriteProblem"/> for the keeper.</summary>
+        public bool SaveTo(string dir)
+        {
+            if (writeBlocked) return false;
+            try
+            {
+                SaveStore.Write(dir, SaveStore.FileName, JsonUtility.ToJson(this));
+                WriteProblem = writeReason = null;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Save] could not write the save: " + e.Message);
+                writeReason = SaveStore.Reason(e);
+                WriteProblem = $"Progress isn't being saved ({writeReason}). The save should be in\n{dir}";
+                return false;
+            }
+        }
+
+        /// <summary>For tests: forget this session's save trouble.</summary>
+        public static void ClearTrouble(bool blocked = false)
+        {
+            LoadProblem = WriteProblem = writeReason = null;
+            writeBlocked = blocked;
         }
 
         /// <summary>Whether there's a season to clear: a night kept, or a watch on the table.</summary>
@@ -161,7 +232,7 @@ namespace LastLight.Core
         /// cleared and saved.</summary>
         public void NewSeason()
         {
-            if (!Game.HasArg("-llFresh"))
+            if (!Game.HasArg("-llFresh") && !writeBlocked)
             {
                 try { SaveStore.Write(SaveStore.Dir, SaveStore.PreviousName, JsonUtility.ToJson(this)); }
                 catch (Exception e) { Debug.LogWarning("[Save] could not keep the old season: " + e.Message); }
