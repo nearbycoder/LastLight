@@ -76,8 +76,7 @@ namespace LastLight.Core
             // Paced by targetFrameRate rather than vsync: some Wayland compositors throttle
             // FIFO presentation to ~12 Hz, and they composite without tearing anyway.
             QualitySettings.vSyncCount = Arg("-llVsync", 0);
-            int hz = Mathf.RoundToInt((float)Screen.currentResolution.refreshRateRatio.value);
-            Application.targetFrameRate = Arg("-llFps", Mathf.Max(60, hz));
+            // The rate itself comes from Settings ▸ Frame rate (SaveData.Apply), or -llFps.
             Time.timeScale = 1f;
             // Tours can set the comfort settings (with -llFresh the save is a blank one).
             int scale = Arg("-llRenderScale", 0);

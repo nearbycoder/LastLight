@@ -68,7 +68,8 @@ keys each; Esc and P always pause). The mouse buttons and the gamepad keep their
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
 along with text speed, hints, screen shake, **focus** (hold the button, or toggle: press once to
 focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
-fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
+**frame rate** (the display's refresh rate, or a cap of 60 or 30 to save power and heat on a
+laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
 **brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
 a tenth of its strength), HUD text size, difficulty, **game speed** and the keyboard **keys**.

@@ -41,6 +41,7 @@ namespace LastLight.Core
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
         public int quality = 2;                  // 0 low, 1 medium, 2 high
         public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
+        public int frameCap;                     // frames per second: 0 = the display's rate (at least 60), or 60 or 30
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
         public int brightness;                   // the scene's exposure, in steps from -2 to 2 (0 = as graded)
         public int difficulty;                   // 0 Standard (the game as tuned), 1 Hard
@@ -164,6 +165,17 @@ namespace LastLight.Core
             return rank;
         }
 
+        /// <summary>The frame rate to aim for: the display's refresh rate (at least 60), or the cap.</summary>
+        public int FrameRate
+        {
+            get
+            {
+                if (frameCap == 30 || frameCap == 60) return frameCap;
+                int hz = Mathf.RoundToInt((float)Screen.currentResolution.refreshRateRatio.value);
+                return Mathf.Max(60, hz);
+            }
+        }
+
         public int TotalLamps
         {
             get
@@ -186,6 +198,7 @@ namespace LastLight.Core
             Sfx.AmbienceVolume = ambience;
             if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
             ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
+            Application.targetFrameRate = Game.Arg("-llFps", FrameRate);
             brightness = Mathf.Clamp(brightness, -2, 2);
             Stage.SetBrightness(brightness);
             if (Game.Instance != null && Game.Instance.Hud != null) Game.Instance.Hud.SetScale(hudScale);

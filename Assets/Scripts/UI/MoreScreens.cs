@@ -302,6 +302,8 @@ namespace LastLight.UI
             Row("Seen hints", replay);
             keysButton = UiButton.Create(panel, "Change keys", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
             Row("Keyboard keys", keysButton);
+            int[] caps = { 0, 60, 30 };
+            Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }));
 
             row = 0;
             column = 410f;
