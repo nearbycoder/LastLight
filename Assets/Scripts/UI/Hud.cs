@@ -120,6 +120,7 @@ namespace LastLight.UI
             group.blocksRaycasts = false;
             markerLayer = UiKit.Rect("Markers", root).Fill();
             statusLayer = UiKit.Rect("ShipStatus", root).Fill();
+            edgeLayer = UiKit.Rect("EdgeMarkers", root).Fill();
 
             // Top-left: the night.
             var tl = nightBlock = UiKit.Rect("Night", root).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(46, -34), new Vector2(560, 120));
@@ -671,6 +672,7 @@ namespace LastLight.UI
             }
 
             UpdateStatus(w);
+            UpdateEdgeMarkers(w);
         }
 
         /// <summary>The mark under each manifest icon, in schedule order ("", "lost", "lured",
@@ -691,9 +693,9 @@ namespace LastLight.UI
         {
             public RectTransform Root;
             public Text Question;
-            public Image Lantern;
+            public Image Lantern, Chevron;
             public readonly List<Image> Dashes = new List<Image>();
-            public bool Used;
+            public bool Used, Pinned;
         }
 
         readonly Dictionary<int, StatusGlyph> glyphs = new Dictionary<int, StatusGlyph>();
@@ -710,6 +712,8 @@ namespace LastLight.UI
             g.Question.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 84));
             g.Lantern = UiKit.Image("Lantern", g.Root, SpriteFactory.Icon("lantern"), Color.Lerp(UiKit.Lure, Color.white, 0.15f));
             g.Lantern.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(50, 50));
+            g.Chevron = UiKit.Image("Chevron", g.Root, SpriteFactory.Icon("chevron"), Color.white);
+            g.Chevron.rectTransform.sizeDelta = new Vector2(34, 34);
             for (int i = 0; i < MaxDashes; i++)
             {
                 var d = UiKit.Image("Dash", statusLayer, SpriteFactory.Bar, UiKit.Lure);
@@ -743,10 +747,16 @@ namespace LastLight.UI
                     g.Used = true;
                     var at = ToCanvas(new Vector3(s.Pos.x, 2f, s.Pos.y));
                     float bob = 5f * Mathf.Sin(Unscaled.Time * 3.2f + s.Id);
-                    g.Root.anchoredPosition = at + new Vector2(0f, 46f + bob);
+                    var glyphAt = at + new Vector2(0f, 46f + bob);
+                    // A ship out of frame keeps its mark just inside the edge, pointing out to it.
+                    bool pinned = PinToEdge(at, out var edgeAt, out var outward);
+                    if (pinned) glyphAt = edgeAt;
+                    g.Root.anchoredPosition = glyphAt;
                     g.Root.gameObject.SetActive(true);
                     g.Question.enabled = lost;
                     g.Lantern.enabled = lured;
+                    g.Pinned = pinned;
+                    PointChevron(g.Chevron, pinned, outward, (lost ? Color.Lerp(UiKit.Danger, Color.white, 0.25f) : UiKit.Lure));
                     int shown = 0;
                     if (lured)
                     {
@@ -783,6 +793,138 @@ namespace LastLight.UI
 
         /// <summary>For the tours: is a ship's lost or lured glyph showing?</summary>
         public bool StatusShowing(int shipId) => glyphs.TryGetValue(shipId, out var g) && g.Root.gameObject.activeSelf;
+
+        /// <summary>For the tours: a showing glyph's bounds on the canvas, and whether it's pinned
+        /// at the edge because its ship is out of frame.</summary>
+        public bool StatusBounds(int shipId, out Rect bounds, out bool pinned)
+        {
+            bounds = default;
+            pinned = false;
+            if (!glyphs.TryGetValue(shipId, out var g) || !g.Root.gameObject.activeSelf) return false;
+            bounds = CanvasRect(g.Root);
+            if (g.Chevron.enabled) bounds = Union(bounds, CanvasRect(g.Chevron.rectTransform));
+            pinned = g.Pinned;
+            return true;
+        }
+
+        // ---------------------------------------------------------------- out of frame
+
+        // A false light burning past the edge of the frame (Westpoint and Corley Cove sit just
+        // outside it at 16:9) shows a lantern pinned inside the nearest edge, pointing out to it.
+        RectTransform edgeLayer;
+
+        sealed class EdgeMarker
+        {
+            public RectTransform Root;
+            public Image Lantern, Chevron;
+            public string Site;
+        }
+
+        readonly Dictionary<int, EdgeMarker> edgeMarkers = new Dictionary<int, EdgeMarker>();
+
+        /// <summary>The canvas's size, in its own units (as the marker layers use).</summary>
+        public Vector2 CanvasSize => ((RectTransform)canvas.transform).rect.size;
+
+        /// <summary>A rect's bounds in the marker layers' coordinates (canvas units from the bottom left).</summary>
+        Rect CanvasRect(RectTransform rt)
+        {
+            var c = new Vector3[4];
+            rt.GetWorldCorners(c);
+            Vector2 a = markerLayer.InverseTransformPoint(c[0]), b = markerLayer.InverseTransformPoint(c[2]);
+            var off = -markerLayer.rect.min;
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x) + off.x, Mathf.Min(a.y, b.y) + off.y, Mathf.Max(a.x, b.x) + off.x, Mathf.Max(a.y, b.y) + off.y);
+        }
+
+        /// <summary>For the tours: a rect's bounds in the same coordinates as the markers'.</summary>
+        public Rect TourCanvasRect(RectTransform rt) => CanvasRect(rt);
+
+        static Rect Union(Rect a, Rect b) => Rect.MinMaxRect(Mathf.Min(a.xMin, b.xMin), Mathf.Min(a.yMin, b.yMin), Mathf.Max(a.xMax, b.xMax), Mathf.Max(a.yMax, b.yMax));
+
+        /// <summary>A point this close to the edge (in canvas units) counts as out of frame: a
+        /// lantern there is cut in half.</summary>
+        public const float EdgeMargin = 28f;
+
+        /// <summary>When a canvas point is off the screen (or all but), where its marker sits instead: inside
+        /// the edge, below the top bar and clear of the radio panel. Returns false while it's in frame.</summary>
+        bool PinToEdge(Vector2 p, out Vector2 pinned, out Vector2 outward)
+        {
+            var size = CanvasSize;
+            float W = size.x, H = size.y;
+            const float margin = 76f;
+            bool outside = p.x < EdgeMargin || p.x > W - EdgeMargin || p.y < EdgeMargin || p.y > H - EdgeMargin;
+            pinned = new Vector2(Mathf.Clamp(p.x, margin, W - margin), Mathf.Clamp(p.y, margin, H - 180f));
+            if (radioGroup.alpha > 0.05f)
+            {
+                var r = CanvasRect(radioPanel);
+                if (pinned.x > r.xMin - margin && pinned.y < r.yMax + margin) pinned.y = r.yMax + margin;
+            }
+            var d = p - pinned;
+            outward = d.sqrMagnitude > 1f ? d.normalized : Vector2.right;
+            return outside;
+        }
+
+        static void PointChevron(Image chevron, bool on, Vector2 outward, Color color)
+        {
+            chevron.enabled = on;
+            if (!on) return;
+            chevron.rectTransform.anchoredPosition = outward * 44f;
+            chevron.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(outward.y, outward.x) * Mathf.Rad2Deg);
+            chevron.color = new Color(color.r, color.g, color.b, 0.6f + 0.4f * Mathf.Sin(Unscaled.Time * 6f));
+        }
+
+        EdgeMarker Edge(int index)
+        {
+            if (edgeMarkers.TryGetValue(index, out var e)) return e;
+            e = new EdgeMarker { Root = UiKit.Rect("Edge", edgeLayer) };
+            e.Root.anchorMin = e.Root.anchorMax = Vector2.zero;
+            e.Root.sizeDelta = new Vector2(56, 56);
+            var glow = UiKit.Image("Glow", e.Root, SpriteFactory.Glow, new Color(UiKit.Lure.r, UiKit.Lure.g, UiKit.Lure.b, 0.35f));
+            glow.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110, 110));
+            glow.raycastTarget = false;
+            e.Lantern = UiKit.Image("Lantern", e.Root, SpriteFactory.Icon("lanternSolid"), UiKit.Lure);
+            e.Lantern.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(52, 52));
+            e.Chevron = UiKit.Image("Chevron", e.Root, SpriteFactory.Icon("chevron"), UiKit.Lure);
+            e.Chevron.rectTransform.sizeDelta = new Vector2(34, 34);
+            edgeMarkers[index] = e;
+            return e;
+        }
+
+        void UpdateEdgeMarkers(SimWorld w)
+        {
+            var cam = CameraRig.Instance != null ? CameraRig.Instance.Cam : Camera.main;
+            float scale = CanvasSize.x / Mathf.Max(1, Screen.width);
+            var seen = new HashSet<int>();
+            if (cam != null)
+                foreach (var wr in w.Wreckers)
+                {
+                    if (!wr.Burning) continue;
+                    var site = wr.Site;
+                    var sp = cam.WorldToScreenPoint(new Vector3(site.Pos.x, site.Height + 2f, site.Pos.y));
+                    var p = sp.z > 0f ? new Vector2(sp.x, sp.y) * scale : new Vector2(-999, -999);
+                    if (!PinToEdge(p, out var at, out var outward)) continue;
+                    var e = Edge(wr.Index);
+                    seen.Add(wr.Index);
+                    e.Site = site.Id;
+                    e.Root.gameObject.SetActive(true);
+                    e.Root.anchoredPosition = at;
+                    float pulse = 0.75f + 0.25f * Mathf.Sin(Unscaled.Time * 6f + wr.Index);
+                    e.Lantern.color = new Color(UiKit.Lure.r, UiKit.Lure.g, UiKit.Lure.b, pulse);
+                    PointChevron(e.Chevron, true, outward, UiKit.Lure);
+                }
+            foreach (var kv in edgeMarkers)
+                if (!seen.Contains(kv.Key) && kv.Value.Root.gameObject.activeSelf) kv.Value.Root.gameObject.SetActive(false);
+        }
+
+        /// <summary>For the tours: the false lights pinned at the edge now, with their bounds on
+        /// the canvas and the way their chevrons point.</summary>
+        public List<(string site, Rect bounds, Vector2 outward)> TourEdgeMarkers()
+        {
+            var list = new List<(string, Rect, Vector2)>();
+            foreach (var e in edgeMarkers.Values)
+                if (e.Root.gameObject.activeSelf)
+                    list.Add((e.Site, Union(CanvasRect(e.Lantern.rectTransform), CanvasRect(e.Chevron.rectTransform)), (Vector2)(e.Chevron.rectTransform.localRotation * Vector3.right)));
+            return list;
+        }
 
         readonly Dictionary<SpawnDef, SimShip> shipBySpawn = new Dictionary<SpawnDef, SimShip>();
 

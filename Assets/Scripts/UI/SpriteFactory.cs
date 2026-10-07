@@ -267,6 +267,9 @@ namespace LastLight.UI
                     float base_ = Box(x, y, 48, 22, 22, 5, 2);
                     return Union(Union(glass, top), Union(ring, base_));
                 }
+                case "chevron":
+                    // Points right (+x): "it's out there", for markers pinned at the screen's edge.
+                    return Union(Segment(x, y, new Vector2(34, 18), new Vector2(66, 48)), Segment(x, y, new Vector2(66, 48), new Vector2(34, 78))) - 9f;
                 case "tick":
                     // Home: a bold check mark.
                     return Union(Segment(x, y, new Vector2(20, 50), new Vector2(40, 28)), Segment(x, y, new Vector2(40, 28), new Vector2(76, 70))) - 8f;
