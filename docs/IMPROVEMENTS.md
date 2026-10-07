@@ -926,3 +926,78 @@ kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, h
 (now including whether the chart and the lamps at stake help), fullscreen and real-hardware checks
 of other screen shapes (a Steam Deck in particular), non-US keyboard layouts, the save's location
 on macOS and Windows (untested), Windows (module install) and macOS signing (Developer ID).
+
+## Round 8 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records).
+These items come from reading round 7's captures and the save code as a player would meet them.
+On night III the Hen Bell's label and the Hen's Chicks' label are drawn on top of each other, over
+a lost ship, and on the dawn chart wreck names sit across reef marks and place names. The save
+moved to its own file in round 7, but when it can't be read or written the game only writes a line
+to its log: a keeper whose save failed finds out next time they start the game, with an empty
+logbook, and a save that merely couldn't be *opened* (a permissions slip, a file held by another
+program) is treated as no save at all and overwritten by the next one. The dawn card gives a
+score with no account of where it came from, and nothing during a night says what score is worth
+chasing, which is the whole point of a Night Watch. None of the items changes the simulation, so
+the pinned Standard scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `names`, `chart`,
+`lamps` and `screens` tours at 0 errors. Captures go to `docs/media/improvements/round8/`. Tour
+output and logs stay under `Builds/round8/`. The real save directory is checksummed before and
+after (`Builds/round8/save_before.txt`).
+
+### 1. Names that don't sit on each other
+- On the water, a place's label moves up or down, out of the way of a label already placed, a
+  ship's name tag, or a lost or lured ship's mark, rather than covering it. It stays as close to
+  its place as it can and keeps pointing at it. Ship tags, which follow their hulls, keep their
+  place.
+- On the dawn chart, a wreck's name and the names of places are placed so they don't cover each
+  other, or a wreck's cross.
+- **Verify:** the `names` tour checks every frame of night III that no two labels on screen
+  overlap (it reproduces the Hen Bell and Hen's Chicks), and that each label is still within reach
+  of what it names. The `chart` tour checks that no two of the chart's names overlap on night IX
+  (five wrecks). Screenshots read by me, also at 5:4 with 130% HUD text.
+
+### 2. Tell the keeper when the save is in trouble
+- A save that can't be **opened** (as opposed to read and found damaged) is never written over:
+  the game plays on without saving and says so.
+- When the save can't be read, the title says so once, in words: what happened, that the damaged
+  file was kept as `save.unreadable.json`, and where it is.
+- When the save can't be **written** (a full disk, a read-only folder), the dawn card and the
+  title say that progress isn't being saved, and where the save should be.
+- **Verify:** EditMode tests for the decisions (an unopenable save isn't overwritten; a failed
+  write is reported) using folders under `Temp/`. The `season` tour gains two runs in a throwaway
+  config: `damaged` checks the title's notice, and a new `readonly` run makes the throwaway save
+  folder read-only, keeps a night, and checks the dawn card's and the title's notices and that
+  the seeded save is unchanged. My own save folder is checksummed before and after.
+
+### 3. The score explained at dawn
+- Under the dawn card's score, one line says where it came from, for example "4 ships home 600 ·
+  steady hands +200", with ships running dark (which count double) given their own part. The parts
+  always add up to the score.
+- **Verify:** an EditMode test plays every night with the AutoKeeper (and a neglected ship on
+  some) and checks the parts add up to the sim's score. The `ui` tour's staged dawn cards show the
+  line; screenshots read by me.
+
+### 4. The score to beat, during the night
+- Under the HUD's score, "best 880" when the night (or a watch) has a best to beat; it changes to
+  "NEW BEST" in brass the moment the score passes it. Nothing shows the first time a night is
+  played.
+- **Verify:** a `best` tour plays night III on a sample save (best 880) and a Night Watch on a
+  finished season with the AutoKeeper, and checks every frame that the line matches the sim's score
+  against the best, and that it turns exactly when the score passes. `screens` checks the score
+  block stays clear of the manifest at 130% HUD text at all four shapes.
+
+### 5. An offer of help after repeated failures (if time allows)
+- After a night fails twice in a row, the dawn card adds a line pointing to the assists that
+  already exist (Game speed, and Difficulty if it's on Hard), with where to find them. It doesn't
+  change anything by itself, and doesn't appear if the assists are already in use.
+- **Verify:** the `ui` tour stages two failures on night II and checks the line, and that it's
+  absent after one failure and at 70% game speed.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp and slowed records**: the owner's call.
+- **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts, the
+  save on macOS and Windows**: no hardware or platforms here to check them on.
+- **Re-cutting the trailer**: the owner's call.
