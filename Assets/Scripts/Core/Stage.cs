@@ -69,6 +69,16 @@ namespace LastLight.Core
             RenderSettings.sun = Moon;
         }
 
+        /// <summary>The scene's exposure for a Brightness step (-2..2; 0 is the game as graded).
+        /// Post-processing touches only the 3D scene, so the menus and HUD keep their look.</summary>
+        public static float Exposure(int brightness) => 0.45f + brightness switch { -2 => -0.5f, -1 => -0.25f, 1 => 0.5f, 2 => 1f, _ => 0f };
+
+        /// <summary>Settings: Brightness.</summary>
+        public static void SetBrightness(int brightness)
+        {
+            if (Color != null) Color.postExposure.Override(Exposure(brightness));
+        }
+
         public static void BuildPost()
         {
             var go = new GameObject("Post");
@@ -88,7 +98,7 @@ namespace LastLight.Core
             tm.mode.Override(TonemappingMode.ACES);
 
             Color = profile.Add<ColorAdjustments>(true);
-            Color.postExposure.Override(0.45f);
+            Color.postExposure.Override(Exposure(SaveData.Current.brightness));
             Color.contrast.Override(12f);
             Color.saturation.Override(6f);
 

@@ -42,6 +42,7 @@ namespace LastLight.Core
         public int quality = 2;                  // 0 low, 1 medium, 2 high
         public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
+        public int brightness;                   // the scene's exposure, in steps from -2 to 2 (0 = as graded)
         public int difficulty;                   // 0 Standard (the game as tuned), 1 Hard
         public float hudScale = 1f;              // HUD and radio text size: 1, 1.15 or 1.3
         public float gameSpeed = 1f;             // an assist: the simulation at 1, 0.85 or 0.7 of full speed
@@ -182,6 +183,8 @@ namespace LastLight.Core
             Sfx.AmbienceVolume = ambience;
             if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
             ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
+            brightness = Mathf.Clamp(brightness, -2, 2);
+            Stage.SetBrightness(brightness);
             if (Game.Instance != null && Game.Instance.Hud != null) Game.Instance.Hud.SetScale(hudScale);
             // The pipeline asset is shared with the editor, so only the player changes it.
             if (!Application.isEditor && GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)

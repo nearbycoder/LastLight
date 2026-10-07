@@ -253,7 +253,7 @@ namespace LastLight.UI
         {
             var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.72f));
             dim.rectTransform.Fill();
-            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 880));
+            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 940));
             Frames.Add(panel);
             var bg = UiKit.Image("Bg", panel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
             bg.rectTransform.Fill();
@@ -310,6 +310,7 @@ namespace LastLight.UI
             int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
             var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
             Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }));
+            Row("Brightness", UiStepper.Create(panel, new[] { "−2", "−1", "Standard", "+1", "+2" }, Mathf.Clamp(save.brightness, -2, 2) + 2, i => { save.brightness = i - 2; save.Apply(display: false); }));
             Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }));
             float[] scales = { 1f, 0.85f, 0.7f, 0.5f };
             int scaleIndex = System.Array.FindIndex(scales, v => Mathf.Abs(v - save.renderScale) < 0.01f);

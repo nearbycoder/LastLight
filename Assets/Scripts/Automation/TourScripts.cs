@@ -560,7 +560,7 @@ namespace LastLight.Automation
             for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
-            for (int i = 0; i < 10; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // ten rows on the right since Game speed
+            for (int i = 0; i < 11; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
@@ -761,7 +761,7 @@ namespace LastLight.Automation
             t.Log($"{(marksOk && homeSeen && wreckSeen ? "PASS" : "FAIL")} manifest marks follow the ships by shape (home seen {homeSeen}, wreck seen {wreckSeen})");
         }
 
-        static float MeanBrightness(string save = null)
+        internal static float MeanBrightness(string save = null)
         {
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
             if (save != null) System.IO.File.WriteAllBytes(save, tex.EncodeToPNG());
