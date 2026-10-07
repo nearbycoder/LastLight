@@ -36,6 +36,7 @@ namespace LastLight.Core
 
         // Settings
         public float master = 0.9f, music = 0.75f, sfx = 1f, radio = 1f, ambience = 0.9f;
+        public bool muteInBackground;            // silence the game while its window is out of focus
         public bool fullscreen = true;
         public int resWidth, resHeight;          // 0 = the desktop's own resolution
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25

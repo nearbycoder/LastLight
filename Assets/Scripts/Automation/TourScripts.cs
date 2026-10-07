@@ -456,10 +456,13 @@ namespace LastLight.Automation
 
             // ---- Nobody at the lamp: losing focus pauses, and so does unplugging the pad in use.
             yield return PadPress(pad, GamepadButton.DpadLeft);   // the pad in hand again
-            g.FocusLost();
+            g.FocusChanged(false);
             yield return Tour.Wait(0.4f);
             bool focusPause = g.TourPaused && Time.timeScale == 0f;
             t.Log($"{(focusPause ? "PASS" : "FAIL")} losing window focus pauses the night");
+            bool keepsSound = AudioListener.volume == 1f;
+            t.Log($"{(keepsSound ? "PASS" : "FAIL")} with Sound in background on, the game still sounds out of focus (volume {AudioListener.volume})");
+            promptsOk &= keepsSound;
             string padStrip = g.TourPauseControls;
             bool padStripOk = InputMode.Pad && padStrip.Contains("Right stick") && padStrip.Contains("Start");
             t.Log($"{(padStripOk ? "PASS" : "FAIL")} the pause menu's controls are in pad words: \"{padStrip}\"");
@@ -473,6 +476,19 @@ namespace LastLight.Automation
             yield return t.Shot("input_unplugged");
             g.TourResume();
             promptsOk &= focusPause && unplugPause;
+
+            // ---- Sound in background off: silent while out of focus, back on return (still paused).
+            SaveData.Current.muteInBackground = true;
+            g.FocusChanged(false);
+            yield return Tour.Wait(0.3f);
+            bool muted = AudioListener.volume == 0f && g.TourPaused;
+            g.FocusChanged(true);
+            yield return Tour.Wait(0.3f);
+            bool unmuted = AudioListener.volume == 1f && g.TourPaused;
+            t.Log($"{(muted && unmuted ? "PASS" : "FAIL")} with Sound in background off, losing focus mutes the game and pauses it, and focus brings the sound back with the night still paused (muted {muted}, back {unmuted})");
+            promptsOk &= muted && unmuted;
+            SaveData.Current.muteInBackground = false;
+            g.TourResume();
 
             // ---- The turn-speed setting scales how fast the keys swing the lens.
             var rates = new float[2];
@@ -561,7 +577,7 @@ namespace LastLight.Automation
             yield return null;
             g.TourShowSettings();
             yield return Tour.Wait(1.2f);
-            for (int i = 0; i < 12; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the left since Frame rate
+            for (int i = 0; i < 13; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the left since Sound in background
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
             for (int i = 0; i < 11; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness

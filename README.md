@@ -74,6 +74,7 @@ laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
 a tenth of its strength), HUD text size, difficulty, **game speed** and the keyboard **keys**.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
+With **Sound in background** off, the game also falls silent while its window is out of focus.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
 the controls for the device you're using. **Keeper's notes**, on the title menu and in the pause
 menu (the night waits), keep the rules in short entries: the light, lost ships, the lamps and the

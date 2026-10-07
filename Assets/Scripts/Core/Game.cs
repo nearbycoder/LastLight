@@ -106,7 +106,15 @@ namespace LastLight.Core
         // unfocused, so they call FocusLost themselves) or when the pad in use goes away.
         void OnApplicationFocus(bool focused)
         {
-            if (!focused && !HasArg("-llTour")) FocusLost();
+            if (!HasArg("-llTour")) FocusChanged(focused);
+        }
+
+        /// <summary>The window lost or regained focus: pause the night, and fall silent if the
+        /// keeper asked for that (Settings ▸ Sound in background).</summary>
+        public void FocusChanged(bool focused)
+        {
+            AudioListener.volume = !focused && SaveData.Current.muteInBackground ? 0f : 1f;
+            if (!focused) FocusLost();
         }
 
         public void FocusLost()
