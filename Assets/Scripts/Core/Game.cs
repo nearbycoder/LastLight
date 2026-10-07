@@ -434,7 +434,13 @@ namespace LastLight.Core
             {
                 SaveData.Current.endingSeen = true;
                 SaveData.Current.Save();
-                fader.Dip(1.5f, () => { ShowTitle(false); Rig.Snap(CameraRig.TitlePose); });
+                fader.Dip(1.5f, () =>
+                {
+                    // Skipped early, the ending's own dawn scene would linger behind the title.
+                    if (ending.Skipped) StartAttract();
+                    ShowTitle(false);
+                    Rig.Snap(CameraRig.TitlePose);
+                });
             });
         }
 
@@ -576,6 +582,8 @@ namespace LastLight.Core
         };
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;
+        public bool TourShowingTitle => Current == State.Title;
+        public Ending TourEndingScene => ending;
         public (int shown, string newest) TourPauseLog => (pause.LogShown, pause.LogNewest);
         public string TourPauseItem(int i) => pause.ItemLabel(i);
         public void TourPauseChoose(int i) => pause.Choose(i);

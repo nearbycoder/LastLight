@@ -25,8 +25,43 @@ namespace LastLight.Core
         RectTransform credits;
         Text creditsText;
         bool holding;
+        // Skipping: Esc, Start or B once arms it ("Press again to skip"), a second press within a
+        // few seconds goes straight back to the title.
+        CanvasGroup skipGroup;
+        float skipArmed;
+        bool skipping;
+        const float SkipWindow = 3f;
+
+        /// <summary>The "Press again to skip" prompt is showing; for tours.</summary>
+        public bool SkipPrompted => skipArmed > 0f;
+        public bool Playing { get; private set; }
+        public bool CreditsRolling { get; private set; }
+        /// <summary>The last ending was skipped rather than watched to the end.</summary>
+        public bool Skipped { get; private set; }
 
         public void Play(Game game, Action done) => StartCoroutine(Run(game, done));
+
+        static bool BackPressed()
+        {
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            return (kb != null && kb.escapeKey.wasPressedThisFrame) || (pad != null && (pad.startButton.wasPressedThisFrame || pad.buttonEast.wasPressedThisFrame));
+        }
+
+        void Update()
+        {
+            if (!Playing || skipping) return;
+            if (BackPressed())
+            {
+                if (skipArmed > 0f) { skipping = true; skipArmed = 0f; }
+                else { skipArmed = SkipWindow; Tween.Fade(skipGroup, 1f, 0.25f); }
+            }
+            else if (skipArmed > 0f)
+            {
+                skipArmed -= Unscaled.Delta;
+                if (skipArmed <= 0f) Tween.Fade(skipGroup, 0f, 0.6f);
+            }
+        }
 
         static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", "Hold A to put out the light");
 
@@ -62,17 +97,51 @@ namespace LastLight.Core
             creditsText = UiKit.Text("Text", credits, "", UiKit.Body, 30, UiKit.Paper, TextAnchor.UpperCenter).Shadowed();
             creditsText.rectTransform.Fill();
             creditsText.lineSpacing = 1.25f;
+
+            var skip = UiKit.Text("Skip", canvas.transform, "Press again to skip", UiKit.Italic, 26, UiKit.Paper, TextAnchor.MiddleRight).Shadowed(0.8f, 2f);
+            skip.rectTransform.Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-60, -44), new Vector2(600, 40));   // clear of the radio panel
+            skipGroup = skip.rectTransform.Group(0f);
         }
 
         IEnumerator Wait(float s)
         {
             float t = 0f;
-            while (t < s) { t += Time.deltaTime; yield return null; }
+            while (t < s && !skipping) { t += Time.deltaTime; yield return null; }
         }
 
         IEnumerator Run(Game game, Action done)
         {
             Build();
+            Playing = true;
+            skipping = false;
+            skipArmed = 0f;
+            skipGroup.alpha = 0f;
+            var body = Body(game);
+            while (body.MoveNext())
+            {
+                if (skipping) break;
+                yield return body.Current;
+            }
+            if (skipping)
+            {
+                // Straight to the end: stop the dawn and the lens winding down, clear the cards.
+                Tween.Kill(this);
+                Tween.Fade(skipGroup, 0f, 0.3f);
+                foreach (var g in new[] { promptGroup, cardGroup, creditsGroup }) Tween.Fade(g, 0f, 0.6f);
+                Music.Stop(1.5f);
+            }
+            ShaderGlobals.AmbientColor = new Color(0.06f, 0.085f, 0.13f);
+            Stage.Moon.intensity = Stage.MoonIntensity;
+            if (game.Runner != null) game.Runner.World.Beam.Power = 1f;
+            Playing = false;
+            CreditsRolling = false;
+            Skipped = skipping;
+            skipArmed = 0f;
+            done?.Invoke();
+        }
+
+        IEnumerator Body(Game game)
+        {
             var radio = game.Radio;
             radio.Clear();
             game.Fader.Dip(1.2f, () =>
@@ -107,7 +176,7 @@ namespace LastLight.Core
             // The keeper puts out the light.
             Tween.Fade(promptGroup, 1f, 1.2f);
             float held = 0f, waited = 0f;
-            while (held < 2.4f)
+            while (held < 2.4f && !skipping)
             {
                 var kb = Keyboard.current;
                 var mouse = Mouse.current;
@@ -163,21 +232,17 @@ namespace LastLight.Core
             float h = creditsText.preferredHeight + 1200f;
             float speed = 70f;
             float y = -60f;
-            float skipAfter = 4f, tt = 0f;
-            while (y < h)
+            CreditsRolling = true;
+            while (y < h && !skipping)
             {
-                y += speed * Time.deltaTime * (Tour.Active ? 6f : 1f);
+                y += speed * Time.deltaTime * (Tour.Active && !TourSlowCredits ? 6f : 1f);
                 credits.anchoredPosition = new Vector2(0, y);
-                tt += Time.deltaTime;
-                var kb = Keyboard.current;
-                if (tt > skipAfter && kb != null && kb.escapeKey.wasPressedThisFrame) break;
                 yield return null;
             }
             Tween.Fade(creditsGroup, 0f, 2f);
-            ShaderGlobals.AmbientColor = new Color(0.06f, 0.085f, 0.13f);
-            Stage.Moon.intensity = Stage.MoonIntensity;
-            if (game.Runner != null) game.Runner.World.Beam.Power = 1f;
-            done?.Invoke();
         }
+
+        /// <summary>Tours that skip the credits let them roll at reading speed.</summary>
+        public static bool TourSlowCredits;
     }
 }
