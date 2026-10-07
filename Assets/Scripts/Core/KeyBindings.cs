@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
@@ -142,7 +143,9 @@ namespace LastLight.Core
                 case Key.UpArrow: return "↑";
                 case Key.DownArrow: return "↓";
             }
-            var c = Control(Keyboard.current, k);
+            // A batch editor (the tests) has no display to ask for the layout's names, and the
+            // query crashes there; the key's own name stands in.
+            var c = Application.isBatchMode ? null : Control(Keyboard.current, k);
             string name = c != null && !string.IsNullOrWhiteSpace(c.displayName) ? c.displayName : k.ToString();
             return name.Length == 1 ? name.ToUpperInvariant() : name;
         }

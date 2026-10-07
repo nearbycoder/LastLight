@@ -44,6 +44,20 @@ namespace LastLight.Automation
             yield return t.Shot("03b_keys");
             CheckScreen(t, "keys", g.TourScreen("settings"));
             g.TourHideAll();
+            // The keeper's notes with every entry open, the longest list (the save is a blank one
+            // under -llFresh and isn't written).
+            var save = SaveData.Current;
+            int unlocked = save.unlocked;
+            bool seen = save.endingSeen;
+            save.unlocked = 12;
+            save.endingSeen = true;
+            g.TourShowNotes();
+            yield return Tour.Wait(1.2f);
+            yield return t.Shot("03c_notes");
+            CheckScreen(t, "notes", g.TourScreen("notes"));
+            save.unlocked = unlocked;
+            save.endingSeen = seen;
+            g.TourHideAll();
 
             // Night 11: twelve ships in the manifest, the longest top bar.
             g.AutoPlay = true;
@@ -83,7 +97,7 @@ namespace LastLight.Automation
             yield return Tour.Wait(1.2f);
             yield return t.Shot("06_pause");
             CheckScreen(t, "pause", g.TourScreen("pause"));
-            g.TourPauseChoose(4);
+            g.TourPauseChoose(5);
             yield return Tour.Wait(0.6f);
             CheckScreen(t, "pause question", g.TourScreen("pause"));
             yield return t.Shot("06b_pause_question");

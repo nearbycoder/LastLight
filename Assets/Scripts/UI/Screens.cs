@@ -84,7 +84,7 @@ namespace LastLight.UI
 
     public sealed class TitleScreen : UiScreen
     {
-        public Action OnBegin, OnWatch, OnLogbook, OnSettings, OnQuit;
+        public Action OnBegin, OnWatch, OnLogbook, OnNotes, OnSettings, OnQuit;
         readonly List<Text> letters = new List<Text>();
         readonly List<UiButton> items = new List<UiButton>();
         Text tagline, footer;
@@ -128,6 +128,7 @@ namespace LastLight.UI
             begin = AddItem("Begin the watch", () => OnBegin?.Invoke());
             watch = AddItem("Night Watch", () => OnWatch?.Invoke());
             AddItem("Keeper's logbook", () => OnLogbook?.Invoke());
+            AddItem("Keeper's notes", () => OnNotes?.Invoke());
             AddItem("Settings", () => OnSettings?.Invoke());
             AddItem("Quit", () => OnQuit?.Invoke());
             SetWatchUnlocked(false);
@@ -345,7 +346,7 @@ namespace LastLight.UI
 
     public sealed class PauseScreen : UiScreen
     {
-        public Action OnResume, OnRestart, OnEndWatch, OnSettings, OnLogbook, OnTitle;
+        public Action OnResume, OnRestart, OnEndWatch, OnSettings, OnNotes, OnLogbook, OnTitle;
         readonly List<UiButton> buttons = new List<UiButton>();
         bool watch;
         Text controls;
@@ -388,8 +389,9 @@ namespace LastLight.UI
                     else Ask(1, "Start the night again?", "Tonight so far won't be kept.", ("Restart the night", OnRestart));
                 }),
                 ("Settings", () => OnSettings?.Invoke()),
-                ("Keeper's logbook", () => AskLeave(3, "Open the logbook", OnLogbook)),
-                ("Leave the lighthouse", () => AskLeave(4, "Leave the lighthouse", OnTitle)),
+                ("Keeper's notes", () => OnNotes?.Invoke()),
+                ("Keeper's logbook", () => AskLeave(4, "Open the logbook", OnLogbook)),
+                ("Leave the lighthouse", () => AskLeave(5, "Leave the lighthouse", OnTitle)),
             };
             for (int i = 0; i < items.Length; i++)
             {

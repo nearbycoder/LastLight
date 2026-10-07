@@ -74,7 +74,11 @@ menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights 
 a tenth of its strength), HUD text size, difficulty, **game speed** and the keyboard **keys**.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
-the controls for the device you're using. Restarting, leaving or opening the logbook from it asks
+the controls for the device you're using. **Keeper's notes**, on the title menu and in the pause
+menu (the night waits), keep the rules in short entries: the light, lost ships, the lamps and the
+wreck allowance, then each night's new idea as the season reaches it, so nothing is given away
+early. From the pause menu the book opens on tonight's idea, and the entries name the keys and
+buttons you use. Restarting, leaving or opening the logbook from it asks
 first, with **Stay** selected, because they throw the night away; in a Night Watch the question
 offers **End the watch**, which keeps it. The mouse pointer hides while you play with a gamepad.
 Menus and the HUD fit screens of other shapes (checked at 16:10, 5:4 and 21:9 as well as 16:9),

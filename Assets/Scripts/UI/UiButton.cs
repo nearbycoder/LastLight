@@ -13,6 +13,8 @@ namespace LastLight.UI
     public sealed class UiButton : Selectable, IPointerClickHandler, ISubmitHandler
     {
         public Action OnClick;
+        /// <summary>The pointer came over it, or keys or a pad selected it.</summary>
+        public Action OnHighlight;
         public Text Label;
         public Image Marker;
         public Color Normal = UiKit.Paper;
@@ -59,6 +61,7 @@ namespace LastLight.UI
             if (!IsInteractable()) return;
             if (!hovered) Sfx.Play("ui_hover", 0.35f, UnityEngine.Random.Range(0.96f, 1.04f));
             hovered = true;
+            OnHighlight?.Invoke();
         }
 
         public override void OnPointerExit(PointerEventData eventData)
@@ -74,6 +77,7 @@ namespace LastLight.UI
             {
                 if (!hovered) Sfx.Play("ui_hover", 0.35f);
                 hovered = true;
+                OnHighlight?.Invoke();
             }
         }
 

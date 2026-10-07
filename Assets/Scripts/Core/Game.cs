@@ -38,6 +38,8 @@ namespace LastLight.Core
         BriefingScreen briefing;
         PauseScreen pause;
         SettingsScreen settings;
+        NotesScreen notes;
+        State notesReturn;
         ResultsScreen results;
         Fader fader;
         Feedback feedback;
@@ -133,6 +135,7 @@ namespace LastLight.Core
             briefing = BriefingScreen.Create(menus.transform);
             pause = PauseScreen.Create(menus.transform);
             settings = SettingsScreen.Create(menus.transform);
+            notes = NotesScreen.Create(menus.transform);
             results = ResultsScreen.Create(menus.transform);
             fader = Fader.Create(menus.transform);
 
@@ -140,6 +143,8 @@ namespace LastLight.Core
             title.OnWatch = () => ShowBriefing(NightWatch.Number);
             title.OnLogbook = () => ShowLogbook(State.Title);
             title.OnSettings = () => ShowSettings(State.Title);
+            title.OnNotes = () => ShowNotes(State.Title);
+            notes.OnBack = CloseNotes;
             title.OnQuit = Quit;
             logbook.OnPick = n => { logbook.Hide(); ShowBriefing(n); };
             logbook.OnBack = () => { logbook.Hide(); ShowTitle(false); };
@@ -148,6 +153,7 @@ namespace LastLight.Core
             pause.OnRestart = () => { Time.timeScale = 1f; pause.Hide(); RestartNight(); };
             pause.OnEndWatch = EndWatch;
             pause.OnSettings = () => { pause.Hide(); ShowSettings(State.Paused); };
+            pause.OnNotes = () => { pause.Hide(); ShowNotes(State.Paused); };
             pause.OnLogbook = () => { pause.Hide(); Time.timeScale = 1f; ShowLogbook(State.Title); };
             pause.OnTitle = () => { Time.timeScale = 1f; pause.Hide(); ShowTitle(); };
             settings.OnFocusMode = title.RefreshFooter;
@@ -228,6 +234,28 @@ namespace LastLight.Core
             settingsReturn = from;
             title.Hide();
             settings.Show();
+        }
+
+        /// <summary>The keeper's notes. From the pause menu the night waits, and the book opens on
+        /// the idea tonight brings.</summary>
+        void ShowNotes(State from)
+        {
+            notesReturn = from;
+            title.Hide();
+            string first = null;
+            if (from == State.Paused)
+                foreach (var e in KeeperNotes.For(SaveData.Current, InputMode.Pad))
+                    if (e.Night == Night) { first = e.Id; break; }
+            notes.Refresh(SaveData.Current, first);
+            notes.Show();
+        }
+
+        void CloseNotes()
+        {
+            if (!notes.Visible) return;
+            notes.Hide();
+            if (notesReturn == State.Paused) { pause.Show(); Current = State.Paused; }
+            else ShowTitle(false);
         }
 
         void ShowBriefing(int night)
@@ -430,7 +458,7 @@ namespace LastLight.Core
         {
             Current = State.Ending;
             Hud.Show(false);
-            foreach (var s in new UiScreen[] { title, logbook, briefing, pause, settings, results })
+            foreach (var s in new UiScreen[] { title, logbook, briefing, pause, settings, notes, results })
                 if (s.Visible) s.Hide();
             if (ending == null) ending = gameObject.AddComponent<Ending>();
             ending.Play(this, () =>
@@ -502,6 +530,7 @@ namespace LastLight.Core
                 else if (Current == State.Paused && pause.Visible && pause.Confirming) pause.Cancel();
                 else if (Current == State.Paused && pause.Visible) Resume();
                 else if (settings.Visible && settings.Back()) { }
+                else if (notes.Visible) CloseNotes();
                 else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
                 else if (Current == State.Briefing) { briefing.Hide(); ShowTitle(); }
                 else if (Current == State.Logbook && logbook.Visible) { logbook.Hide(); ShowTitle(false); }
@@ -569,7 +598,9 @@ namespace LastLight.Core
 
         public void TourShowLogbook() => ShowLogbook(State.Title);
         public void TourShowSettings() => ShowSettings(State.Title);
-        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); title.Hide(0f); if (results.Visible) results.Hide(0f); }
+        public void TourHideAll() { logbook.Hide(0f); settings.Hide(0f); notes.Hide(0f); title.Hide(0f); if (results.Visible) results.Hide(0f); }
+        public void TourShowNotes() => ShowNotes(State.Title);
+        public NotesScreen TourNotes => notes;
         public void TourBriefing(int night) => ShowBriefing(night);
         public void TourWatch() => ShowBriefing(NightWatch.Number);
         public void TourDip(float time, Action middle) => fader.Dip(time, middle);
@@ -583,7 +614,7 @@ namespace LastLight.Core
         public UiScreen TourScreen(string name) => name switch
         {
             "title" => title, "logbook" => logbook, "settings" => settings, "briefing" => briefing,
-            "pause" => pause, "results" => results, _ => null,
+            "pause" => pause, "results" => results, "notes" => notes, _ => null,
         };
         public bool ShowingResults => Current == State.Results;
         public bool TourPaused => Current == State.Paused;

@@ -109,7 +109,7 @@ namespace LastLight.Automation
             yield return TourScripts.PadPress(pad, GamepadButton.Start);
             yield return Tour.Wait(0.6f);
             if (!Selected().Contains("Resume")) yield return TourScripts.PadPress(pad, GamepadButton.DpadDown);
-            for (int i = 0; i < 3; i++) yield return TourScripts.PadPress(pad, GamepadButton.DpadDown);
+            for (int i = 0; i < 4; i++) yield return TourScripts.PadPress(pad, GamepadButton.DpadDown);
             onItem = Selected();
             yield return TourScripts.PadPress(pad, GamepadButton.South);
             yield return Tour.Wait(0.4f);
@@ -133,7 +133,7 @@ namespace LastLight.Automation
             yield return StartNight(g, 13);
             g.TourPause();
             yield return Tour.Wait(0.6f);
-            g.TourPauseChoose(4);
+            g.TourPauseChoose(5);
             yield return Tour.Wait(0.6f);
             Check(t, g.TourPauseConfirmHeading == "Leave without keeping the watch?" && g.TourPauseConfirmLabel(1) == "End the watch" && g.TourPauseConfirmLabel(2) == "Leave anyway",
                 $"leaving a watch asks \"{g.TourPauseConfirmHeading}\" ({g.TourPauseConfirmLabel(0)} / {g.TourPauseConfirmLabel(1)} / {g.TourPauseConfirmLabel(2)})");
@@ -146,7 +146,7 @@ namespace LastLight.Automation
                 $"ending a watch asks \"{g.TourPauseConfirmHeading}\" ({g.TourPauseConfirmLabel(0)} / {g.TourPauseConfirmLabel(1)})");
             g.TourPauseConfirm(0);
             yield return Tour.Wait(0.3f);
-            g.TourPauseChoose(4);
+            g.TourPauseChoose(5);
             yield return Tour.Wait(0.4f);
             g.TourPauseConfirm(2);
             yield return Tour.Wait(1.5f);
