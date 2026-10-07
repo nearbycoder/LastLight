@@ -618,8 +618,7 @@ namespace LastLight.UI
             float dt = Unscaled.Delta;
             UpdateRadio(dt);
             UpdateMarkers(dt);
-            UpdateNames(dt);
-            if (runner == null || runner.World == null) return;
+            if (runner == null || runner.World == null) { UpdateNames(dt); return; }
             var w = runner.World;
 
             // Score counts up.
@@ -694,6 +693,8 @@ namespace LastLight.UI
 
             UpdateStatus(w);
             UpdateEdgeMarkers(w);
+            // Names last: they make room for the lost and lured marks placed above.
+            UpdateNames(dt);
         }
 
         /// <summary>The mark under each manifest icon, in schedule order ("", "lost", "lured",

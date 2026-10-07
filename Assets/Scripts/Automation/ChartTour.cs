@@ -98,11 +98,31 @@ namespace LastLight.Automation
             // A doused lure can leave its ship lost: a "?" on the chart, not a count in the debrief.
             Check(t, chart.LostMarks == lost && chart.LuredMarks == lured && lost - afterLure == lostCount && lured == luredCount,
                 $"{night}: {chart.LostMarks} \"?\" and {chart.LuredMarks} lantern marks; the log has {lost} turns to lost ({afterLure} after a lure) and {lured} to lured, the ships counted {lostCount} and {luredCount}");
+            // Names don't sit on each other or on a wreck's cross.
+            Rect ScreenRect(RectTransform rt)
+            {
+                var c = new Vector3[4];
+                rt.GetWorldCorners(c);
+                return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y);
+            }
+            var names = chart.PlaceMarks;
+            int clashes = 0;
+            var clashList = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < names.Count; i++)
+            {
+                var a = ScreenRect(names[i].mark);
+                for (int j = i + 1; j < names.Count; j++)
+                    if (LabelPlacer.Overlaps(a, ScreenRect(names[j].mark))) { clashes++; clashList.Add($"{names[i].place} and {names[j].place}"); }
+                foreach (var (ship, cross) in chart.WreckMarks)
+                    if (LabelPlacer.Overlaps(a, ScreenRect(cross))) { clashes++; clashList.Add($"{names[i].place} and the {ship}'s cross"); }
+            }
+            Check(t, clashes == 0, $"{night}: none of the chart's {names.Count} names covers another or a cross{(clashes > 0 ? ": " + string.Join("; ", clashList) : "")}");
             t.Log($"{night}: {log.Tracks.Count} tracks, {log.PointCount} points, {log.ChartedReefs.Count} reefs and {log.ChartedShoals.Count} sandbanks charted, lanterns {string.Join(",", log.BurnedSites)}");
         }
 
         static IEnumerator Run(Tour t)
         {
+            Hud.NamesMakeRoom = !Game.HasArg("-llNamesOverlap");   // names as round 7 drew them, for a before-and-after
             failures = 0;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             var g = Game.Instance;

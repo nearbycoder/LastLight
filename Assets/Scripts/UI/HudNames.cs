@@ -17,6 +17,8 @@ namespace LastLight.UI
     {
         /// <summary>The trailer's shoot turns the names off, so a re-shoot matches the released cut.</summary>
         public static bool NamesShown = true;
+        /// <summary>Names step aside for each other (off only for a tour's before-and-after).</summary>
+        public static bool NamesMakeRoom = true;
 
         RectTransform namesLayer;
         const float BgAlpha = 0.75f;   // dark enough to read over the beam and white water
@@ -31,6 +33,7 @@ namespace LastLight.UI
             public string Key;
             public float Life, MaxLife;
             public bool Pinned;
+            public Vector2 Offset;       // how far it moved to keep clear of other names
         }
 
         readonly List<NameTag> names = new List<NameTag>();
@@ -108,6 +111,13 @@ namespace LastLight.UI
             names.Clear();
         }
 
+        // Where a name may go when its own place is taken: a tag's height at a time, up or down.
+        const float NameStep = 38f;
+        static readonly List<Vector2> ShipSteps = LabelPlacer.Vertical(NameStep, 2, upFirst: false);
+        static readonly List<Vector2> PlaceSteps = LabelPlacer.Vertical(NameStep, 2, upFirst: true);
+        readonly List<Rect> namesPlaced = new List<Rect>();
+        readonly List<Vector2> nameSteps = new List<Vector2>();
+
         void UpdateNames(float dt)
         {
             var cam = CameraRig.Instance != null ? CameraRig.Instance.Cam : Camera.main;
@@ -122,39 +132,78 @@ namespace LastLight.UI
                 {
                     if (t.Root != null) Destroy(t.Root.gameObject);
                     names.RemoveAt(i);
-                    continue;
-                }
-                var world = t.Ship != null ? new Vector3(t.Ship.Pos.x, 1f, t.Ship.Pos.y) : t.World;
-                var sp = cam.WorldToScreenPoint(world);
-                var at = sp.z > 0f ? new Vector2(sp.x, sp.y) * scale : new Vector2(-999, -999);
-                // A ship's tag hangs under the hull (its lost or lured mark sits above); a place's
-                // label sits just above the spot.
-                var pos = at + (t.Ship != null ? new Vector2(0f, -40f) : new Vector2(0f, 30f));
-                bool pinned = PinToEdge(at, out var edgeAt, out var outward);
-                if (pinned)
-                {
-                    // Out of frame: inside the edge, below where a pinned status mark would be.
-                    pos = edgeAt + new Vector2(0f, t.Ship != null ? -62f : 0f);
-                    float half = t.Root.sizeDelta.x * 0.5f + 8f;
-                    pos.x = Mathf.Clamp(pos.x, half, CanvasSize.x - half);
-                }
-                t.Pinned = pinned;
-                t.Root.anchoredPosition = pos;
-                float age = t.MaxLife - t.Life;
-                float a = Mathf.Clamp01(age / 0.3f) * Mathf.Clamp01(t.Life / 0.6f);
-                t.Label.color = new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, a);
-                t.Bg.color = new Color(0.02f, 0.035f, 0.05f, BgAlpha * a);
-                if (t.Dot != null) { var c = t.Dot.color; c.a = a; t.Dot.color = c; }
-                // The chevron sits beyond the tag's end, pointing out of frame.
-                t.Chevron.enabled = pinned;
-                if (pinned)
-                {
-                    float reach = Mathf.Abs(outward.x) * (t.Root.sizeDelta.x * 0.5f + 18f) + Mathf.Abs(outward.y) * 34f;
-                    t.Chevron.rectTransform.anchoredPosition = outward * reach;
-                    t.Chevron.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(outward.y, outward.x) * Mathf.Rad2Deg);
-                    t.Chevron.color = new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, a * (0.6f + 0.4f * Mathf.Sin(Unscaled.Time * 6f)));
                 }
             }
+
+            // Names make way for the lost and lured marks, then for each other: ships' tags first
+            // (they follow their hulls), then places, each in the order it was named.
+            namesPlaced.Clear();
+            foreach (var g in glyphs.Values)
+            {
+                if (!g.Root.gameObject.activeSelf) continue;
+                namesPlaced.Add(CanvasRect(g.Question.enabled ? g.Question.rectTransform : g.Lantern.rectTransform));
+            }
+            var bounds = new Rect(Vector2.zero, CanvasSize);
+            for (int pass = 0; pass < 2; pass++)
+                foreach (var t in names)
+                {
+                    if ((t.Ship != null) != (pass == 0)) continue;
+                    var world = t.Ship != null ? new Vector3(t.Ship.Pos.x, 1f, t.Ship.Pos.y) : t.World;
+                    var sp = cam.WorldToScreenPoint(world);
+                    var at = sp.z > 0f ? new Vector2(sp.x, sp.y) * scale : new Vector2(-999, -999);
+                    // A ship's tag hangs under the hull (its lost or lured mark sits above); a place's
+                    // label sits just above the spot.
+                    var pos = at + (t.Ship != null ? new Vector2(0f, -40f) : new Vector2(0f, 30f));
+                    bool pinned = PinToEdge(at, out var edgeAt, out var outward);
+                    if (pinned)
+                    {
+                        // Out of frame: inside the edge, below where a pinned status mark would be.
+                        pos = edgeAt + new Vector2(0f, t.Ship != null ? -62f : 0f);
+                        float half = t.Root.sizeDelta.x * 0.5f + 8f;
+                        pos.x = Mathf.Clamp(pos.x, half, CanvasSize.x - half);
+                    }
+                    var size = t.Root.sizeDelta;
+                    var rect = new Rect(pos - size * 0.5f, size);
+                    // A name that has moved keeps its new place while that stays clear, so it doesn't
+                    // flick back and forth as a mark bobs at the edge of it.
+                    nameSteps.Clear();
+                    nameSteps.Add(t.Offset);
+                    nameSteps.AddRange(t.Ship != null ? ShipSteps : PlaceSteps);
+                    t.Offset = NamesMakeRoom ? LabelPlacer.Place(rect, nameSteps, namesPlaced, bounds) : Vector2.zero;
+                    t.Pinned = pinned;
+                    t.Root.anchoredPosition = pos + t.Offset;
+                    float age = t.MaxLife - t.Life;
+                    float a = Mathf.Clamp01(age / 0.3f) * Mathf.Clamp01(t.Life / 0.6f);
+                    t.Label.color = new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, a);
+                    t.Bg.color = new Color(0.02f, 0.035f, 0.05f, BgAlpha * a);
+                    if (t.Dot != null) { var c = t.Dot.color; c.a = a; t.Dot.color = c; }
+                    // The chevron sits beyond the tag's end, pointing out of frame.
+                    t.Chevron.enabled = pinned;
+                    if (pinned)
+                    {
+                        float reach = Mathf.Abs(outward.x) * (t.Root.sizeDelta.x * 0.5f + 18f) + Mathf.Abs(outward.y) * 34f;
+                        t.Chevron.rectTransform.anchoredPosition = outward * reach;
+                        t.Chevron.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(outward.y, outward.x) * Mathf.Rad2Deg);
+                        t.Chevron.color = new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, a * (0.6f + 0.4f * Mathf.Sin(Unscaled.Time * 6f)));
+                    }
+                }
+        }
+
+        /// <summary>For the tours: how far each name showing has moved to keep clear (canvas units).</summary>
+        public Dictionary<string, Vector2> TourNameOffsets()
+        {
+            var d = new Dictionary<string, Vector2>();
+            foreach (var t in names) if (t.Root != null) d[t.Label.text] = t.Offset;
+            return d;
+        }
+
+        /// <summary>For the tours: the bounds of the lost and lured marks showing, which names make way for.</summary>
+        public List<Rect> TourStatusMarks()
+        {
+            var list = new List<Rect>();
+            foreach (var g in glyphs.Values)
+                if (g.Root.gameObject.activeSelf) list.Add(CanvasRect(g.Question.enabled ? g.Question.rectTransform : g.Lantern.rectTransform));
+            return list;
         }
 
         /// <summary>For the tours: the names showing, with their bounds on the canvas, the canvas

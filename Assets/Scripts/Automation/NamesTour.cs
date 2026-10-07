@@ -59,12 +59,68 @@ namespace LastLight.Automation
                 Check(t, inside, $"{n.label} is on screen: {Fmt(n.bounds)} in {size.x:0}x{size.y:0}{(n.pinned ? ", pinned at the edge" : "")}");
                 if (!n.pinned)
                 {
-                    // A ship's tag hangs 40 units under the hull; a place's label sits 30 above its spot.
+                    // A ship's tag hangs 40 units under the hull; a place's label sits 30 above its
+                    // spot, or a step or two (38 units each) up or down when that's taken.
                     var want = n.target + new Vector2(0f, ship ? -40f : 30f);
-                    float off = Vector2.Distance(n.bounds.center, want);
-                    Check(t, off < 12f, $"{n.label} sits {(ship ? "under the hull" : "on its place")}: centre ({n.bounds.center.x:0},{n.bounds.center.y:0}), point ({n.target.x:0},{n.target.y:0}), off by {off:0.0}");
+                    var d = n.bounds.center - want;
+                    float off = d.magnitude;
+                    float stepped = Mathf.Abs(Mathf.Abs(d.y) - Mathf.Round(Mathf.Abs(d.y) / 38f) * 38f);
+                    bool near = off < 12f || (Mathf.Abs(d.x) < 12f && Mathf.Abs(d.y) <= 2f * 38f + 12f && stepped < 12f);
+                    Check(t, near, $"{n.label} sits {(ship ? "under the hull" : "on its place")}: centre ({n.bounds.center.x:0},{n.bounds.center.y:0}), point ({n.target.x:0},{n.target.y:0}), off by {off:0.0}{(off >= 12f ? $" (moved {d.y:0} to keep clear)" : "")}");
                 }
             }
+        }
+
+        /// <summary>Watches the names for a while: every frame, no two names showing may overlap,
+        /// and none may cover a lost or lured ship's mark. Shoots the first frame with the most names.</summary>
+        static IEnumerator WatchClear(Tour t, string night, float seconds, string shot)
+        {
+            var g = Game.Instance;
+            float waited = 0f;
+            int frames = 0, crowded = 0, clashes = 0, moved = 0, most = 0;
+            string first = null;
+            var movedNames = new System.Collections.Generic.List<string>();
+            while (waited < seconds && !g.ShowingResults)
+            {
+                waited += Time.unscaledDeltaTime;
+                var shown = g.Hud.TourNames().FindAll(n => n.alpha > 0.05f);
+                var marks = g.Hud.TourStatusMarks();
+                frames++;
+                if (shown.Count + marks.Count > 1) crowded++;
+                var offsets = g.Hud.TourNameOffsets();
+                bool anyMoved = false;
+                foreach (var n in shown)
+                    if (offsets.TryGetValue(n.label, out var o) && o != Vector2.zero)
+                    {
+                        anyMoved = true;
+                        if (!movedNames.Contains(n.label)) { movedNames.Add(n.label); t.Log($"{night}: {n.label} moved ({o.x:0},{o.y:0}) to keep clear, at sim {g.Runner.World.Time:0.0} s"); }
+                    }
+                if (anyMoved) moved++;
+                for (int i = 0; i < shown.Count; i++)
+                {
+                    for (int j = i + 1; j < shown.Count; j++)
+                        if (UI.LabelPlacer.Overlaps(shown[i].bounds, shown[j].bounds))
+                        {
+                            clashes++;
+                            first ??= $"{shown[i].label} {Fmt(shown[i].bounds)} and {shown[j].label} {Fmt(shown[j].bounds)} at sim {g.Runner.World.Time:0.0} s";
+                        }
+                    foreach (var m in marks)
+                        if (UI.LabelPlacer.Overlaps(shown[i].bounds, m))
+                        {
+                            clashes++;
+                            first ??= $"{shown[i].label} {Fmt(shown[i].bounds)} and a ship's mark {Fmt(m)} at sim {g.Runner.World.Time:0.0} s";
+                        }
+                }
+                int full = shown.FindAll(n => n.alpha > 0.9f).Count;
+                if (full >= 2 && full > most)
+                {
+                    most = full;
+                    t.Log($"{night}: {most} names at once: {string.Join(", ", shown.ConvertAll(n => $"{n.label} {Fmt(n.bounds)}"))}; {marks.Count} marks");
+                    yield return t.Shot(shot);
+                }
+                yield return null;
+            }
+            Check(t, frames > 0 && clashes == 0, $"{night}: no name covers another or a ship's mark over {frames} frames ({crowded} with two or more showing, {most} fully shown at most, {moved} with a name moved aside){(first != null ? "; first clash: " + first : "")}");
         }
 
         static IEnumerator Night(int night)
@@ -84,6 +140,8 @@ namespace LastLight.Automation
             var g = Game.Instance;
             SaveData.Current.shake = false;
             SaveData.Current.hints = false;   // the hint panel would sit over the names in the shots
+            // -llNamesOverlap: names as round 7 drew them, to show the check catches a clash.
+            UI.Hud.NamesMakeRoom = !Game.HasArg("-llNamesOverlap");
             yield return Tour.Wait(3f);
             var found = new string[1];
 
@@ -103,6 +161,11 @@ namespace LastLight.Automation
             yield return Night(3);
             yield return WaitAndCheck(t, "Hen Bell", false, 25f, found);
             if (found[0] != null) yield return t.Shot("names_hen_bell");
+            // Round 7's captures had the Hen Bell and the Hen's Chicks on top of each other over a
+            // lost Little Auk: leave the Auk to the dark and watch the names.
+            g.Runner.TimeScale = 1f;
+            g.TourNeglect("Little Auk");
+            yield return WatchClear(t, "night III", float.Parse(Game.ArgString("-llNamesWatch", "45")), "names_crowded_night3");
 
             // ---- Night II: nothing named before it's charted; the Teeth named when they are.
             // The keeper looks away from the Teeth while Ianto names them, then the bot charts them.

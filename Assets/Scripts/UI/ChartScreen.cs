@@ -25,6 +25,11 @@ namespace LastLight.UI
         Vector2 centre;
         readonly List<(string ship, RectTransform mark)> wreckMarks = new List<(string, RectTransform)>();
         readonly List<(string place, RectTransform mark)> placeMarks = new List<(string, RectTransform)>();
+        // Names wait until everything is drawn, then go down most important first, clear of the
+        // marks (crosses, "?", lanterns, rocks, the light) and of each other.
+        readonly List<(Text text, int rank)> pendingNames = new List<(Text, int)>();
+        readonly List<Rect> keepClear = new List<Rect>();
+        const int RankWreck = 0, RankWavered = 1, RankWrecker = 2, RankHazard = 3, RankPlace = 4, RankStack = 5;
         /// <summary>The "?" and lantern marks drawn where ships lost their way or were lured (for tours).</summary>
         public int LostMarks { get; private set; }
         public int LuredMarks { get; private set; }
@@ -184,13 +189,48 @@ namespace LastLight.UI
             sub.text = title + "\n" + subtitle;
             wreckMarks.Clear();
             placeMarks.Clear();
+            pendingNames.Clear();
+            keepClear.Clear();
             LostMarks = LuredMarks = 0;
             foreach (Transform t in marks) Destroy(t.gameObject);
             foreach (var k in inks) Destroy(k.gameObject);
             inks.Clear();
             DrawBay(map, w, log);
             DrawTracks(w, log);
+            PlaceNames();
         }
+
+        void PlaceNames()
+        {
+            if (!Hud.NamesMakeRoom) return;
+            var half = area.sizeDelta * 0.5f;
+            var bounds = new Rect(-half, area.sizeDelta);
+            var placed = new List<Rect>(keepClear);
+            var order = new List<int>();
+            for (int i = 0; i < pendingNames.Count; i++) order.Add(i);
+            order.Sort((a, b) => pendingNames[a].rank != pendingNames[b].rank ? pendingNames[a].rank.CompareTo(pendingNames[b].rank) : a.CompareTo(b));
+            var steps = new List<Vector2>();
+            foreach (int i in order)
+            {
+                var rt = pendingNames[i].text.rectTransform;
+                var size = rt.sizeDelta;
+                // Up and down a line at a time, then off to either side.
+                steps.Clear();
+                steps.AddRange(LabelPlacer.Vertical(size.y, 2));
+                float side = size.x * 0.5f + 20f;
+                foreach (float dy in new[] { 0f, size.y, -size.y })
+                {
+                    steps.Add(new Vector2(side, dy));
+                    steps.Add(new Vector2(-side, dy));
+                }
+                steps.Add(new Vector2(0f, 3f * size.y));
+                steps.Add(new Vector2(0f, -3f * size.y));
+                var rect = new Rect(rt.anchoredPosition - size * 0.5f, size);
+                rt.anchoredPosition += LabelPlacer.Place(rect, steps, placed, bounds);
+            }
+        }
+
+        void KeepClear(Vector2 p, Vector2 size) => keepClear.Add(new Rect(p - size * 0.5f, size));
 
         void DrawBay(MapData map, SimWorld w, NightLog log)
         {
@@ -208,13 +248,16 @@ namespace LastLight.UI
             // Sea stacks and the harbour are on every chart.
             foreach (var s in map.Stacks)
             {
-                k.Disc(Project(s.Pos), Mathf.Max(5f, s.Radius * scale), new Color(0.36f, 0.3f, 0.22f, 0.95f), 16);
-                Place(s.Name, Project(s.Pos) + new Vector2(0, -Mathf.Max(5f, s.Radius * scale) - 14f), 18, InkSoft);
+                float r = Mathf.Max(5f, s.Radius * scale);
+                k.Disc(Project(s.Pos), r, new Color(0.36f, 0.3f, 0.22f, 0.95f), 16);
+                KeepClear(Project(s.Pos), Vector2.one * r * 1.6f);
+                Place(s.Name, Project(s.Pos) + new Vector2(0, -r - 14f), 18, InkSoft, rank: RankStack);
             }
-            Place("Porthkell", Project(map.Harbor) + new Vector2(0, 26f), 22, Ink);
+            Place("Porthkell", Project(map.Harbor) + new Vector2(0, 26f), 22, Ink, rank: RankPlace);
             foreach (var b in map.Buoys) k.Disc(Project(new Vector2(b.x, b.z)), 5f, BuoyColor(b.kind), 12);
             Light(k, Project(map.Lighthouse), 8f);
-            Place("Gannet Head", Project(map.Lighthouse) + new Vector2(0, -24f), 20, Ink);
+            KeepClear(Project(map.Lighthouse), new Vector2(22f, 22f));
+            Place("Gannet Head", Project(map.Lighthouse) + new Vector2(0, -24f), 20, Ink, rank: RankPlace);
 
             // Only what the keeper saw tonight: the reefs and sands charted, and the lanterns lit.
             var groups = new Dictionary<string, (Vector2 top, string name)>();
@@ -229,13 +272,13 @@ namespace LastLight.UI
             foreach (var g in groups.Values)
             {
                 string n = g.name.StartsWith("the ") ? "The " + g.name.Substring(4) : g.name;
-                Place(n, g.top + new Vector2(0, 30f), 21, Ink);
+                Place(n, g.top + new Vector2(0, 30f), 21, Ink, rank: RankHazard);
             }
             foreach (int i in log.ChartedShoals)
             {
                 var s = w.Shoals[i].Def;
                 Shoal(k, Project(s.Pos), new Vector2(s.Rx, s.Rz) * scale, s.Angle);
-                Place(s.Name, Project(s.Pos), 21, Ink);
+                Place(s.Name, Project(s.Pos), 21, Ink, rank: RankHazard);
             }
             foreach (var site in map.WreckerSites.Values)
             {
@@ -244,7 +287,8 @@ namespace LastLight.UI
                 var img = UiKit.Image("Lantern", marks, SpriteFactory.Icon("lanternSolid"), LuredAmber);
                 img.raycastTarget = false;
                 img.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), p, new Vector2(30, 30));
-                Place(site.Name, p + new Vector2(0, 28f), 20, NameAmber);
+                KeepClear(p, new Vector2(30f, 30f));
+                Place(site.Name, p + new Vector2(0, 28f), 20, NameAmber, rank: RankWrecker);
             }
             k.Apply();
         }
@@ -298,7 +342,7 @@ namespace LastLight.UI
                     var p = Project(pts[pts.Count - 1].Pos);
                     var cross = Mark("cross", LostRed, p, 32f);
                     wreckMarks.Add((ship.Name, cross.rectTransform));
-                    Place(ship.Name, p + new Vector2(0, -26f), 21, NameRed, true, UiKit.BodyBold);
+                    Place(ship.Name, p + new Vector2(0, -31f), 21, NameRed, true, UiKit.BodyBold, RankWreck);
                     named.Add(ship);
                 }
             }
@@ -311,7 +355,7 @@ namespace LastLight.UI
                 {
                     if (pts[i].State == pts[i - 1].State || (pts[i].State != ShipState.Lost && pts[i].State != ShipState.Lured)) continue;
                     var c = pts[i].State == ShipState.Lost ? NameRed : NameAmber;
-                    Place(t.Ship.Name, Project(pts[i].Pos) + new Vector2(0, 42f), 20, c, true, UiKit.BodyBold);
+                    Place(t.Ship.Name, Project(pts[i].Pos) + new Vector2(0, 42f), 20, c, true, UiKit.BodyBold, RankWavered);
                     break;
                 }
             }
@@ -330,20 +374,26 @@ namespace LastLight.UI
             var img = UiKit.Image("Mark", marks, SpriteFactory.Icon(icon), color);
             img.raycastTarget = false;
             img.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), p, new Vector2(size, size));
+            KeepClear(p, new Vector2(size, size));
             return img;
         }
 
-        static Text Glyph(Transform parent, string glyph, Color color, Vector2 pos, int size, bool centred)
+        Text Glyph(Transform parent, string glyph, Color color, Vector2 pos, int size, bool centred)
         {
             var t = Label(parent, glyph, UiKit.BodyBold, size, color, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), pos, new Vector2(size + 8, size + 8));
             t.raycastTarget = false;
+            KeepClear(pos, new Vector2(size * 0.6f, size));
             return t;
         }
 
-        Text Place(string name, Vector2 p, int size, Color color, bool halo = false, Font font = null)
+        Text Place(string name, Vector2 p, int size, Color color, bool halo = false, Font font = null, int rank = RankPlace)
         {
             var t = Label(marks, name, font ?? UiKit.Italic, size, color, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), p, new Vector2(360, size + 10));
             t.raycastTarget = false;
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            // As wide as the words, so names can be set close without covering each other.
+            t.rectTransform.sizeDelta = new Vector2(t.preferredWidth + 6f, size + 4f);
+            pendingNames.Add((t, rank));
             if (halo)
             {
                 // A paper-coloured edge keeps a name readable where it crosses a track.
@@ -365,6 +415,7 @@ namespace LastLight.UI
 
         // For tours.
         public IReadOnlyList<(string ship, RectTransform mark)> WreckMarks => wreckMarks;
+        public IReadOnlyList<(string place, RectTransform mark)> PlaceMarks => placeMarks;
         public RectTransform PlaceMark(string place)
         {
             foreach (var p in placeMarks) if (p.place == place) return p.mark;
