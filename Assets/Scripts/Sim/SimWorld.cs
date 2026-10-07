@@ -1043,7 +1043,7 @@ namespace LastLight.Sim
             if (!arrived) return;
             SetState(s, ShipState.Arrived);
             Arrivals++;
-            int points = s.Stats.Points * (s.Damaged ? 2 : 1) + (s.SteadyHand ? 50 : 0);
+            int points = ScoreParts.ShipPoints(s);
             Score += points;
             Emit(SimEventType.ShipArrived, s, points);
         }

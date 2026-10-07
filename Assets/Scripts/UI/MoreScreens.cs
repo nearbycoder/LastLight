@@ -569,7 +569,7 @@ namespace LastLight.UI
     public sealed class ResultsScreen : UiScreen
     {
         public Action OnNext, OnRetry, OnLogbook, OnChart;
-        Text heading, title, verdict, stats, scoreLine, best, debrief, saveNote;
+        Text heading, title, verdict, stats, scoreLine, scoreParts, best, debrief, saveNote;
         float debriefExtra;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
@@ -615,6 +615,8 @@ namespace LastLight.UI
             debrief.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -522), new Vector2(900, DebriefLine * MaxDebrief));
             debrief.lineSpacing = 1.1f;
             scoreLine = Label(card, "", UiKit.Heading, 54, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(900, 70));
+            // Where the score came from, under it.
+            scoreParts = Label(card, "", UiKit.BodyMedium, 22, new Color(UiKit.Paper.r, UiKit.Paper.g, UiKit.Paper.b, 0.62f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -684), new Vector2(940, 30));
             best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
             // Said plainly when the night couldn't be saved.
             saveNote = Label(card, "", UiKit.BodyMedium, 22, new Color(1f, 0.62f, 0.52f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -740), new Vector2(900, 34));
@@ -651,6 +653,7 @@ namespace LastLight.UI
             ShowDebrief(Debrief.Lines(w));
             stats.text = $"Ships home  <b>{w.Arrivals} / {w.TotalShips}</b>          Wrecked  <b>{w.Wrecks}</b>          Steady hands  <b>{w.SteadyArrivals}</b>";
             scoreLine.text = won ? w.Score.ToString("N0") : "";
+            scoreParts.text = won ? ScoreParts.Of(w).Line() : "";
             best.text = won && w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST") : (previousBest > 0 ? $"best {previousBest:N0}" : "");
             string[] captions = { "The light kept", "No ship lost", "A steady hand" };
             for (int i = 0; i < 3; i++) lampCaptions[i].text = captions[i];
@@ -673,6 +676,7 @@ namespace LastLight.UI
                 : w.Arrivals == 1 ? $"One ship home in {UiKit.Clock(w.Time)}." : $"{w.Arrivals} ships home in {UiKit.Clock(w.Time)}.";
             stats.text = $"Ships home  <b>{w.Arrivals}</b>          Wrecked  <b>{w.Wrecks}</b>          Watch kept  <b>{UiKit.Clock(w.Time)}</b>";
             scoreLine.text = w.Score.ToString("N0");
+            scoreParts.text = ScoreParts.Of(w).Line();
             best.text = w.Score > previousBest && previousBest > 0 ? UiKit.Spaced("NEW BEST")
                 : rank > 1 ? $"your {Ordinal(rank)} best watch  ·  best {previousBest:N0}"
                 : previousBest > 0 ? $"best {previousBest:N0}" : "";
@@ -716,11 +720,13 @@ namespace LastLight.UI
         /// saved; the card grows to fit.</summary>
         void Relayout()
         {
+            float parts = scoreParts.text != "" ? 40f : 0f;
             float note = saveNote.text != "" ? 44f : 0f;
-            card.sizeDelta = new Vector2(1000, 860 + debriefExtra + note);
+            card.sizeDelta = new Vector2(1000, 860 + debriefExtra + parts + note);
             ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - debriefExtra);
-            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - debriefExtra);
-            ((RectTransform)saveNote.transform).anchoredPosition = new Vector2(0, -740 - debriefExtra);
+            ((RectTransform)scoreParts.transform).anchoredPosition = new Vector2(0, -684 - debriefExtra);
+            ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - debriefExtra - parts);
+            ((RectTransform)saveNote.transform).anchoredPosition = new Vector2(0, -740 - debriefExtra - parts);
         }
 
         /// <summary>Why the night just kept wasn't saved, or null when it was.</summary>
@@ -729,6 +735,9 @@ namespace LastLight.UI
             saveNote.text = text ?? "";
             Relayout();
         }
+
+        /// <summary>The score's parts as shown; for tours.</summary>
+        public string ScorePartsShown => scoreParts.text;
 
         /// <summary>The save line as shown; for tours.</summary>
         public string SaveNoteShown => saveNote.text;
