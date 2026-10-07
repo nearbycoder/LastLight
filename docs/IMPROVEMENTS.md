@@ -522,3 +522,79 @@ Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed
 kept apart from full-speed ones (owner), a real-gamepad pass, a listening pass, human playtests,
 fullscreen and real-hardware checks of other screen shapes (a Steam Deck in particular), Windows
 (module install) and macOS signing (Developer ID).
+
+## Round 5 scope
+
+What's left on the ranked list is still blocked (Windows module, macOS signing, a real gamepad,
+a listening pass, playtests) or waiting on the owner (Standard's balance, the Night Watch ramp,
+whether slowed runs share records). These items come from a fresh read of the code and of round
+4's captures, and from the round 4 known issues. None of them changes the simulation, so the
+pinned Standard scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `watchend` and `screens`
+tours at 0 errors. Captures go to `docs/media/improvements/round5/`. Tour output and logs stay
+under `Builds/round5/`. The real save directory is checksummed before and after
+(`Builds/round5/save_before.txt`).
+
+### 1. Markers at the edge for what's out of frame
+Round 4's `screens` tour found that Westpoint's false light and its rock sit just past the left
+edge at 16:9, and Corley Cove's lantern (night 9, the night that teaches wreckers) just past the
+right. A lit false light there, or a ship lured toward it, can be off screen with nothing to say so.
+Reframing the camera would change every capture and the trailer, so instead:
+- A burning false light whose lantern is outside the frame shows a pulsing lantern marker pinned
+  inside the nearest edge, with a chevron pointing out toward it. It goes when the lantern is
+  doused or comes into view.
+- A lost ship's "?" and a lured ship's lantern stay inside the screen edge (with a chevron) when
+  the ship itself is outside it.
+- **Verify:** a new `offscreen` tour plays nights 9 and 10 at 16:9, waits for each off-frame
+  lantern to burn, and checks its marker is showing, wholly on screen and on the lantern's side,
+  and that it goes when the lantern is doused. It also checks a lured ship's glyph stays on screen.
+  Screenshots read by me.
+
+### 2. Ask before throwing a night away
+In the pause menu, "Restart the night", "Keeper's logbook" and "Leave the lighthouse" abandon the
+night at once, and in a Night Watch "Leave the lighthouse" throws away a watch that may be half an
+hour long, one item away from "End the watch", which keeps it.
+- Those items, and "End the watch", ask first on a small card: what will happen ("Tonight's watch
+  won't be kept" or, in a watch, "This watch won't be kept. End the watch keeps it"), with **Stay**
+  selected so a double press does nothing. Esc, B or Stay goes back to the menu.
+- **Verify:** a new `confirm` tour checks each item with the mouse path, the keyboard and the
+  simulated pad: the card shows, the night is still paused and unchanged, back returns to the
+  menu, and confirming does what the item says. The `watchend` and `ui` tours confirm through the
+  card.
+
+### 3. Brightness
+The game is dark by design, and on a bright laptop screen or in a lit room it can be hard to read
+the water.
+- Settings ▸ **Brightness**: five steps, with the middle one exactly as now. It changes the 3D
+  scene's exposure only; menus and the HUD are unchanged.
+- **Verify:** a tour measures the scene's mean brightness on a frozen frame at each step (it must
+  rise with each step, and the middle step must match the frame without the setting) and saves the
+  darkest and brightest. `screens` checks the taller Settings panel fits at all four shapes.
+
+### 4. Rebindable keys
+The keyboard controls are fixed (A/D or arrows, Shift/W/↑, Space). Remapping is one of the basic
+accessibility guidelines, and it's what a player with one hand, a non-QWERTY keyboard or a
+different habit needs.
+- Settings ▸ **Keys**: turn left, turn right, focus and foghorn each have three key slots
+  (defaults as now: A and ←, D and →, Shift, W and ↑, Space). Choose a slot and press a key to set
+  it; Backspace clears it; Esc cancels. A key already used elsewhere moves to the new action. Esc
+  and P stay as pause. "Reset keys" restores the defaults. The mouse buttons and the gamepad stay
+  as they are.
+- Every prompt that names a key (title strip, pause card, hints, briefing, the HUD's horn key, the
+  ending) names the bound key, using the keyboard layout's own label for it.
+- **Verify:** an EditMode test covers binding, moving a key between actions, clearing, the
+  reserved keys and reset, without touching the save. A `keys` tour rebinds the horn and focus with
+  the simulated keyboard through the Settings panel, checks the new keys work in a night and the
+  old ones don't, checks the prompts name the new keys, and resets.
+
+### 5. The resolution switch in a 1280×1024 window (time-boxed)
+Round 4 saw the `ui` tour's switch to 1280×720 fail once when the game started in a 1280×1024
+window. I'll try to reproduce it and fix it if the cause is in the game; if it's the compositor,
+I'll say so.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp and slowed records**: the owner's call.
+- **Gamepad remapping**: no real pad to check it on.
+- **Fullscreen at other shapes and a Steam Deck**: switching this shared machine's display to
+  fullscreen would disturb the other sessions, and there's no Deck.
