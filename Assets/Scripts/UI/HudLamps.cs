@@ -11,6 +11,9 @@ namespace LastLight.UI
     /// </summary>
     public sealed partial class Hud
     {
+        /// <summary>The trailer's shoot turns the lamps off, so a re-shoot matches the released cut.</summary>
+        public static bool LampsAtStakeShown = true;
+
         RectTransform lampRow;
         readonly Image[] stakeLamps = new Image[3];
         Text lampNote;
@@ -37,7 +40,7 @@ namespace LastLight.UI
 
         void BindLamps(MissionDef def)
         {
-            lampsOn = !def.endless;
+            lampsOn = !def.endless && LampsAtStakeShown;
             lampRow.gameObject.SetActive(lampsOn);
             lampsAtStake = 3;
             for (int i = 0; i < 3; i++)

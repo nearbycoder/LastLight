@@ -256,7 +256,7 @@ namespace LastLight.UI
             }
             hornPanel.gameObject.SetActive(def.foghorn);
             // Under the lamps at stake on the twelve nights; where they'd be in a watch.
-            hornPanel.anchoredPosition = new Vector2(-50, def.endless ? -130 : -212);
+            hornPanel.anchoredPosition = new Vector2(-50, def.endless || !LampsAtStakeShown ? -130 : -212);
             BindLamps(def);
             radioGroup.alpha = 0f;
             radio.Started -= OnRadio;
