@@ -376,3 +376,86 @@ switched off. A real-pad pass still needs someone to hold it.
 
 Still open: Standard difficulty and the Night Watch ramp (owner), a real-gamepad pass, a
 listening pass, human playtests, Windows (module install) and macOS signing (Developer ID).
+
+## Round 4 scope
+
+Rounds 1 to 3 worked through the ranked list. What's left on it is blocked: Windows (module
+install), macOS signing (Developer ID), a real gamepad and a listening pass (hardware and people),
+and Standard's balance (the owner). WebGL is still judged too big and risky. So this round's items
+come from a fresh read of the code and of the running game at screen shapes other than 16:9.
+None of them changes the simulation, so the pinned Standard scores and both difficulties stay as
+they are.
+
+Baseline, before any change: the `ui` tour in a 1280×1024 window (5:4). The Settings panel runs
+off both sides of the screen, the play view crops the bay so the harbour, where ships are bound,
+is mostly off screen at the bottom left, and the hint panel covers the HUD's "ONE WRECK ALLOWED"
+row. The same tour's resolution-switch check printed FAIL at that window size (the window stayed
+1280×1024). That one is followed up under item 1.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input` and `ending` tours at 0
+errors. Captures go to `docs/media/improvements/round4/`. Tour output and logs stay under
+`Builds/round4/`. The real save directory (`~/.config/unity3d/Gannet Head/Last Light/`) is
+checksummed before and after (`Builds/round4/save_before.txt`).
+
+### 1. Every screen shape, not only 16:9
+Steam Deck and many laptops are 16:10, some monitors are 4:3 or 5:4, and ultrawides are 21:9.
+- Menus and HUD lay out in a 1920×1080 box that always fits on screen (the canvas expands
+  instead of averaging width and height), so nothing runs off the edges at any shape, and 16:9
+  looks exactly as it does now.
+- The camera keeps the bay's full width in view on screens narrower than 16:9 by widening the
+  vertical field of view. Wider screens show more of the coast at the sides, as now.
+- **Verify:** a new `screens` tour visits the title, logbook, settings, briefing, a night with
+  130% HUD text, pause with the radio log, and a results card. It checks that each panel lies
+  inside the screen and that the HUD's corner blocks, manifest and hint don't overlap, and checks
+  that the harbour and the far reefs project inside the view. It runs at 1280×800 (16:10),
+  1280×1024 (5:4), 2560×1080 (21:9) and 1600×900 (16:9, which must be unchanged). I'll read
+  the screenshots.
+
+### 2. End a Night Watch and keep it
+A watch runs until the third wreck, which can take half an hour or more. Today the only way to
+stop is "Leave the lighthouse", which throws the watch away, so a player who has to stop loses
+their best run.
+- In a watch, the pause menu's "Restart the night" becomes **"End the watch"**. It goes
+  straight to the dawn card, and the watch is recorded and ranked as if the last wreck had
+  ended it. The card says the keeper stood the watch down, and "Keep watch again" starts a new
+  one, so nothing is lost by removing Restart there.
+- **Verify:** a `watchend` tour plays a watch with the AutoKeeper for a couple of minutes,
+  pauses, ends the watch, and checks that the results card shows, that the watch was recorded at
+  the right rank with its score, ships and time, and that the twelve nights' pause menu still
+  says "Restart the night". It runs with `-llFresh -llSeasonDone`, so the real save is untouched.
+
+### 3. Skip the ending, and the credits on any device
+The ending runs about a minute before the credits, and it plays again every time night 12 is
+replayed from the logbook. The credits can be skipped only with Esc, after 4 s, and nothing on
+screen says so.
+- Esc, Start or B during the ending shows "Press again to skip". A second press within a few
+  seconds goes straight to the title, as the ending does when it finishes (the ending counts as
+  seen). The prompt follows the device.
+- **Verify:** the `ending` tour gains a skip run: it presses the simulated key once (checks the
+  prompt shows and the ending keeps going), then twice (checks the title is back within a few
+  seconds, with dawn and the lens reset), and the same with the simulated pad's Start.
+
+### 4. Game speed (an accessibility assist)
+Nights demand fast, continuous aiming, and there's no way to slow them down for players who need
+it.
+- Settings ▸ **Game speed**: 100% (the default), 85% or 70%. It slows the simulation only: the
+  ships, the beam's weight, fog, storms and wreckers all run slower together, so outcomes for the
+  same inputs are unchanged and only the player gets more time. Music, radio typing and menus
+  keep their pace.
+- The dawn card heading and the table of best watches say when the speed was below 100%, as they
+  already do for Hard.
+- **Verify:** a tour measures sim seconds per real second at each speed (expected 1.0, 0.85 and
+  0.7, within 5%, with the load recorded) and checks the results heading. An EditMode test
+  checks the watch table keeps the mark. Screenshot of the setting.
+
+### 5. Controls in the pause menu
+The controls appear on the title strip and in the one-time hints. Mid-night, a player who forgot
+how to focus or sound the horn has nowhere to look.
+- The pause menu shows a one-line control strip at the bottom, the same as the title's. It
+  follows the device and the Focus setting.
+- **Verify:** the `input` tour's pause step checks the strip's wording in mouse and pad modes,
+  and I'll read the screenshots.
+
+### Not in this round
+- **Standard difficulty and the Night Watch ramp**: the owner's call.
+- **Real gamepad, listening pass, playtests, Windows, macOS signing, WebGL**: as before.
