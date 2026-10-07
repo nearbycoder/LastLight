@@ -14,6 +14,8 @@ namespace LastLight.Automation
     /// and Enter, and the simulated pad; then night IX left unkept for a spell so ships are lost and
     /// lured. Checks every wreck has its cross where the wreck lies on the chart, that the "?" and
     /// lantern marks match the night's log, and that Esc, B and "Back to dawn" return to the card.
+    /// The replay: played and paused with a click, stepped with the arrows and the pad, jumped with a
+    /// click on the timeline, and at several moments every ship's mark is where the log puts it.
     /// </summary>
     public static class ChartTour
     {
@@ -44,10 +46,19 @@ namespace LastLight.Automation
             return es != null && es.currentSelectedGameObject != null ? es.currentSelectedGameObject.name : "nothing";
         }
 
+        /// <summary>The night's time when it ended (the bay sails on behind the dawn card).</summary>
+        static float endedAt;
+
         static IEnumerator ToDawn(Game g)
         {
             float waited = 0f;
-            while (!g.ShowingResults && waited < 300f) { waited += Time.unscaledDeltaTime; yield return null; }
+            endedAt = -1f;
+            while (!g.ShowingResults && waited < 300f)
+            {
+                if (endedAt < 0f && g.Runner.World.Outcome != MissionOutcome.Running) endedAt = g.Runner.World.Time;
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
             yield return Tour.Wait(4f);
         }
 
@@ -120,6 +131,79 @@ namespace LastLight.Automation
             t.Log($"{night}: {log.Tracks.Count} tracks, {log.PointCount} points, {log.ChartedReefs.Count} reefs and {log.ChartedShoals.Count} sandbanks charted, lanterns {string.Join(",", log.BurnedSites)}");
         }
 
+        static Vector2 ScreenOf(RectTransform area, Vector2 local) => area.TransformPoint(area.rect.center + local);
+
+        /// <summary>Hold the replay at moments of the night and check what it shows against the log:
+        /// each ship's mark where its track puts it (on screen, within 3 px of the bay's own
+        /// projection), its "?" or lantern with its state, the light's sweep, and each wreck's cross
+        /// only from the moment it struck.</summary>
+        static IEnumerator CheckReplay(Tour t, Game g, string night, string shotPrefix)
+        {
+            var chart = g.TourChart;
+            var log = g.Runner.Log;
+            var w = g.Runner.World;
+            var area = chart.Area;
+            var corners = new Vector3[4];
+            area.GetWorldCorners(corners);
+            var lo = (Vector2)corners[0];
+            var hi = (Vector2)corners[2];
+            var view = ChartScreen.View;
+            float k = Mathf.Min((hi.x - lo.x) / view.width, (hi.y - lo.y) / view.height);
+            var mid = (lo + hi) * 0.5f;
+            float dur = log.Duration;
+            // Polled once a frame at up to 6× speed, so the end is known to about a frame's worth of night.
+            Check(t, dur > 10f && Mathf.Abs(dur - endedAt) < 1f, $"{night}: the replay runs the whole night and stops where it ended ({dur:0.0} s; the night ended at {endedAt:0.0} s)");
+            int worstMisses = 0, marksChecked = 0;
+            float worstPx = 0f;
+            float[] moments = { 0.08f, 0.3f, 0.55f, 0.8f, 1f };
+            for (int m = 0; m < moments.Length; m++)
+            {
+                float time = moments[m] * dur;
+                chart.SetReplayTime(time);
+                yield return null;
+                int shown = 0, misses = 0;
+                foreach (var tr in log.Tracks)
+                {
+                    bool afloat = NightLog.ShipAt(tr, time, out var pos, out var state) && state != ShipState.Wrecked;
+                    var mark = chart.ReplayMark(tr.Ship.Name);
+                    if (mark.shown != afloat) { misses++; t.Log($"  {tr.Ship.Name} at {time:0.0}s: shown {mark.shown}, afloat {afloat}"); continue; }
+                    if (!afloat) continue;
+                    shown++;
+                    var want = mid + (pos - view.center) * k;
+                    var got = ScreenOf(area, mark.pos);
+                    float px = Vector2.Distance(want, got);
+                    worstPx = Mathf.Max(worstPx, px);
+                    if (px > 3f || mark.lost != (state == ShipState.Lost) || mark.lured != (state == ShipState.Lured)) { misses++; t.Log($"  {tr.Ship.Name} at {time:0.0}s: {px:0.0} px off, {state}, ? {mark.lost}, lantern {mark.lured}"); }
+                    marksChecked++;
+                }
+                var beam = log.BeamAt(time);
+                bool beamOk = Mathf.Abs(Geo.DeltaAngle(beam.Bearing, chart.BeamShown.Bearing)) < 1e-3f;
+                int crossMisses = 0;
+                foreach (var tr in log.Tracks)
+                {
+                    if (tr.Ship.State != ShipState.Wrecked) continue;
+                    bool struck = time >= tr.Points[tr.Points.Count - 1].Time;
+                    if (chart.CrossShown(tr.Ship.Name) != struck) crossMisses++;
+                }
+                worstMisses += misses + crossMisses + (beamOk ? 0 : 1);
+                t.Log($"{night} replay at {chart.TimeShown}: {shown} ships afloat, {misses} marks wrong, light at {beam.Bearing * Mathf.Rad2Deg:0}° focus {beam.Focus:0.00} {(beamOk ? "drawn" : "NOT drawn")}, {crossMisses} crosses wrong");
+                if (m == 1 || m == 2) yield return t.Shot($"{shotPrefix}_{m}");
+            }
+            Check(t, worstMisses == 0 && marksChecked > 0, $"{night}: at five moments every ship's mark, \"?\", lantern, cross and the light match the log ({marksChecked} marks, worst {worstPx:0.0} px)");
+        }
+
+        static IEnumerator Click(Vector2 at)
+        {
+            TourScripts.MouseTo(at);
+            yield return null;
+            yield return null;
+            TourScripts.MouseTo(at, left: true);
+            yield return null;
+            yield return null;
+            TourScripts.MouseTo(at);
+            yield return null;
+        }
+
         static IEnumerator Run(Tour t)
         {
             Hud.NamesMakeRoom = !Game.HasArg("-llNamesOverlap");   // names as round 7 drew them, for a before-and-after
@@ -155,6 +239,36 @@ namespace LastLight.Automation
             Check(t, g.TourChart.Visible && !results.Visible, $"a click on Chart opens the chart (chart {g.TourChart.Visible}, card {results.Visible})");
             CheckChart(t, g, "night II");
             yield return t.Shot("chart_01_night2");
+
+            // The replay, with the mouse: Replay plays, the night moves on, a second click pauses.
+            var chart = g.TourChart;
+            yield return Click(RectTransformUtility.WorldToScreenPoint(null, chart.ReplayButton.transform.position));
+            float t0 = chart.ReplayTime;
+            yield return Tour.Wait(1.5f);
+            float ran = chart.ReplayTime - t0;
+            bool played = chart.ReplayPlaying && chart.Replaying;
+            yield return t.Shot("chart_04_replay_playing");
+            yield return Click(RectTransformUtility.WorldToScreenPoint(null, chart.ReplayButton.transform.position));
+            float held = chart.ReplayTime;
+            yield return Tour.Wait(0.6f);
+            Check(t, played && ran > 1.5f * chart.ReplayRate * 0.5f && !chart.ReplayPlaying && Mathf.Abs(chart.ReplayTime - held) < 1e-3f,
+                $"a click on Replay plays the night ({ran:0.0} s of night in 1.5 s at {chart.ReplayRate:0}×), a second click pauses it at {UiKit.Clock(held)} (button \"{chart.ReplayButton.Label.text}\")");
+            // A click halfway along the timeline jumps there.
+            var bar = (RectTransform)chart.Timeline.transform;
+            var barCorners = new Vector3[4];
+            bar.GetWorldCorners(barCorners);
+            yield return Click(new Vector2((barCorners[0].x + barCorners[2].x) * 0.5f, (barCorners[0].y + barCorners[2].y) * 0.5f));
+            float half = chart.ReplayTime / chart.ReplayDuration;
+            Check(t, Mathf.Abs(half - 0.5f) < 0.03f && !chart.ReplayPlaying, $"a click halfway along the timeline jumps to the middle of the night ({half:0.000}, {chart.TimeShown})");
+            // The arrows step it.
+            float before = chart.ReplayTime;
+            yield return Press(Key.RightArrow);
+            yield return Press(Key.RightArrow);
+            float stepped = chart.ReplayTime - before;
+            yield return Press(Key.LeftArrow);
+            float back1 = chart.ReplayTime - before;
+            Check(t, Selected().Contains("Slider") && Mathf.Abs(stepped - 10f) < 0.6f && Mathf.Abs(back1 - 5f) < 0.6f, $"with the timeline chosen ({Selected()}), → twice steps {stepped:0.0} s and ← one back to +{back1:0.0} s");
+            yield return CheckReplay(t, g, "night II", "chart_05_replay_night2");
             yield return Press(Key.Escape);
             yield return Tour.Wait(0.8f);
             Check(t, !g.TourChart.Visible && results.Visible && g.ShowingResults, $"Esc goes back to the dawn card (chart {g.TourChart.Visible}, card {results.Visible})");
@@ -180,6 +294,21 @@ namespace LastLight.Automation
             yield return Tour.Wait(1f);
             bool padOpened = g.TourChart.Visible;
             yield return t.Shot("chart_02_pad");
+            // On the pad: down from Back to Replay, A plays, A pauses, down to the timeline, right steps.
+            string padPath = Selected();
+            yield return TourScripts.PadPress(pad, GamepadButton.DpadDown);
+            padPath += " > " + Selected();
+            yield return TourScripts.PadPress(pad, GamepadButton.South);
+            yield return Tour.Wait(0.8f);
+            bool padPlaying = g.TourChart.ReplayPlaying;
+            yield return TourScripts.PadPress(pad, GamepadButton.South);
+            float padHeld = g.TourChart.ReplayTime;
+            yield return TourScripts.PadPress(pad, GamepadButton.DpadDown);
+            padPath += " > " + Selected();
+            yield return TourScripts.PadPress(pad, GamepadButton.DpadRight);
+            float padStep = g.TourChart.ReplayTime - padHeld;
+            Check(t, padPlaying && !g.TourChart.ReplayPlaying && Mathf.Abs(padStep - 5f) < 0.6f,
+                $"the pad ({padPath}): A plays the replay ({padPlaying}) and pauses it, and right on the timeline steps {padStep:0.0} s");
             yield return TourScripts.PadPress(pad, GamepadButton.East);
             yield return Tour.Wait(0.8f);
             Check(t, padOpened && !g.TourChart.Visible && results.Visible && Selected().Contains("Chart"),
@@ -212,6 +341,7 @@ namespace LastLight.Automation
             yield return Tour.Wait(1.2f);
             CheckChart(t, g, "night IX");
             yield return t.Shot("chart_03_night9");
+            yield return CheckReplay(t, g, "night IX", "chart_06_replay_night9");
             yield return Press(Key.Escape);
             yield return Tour.Wait(0.6f);
             t.Log($"chart {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");

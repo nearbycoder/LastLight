@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LastLight.Sim;
 using NUnit.Framework;
 using UnityEngine;
@@ -82,6 +83,8 @@ namespace LastLight.Tests
             var map = Validation.FreshMap();
             var (w, full) = Play(NightWatch.Generate(map, 3), new AutoKeeper(), 1800);
             Assert.LessOrEqual(full.PointCount, NightLog.DefaultMaxPoints);
+            Assert.LessOrEqual(full.Beam.Count, NightLog.MaxBeamSamples, "the light's log stays capped on a long watch");
+            Assert.AreEqual(w.Time, full.Duration, 1e-3f, "the log knows how long the watch ran");
             var (_, log) = Play(NightWatch.Generate(map, 3), new AutoKeeper(), 1800, 4000);
             Debug.Log($"[NightLog] a {w.Time:0} s watch: {full.Tracks.Count} tracks, {full.PointCount} points at spacing {full.Spacing}; capped at 4000: {log.PointCount} points at spacing {log.Spacing}");
             Assert.LessOrEqual(log.PointCount, 4000, "the log thins itself on a long watch");
@@ -92,6 +95,81 @@ namespace LastLight.Tests
                 var t = log.Tracks[k];
                 if (t.Ship.Resolved) Assert.AreEqual(t.Ship.Pos, t.Points[t.Points.Count - 1].Pos, "thinning keeps where each ship ended");
                 Assert.AreEqual(Changes(full.Tracks[k]), Changes(t), $"thinning keeps every change of state for the {t.Ship.Name}");
+            }
+        }
+
+        [Test]
+        public void TheReplayFollowsTheNight([Values(2, 9)] int night)
+        {
+            // Play a night with a neglected ship, noting where every ship and the light really were
+            // at each step, then ask the log for the same moments.
+            var def = Validation.FreshMissions()[night - 1];
+            var map = Validation.FreshMap();
+            var w = new SimWorld(map, def, 7);
+            var log = new NightLog();
+            var bot = new AutoKeeper { Ignore = s => s.Name == def.ships[0].name };
+            var truth = new List<(float time, float bearing, float focus, List<(SimShip ship, Vector2 pos, ShipState state)> ships)>();
+            for (int i = 0; i < 60 * 900 && w.Outcome == MissionOutcome.Running; i++)
+            {
+                w.Step(1f / 60f, bot.Decide(w, 1f / 60f));
+                log.Record(w);
+                if (i % 7 != 0) continue;
+                var ships = new List<(SimShip, Vector2, ShipState)>();
+                foreach (var s in w.Ships) ships.Add((s, s.Pos, s.State));
+                truth.Add((w.Time, w.Beam.Bearing, w.Beam.Focus, ships));
+            }
+            Assert.AreEqual(w.Time, log.Duration, 1e-3f);
+            float worstBeam = 0f, worstShip = 0f;
+            int stateMisses = 0, checkedShips = 0;
+            foreach (var (time, bearing, focus, ships) in truth)
+            {
+                var b = log.BeamAt(time);
+                worstBeam = Mathf.Max(worstBeam, Mathf.Abs(Geo.DeltaAngle(bearing, b.Bearing)) * Mathf.Rad2Deg);
+                Assert.AreEqual(focus, b.Focus, 0.6f, "focus follows the light");
+                foreach (var (ship, pos, state) in ships)
+                {
+                    var track = log.Tracks.Find(t => t.Ship == ship);
+                    bool shown = NightLog.ShipAt(track, time, out var at, out var st);
+                    if (state == ShipState.Arrived && ship.Resolved && time >= track.Points[track.Points.Count - 1].Time)
+                    {
+                        Assert.IsFalse(shown, $"the {ship.Name} is off the chart once home");
+                        continue;
+                    }
+                    Assert.IsTrue(shown, $"night {night}: the {ship.Name} is on the chart at {time:0.0} s");
+                    worstShip = Mathf.Max(worstShip, Vector2.Distance(pos, at));
+                    if (st != state) stateMisses++;
+                    checkedShips++;
+                }
+            }
+            Debug.Log($"[NightLog] night {night} replay: beam within {worstBeam:0.00}°, ships within {worstShip:0.00} units, {stateMisses} of {checkedShips} states a sample late");
+            Assert.LessOrEqual(worstBeam, 6f, "the replay's light is where the light was");
+            Assert.LessOrEqual(worstShip, log.Spacing, "the replay's ships are where the ships were");
+            Assert.LessOrEqual(stateMisses, checkedShips / 200 + 2, "a ship's state on the replay is its state then (changes land on the next point)");
+
+            // Before a ship sailed it isn't drawn; a wreck stays on its rock from the moment it struck.
+            int wrecked = 0;
+            foreach (var t in log.Tracks)
+            {
+                Assert.IsFalse(NightLog.ShipAt(t, t.Points[0].Time - 0.5f, out _, out _), $"the {t.Ship.Name} isn't on the chart before it sailed");
+                if (t.Ship.State != ShipState.Wrecked) continue;
+                wrecked++;
+                var end = t.Points[t.Points.Count - 1];
+                Assert.AreEqual(t.Ship.WreckTime, end.Time, 1e-3f, $"the {t.Ship.Name}'s wreck is logged when it happened");
+                Assert.IsTrue(NightLog.ShipAt(t, log.Duration, out var p, out var st));
+                Assert.AreEqual(ShipState.Wrecked, st);
+                Assert.AreEqual(t.Ship.Pos, p);
+                NightLog.ShipAt(t, end.Time - 0.2f, out _, out var before);
+                Assert.AreNotEqual(ShipState.Wrecked, before, $"the {t.Ship.Name} is afloat just before it struck");
+            }
+            Assert.Greater(wrecked, 0, "the neglected ship wrecked someone, so a wreck was replayed");
+            if (night == 9)
+            {
+                Assert.Greater(log.Burns.Count, 0, "the wreckers' lanterns burned on night IX");
+                foreach (var burn in log.Burns)
+                {
+                    Assert.IsTrue(log.BurningAt(burn.Site, burn.Start + 0.01f));
+                    Assert.IsFalse(log.BurningAt(burn.Site, burn.Start - 0.5f) && !log.Burns.Exists(o => o != burn && o.Site == burn.Site && o.End >= burn.Start - 0.5f));
+                }
             }
         }
 

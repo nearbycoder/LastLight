@@ -12,6 +12,8 @@ namespace LastLight.UI
     /// inked solid while the captain was steering, dotted red with a "?" where they lost their way
     /// and dashed amber with a lantern where a false light had them, and a cross at each wreck.
     /// Only what the keeper saw is drawn: reefs and sandbanks charted tonight, lanterns that burned.
+    /// Replay plays the night back on the paper: the ships at their places, named, the light's
+    /// sweep, the false lights while they burned, and each wreck as it happens.
     /// </summary>
     public sealed class ChartScreen : UiScreen
     {
@@ -123,6 +125,7 @@ namespace LastLight.UI
             back.Label.GetComponent<Shadow>().enabled = false;
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(290, 56));
             FirstSelected = back;
+            BuildReplay(col);
         }
 
         static readonly Color TrackInk = new Color(0.16f, 0.13f, 0.1f, 0.72f);
@@ -195,9 +198,12 @@ namespace LastLight.UI
             foreach (Transform t in marks) Destroy(t.gameObject);
             foreach (var k in inks) Destroy(k.gameObject);
             inks.Clear();
+            lanterns.Clear();
+            crosses.Clear();
             DrawBay(map, w, log);
             DrawTracks(w, log);
             PlaceNames();
+            SetupReplay(map, log);
         }
 
         void PlaceNames()
@@ -287,6 +293,7 @@ namespace LastLight.UI
                 var img = UiKit.Image("Lantern", marks, SpriteFactory.Icon("lanternSolid"), LuredAmber);
                 img.raycastTarget = false;
                 img.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), p, new Vector2(30, 30));
+                lanterns[site.Id] = img;
                 KeepClear(p, new Vector2(30f, 30f));
                 Place(site.Name, p + new Vector2(0, 28f), 20, NameAmber, rank: RankWrecker);
             }
@@ -342,6 +349,7 @@ namespace LastLight.UI
                     var p = Project(pts[pts.Count - 1].Pos);
                     var cross = Mark("cross", LostRed, p, 32f);
                     wreckMarks.Add((ship.Name, cross.rectTransform));
+                    crosses.Add((cross, pts[pts.Count - 1].Time));
                     Place(ship.Name, p + new Vector2(0, -31f), 21, NameRed, true, UiKit.BodyBold, RankWreck);
                     named.Add(ship);
                 }
@@ -403,6 +411,211 @@ namespace LastLight.UI
             }
             placeMarks.Add((name, t.rectTransform));
             return t;
+        }
+
+        // ---------------------------------------------------------------- replay
+
+        NightLog log;
+        Vector2 lightPos;
+        RectTransform live;
+        ChartInk liveInk, beamInk;
+        UiButton replayButton;
+        UiSlider timeline;
+        Text timeText;
+        RectTransform ticks;
+        readonly Dictionary<string, Image> lanterns = new Dictionary<string, Image>();
+        readonly List<(Image cross, float time)> crosses = new List<(Image, float)>();
+        // One mark per ship that sailed: its name, and a "?" or lantern while lost or lured.
+        readonly List<(NightLog.Track track, Text name, Text lost, Image lured)> shipMarks = new List<(NightLog.Track, Text, Text, Image)>();
+        bool replaying, playing;
+        float replayTime;
+
+        /// <summary>The replay runs at this many times the night's speed, or faster for a long
+        /// watch, so no replay takes much more than 45 seconds.</summary>
+        public float ReplayRate => log == null ? 6f : Mathf.Max(6f, log.Duration / 45f);
+        static readonly Color BeamFill = new Color(0.98f, 0.8f, 0.36f, 0.3f);
+        static readonly Color BeamEdge = new Color(0.72f, 0.5f, 0.12f, 0.55f);
+        static readonly Color PaperHalo = new Color(0.86f, 0.82f, 0.72f, 0.85f);
+
+        void BuildReplay(RectTransform col)
+        {
+            replayButton = UiButton.Create(col, "Replay the night", UiKit.Heading, 32, ToggleReplay, TextAnchor.MiddleCenter);
+            replayButton.Normal = Ink;
+            replayButton.Hover = new Color(0.55f, 0.3f, 0.1f);
+            replayButton.Label.GetComponent<Shadow>().enabled = false;
+            ((RectTransform)replayButton.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -636), new Vector2(290, 50));
+
+            timeline = UiSlider.Create(col, 0f, v => Scrub(v));
+            ((RectTransform)timeline.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -694), new Vector2(290, 40));
+            // The slider is drawn for a dark panel; on paper its track wants ink.
+            foreach (var img in timeline.GetComponentsInChildren<Image>())
+            {
+                if (img.name == "Bg") img.color = new Color(Ink.r, Ink.g, Ink.b, 0.22f);
+                if (img.name == "Fill") img.color = new Color(0.62f, 0.42f, 0.14f);
+            }
+            timeline.KnobIdle = Ink;
+            timeline.KnobHot = new Color(0.55f, 0.3f, 0.1f);
+            // Wrecks as red ticks along the timeline, so they're easy to find.
+            ticks = UiKit.Rect("Ticks", timeline.transform).Stretch(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(12, -12), new Vector2(-12, 12));
+            ticks.SetAsFirstSibling();
+            timeText = Label(col, "", UiKit.BodyMedium, 21, InkSoft, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -730), new Vector2(290, 30));
+            timeText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+            Navigation Nav(Selectable up, Selectable down) => new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = up, selectOnDown = down };
+            replayButton.navigation = Nav(back, timeline);
+            timeline.navigation = Nav(replayButton, back);
+            back.navigation = Nav(timeline, replayButton);
+
+            // The light goes under the tracks and marks; the ships and their names on top.
+            beamInk = ChartInk.Create("Light", area);
+            live = UiKit.Rect("Replay", area).Fill();
+            liveInk = ChartInk.Create("Live", live);
+        }
+
+        void SetupReplay(MapData map, NightLog log)
+        {
+            this.log = log;
+            lightPos = map.Lighthouse;
+            foreach (var m in shipMarks) { Destroy(m.name.gameObject); Destroy(m.lost.gameObject); Destroy(m.lured.gameObject); }
+            shipMarks.Clear();
+            foreach (Transform t in ticks) Destroy(t.gameObject);
+            live.SetAsLastSibling();
+            beamInk.transform.SetSiblingIndex(baseInk.transform.GetSiblingIndex() + 1);
+            foreach (var t in log.Tracks)
+            {
+                var name = Label(live, t.Ship.Name, UiKit.BodyBold, 17, Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 24));
+                name.horizontalOverflow = HorizontalWrapMode.Overflow;
+                name.raycastTarget = false;
+                var o = name.gameObject.AddComponent<Outline>();
+                o.effectColor = PaperHalo;
+                o.effectDistance = new Vector2(1.3f, -1.3f);
+                var lost = Label(live, "?", UiKit.BodyBold, 24, LostRed, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(28, 30));
+                lost.raycastTarget = false;
+                var lured = UiKit.Image("Lured", live, SpriteFactory.Icon("lanternSolid"), LuredAmber);
+                lured.raycastTarget = false;
+                lured.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(20, 20));
+                shipMarks.Add((t, name, lost, lured));
+            }
+            foreach (var (cross, time) in crosses)
+            {
+                var tick = UiKit.Image("Wreck", ticks, null, LostRed);
+                tick.raycastTarget = false;
+                float x = log.Duration > 0f ? time / log.Duration : 0f;
+                tick.rectTransform.anchorMin = tick.rectTransform.anchorMax = new Vector2(x, 0.5f);
+                tick.rectTransform.sizeDelta = new Vector2(3, 22);
+                tick.rectTransform.anchoredPosition = Vector2.zero;
+            }
+            timeline.Step = log.Duration > 0f ? Mathf.Clamp(5f / log.Duration, 0.005f, 0.05f) : 0.05f;
+            replaying = playing = false;
+            replayTime = 0f;
+            ApplyReplay();
+        }
+
+        /// <summary>Replay: play from the start (or on from where it was stopped), or pause.</summary>
+        public void ToggleReplay()
+        {
+            if (log == null) return;
+            if (playing) { playing = false; ApplyReplay(); return; }
+            if (!replaying || replayTime >= log.Duration - 0.01f) replayTime = 0f;
+            replaying = playing = true;
+            ApplyReplay();
+        }
+
+        void Scrub(float fraction)
+        {
+            if (log == null) return;
+            replaying = true;
+            playing = false;
+            replayTime = fraction * log.Duration;
+            ApplyReplay();
+        }
+
+        /// <summary>For tours: hold the replay at a moment of the night.</summary>
+        public void SetReplayTime(float time)
+        {
+            if (log == null) return;
+            replaying = true;
+            playing = false;
+            replayTime = Mathf.Clamp(time, 0f, log.Duration);
+            ApplyReplay();
+        }
+
+        void Update()
+        {
+            if (!Visible || !playing || log == null) return;
+            replayTime += Unscaled.Delta * ReplayRate;
+            if (replayTime >= log.Duration) { replayTime = log.Duration; playing = false; }
+            ApplyReplay();
+        }
+
+        void ApplyReplay()
+        {
+            if (log == null) return;
+            string clock = $"{UiKit.Clock(replayTime)} of {UiKit.Clock(log.Duration)}";
+            timeText.text = replaying ? clock : $"The night ran {UiKit.Clock(log.Duration)}";
+            replayButton.Label.text = playing ? "Pause" : replaying && replayTime > 0.01f && replayTime < log.Duration - 0.01f ? "Play on" : "Replay the night";
+            timeline.Value = log.Duration > 0f ? replayTime / log.Duration : 0f;
+            // The whole night faint underneath while it plays back; as it was once it's done.
+            foreach (var k in inks) k.canvasRenderer.SetAlpha(replaying ? 0.32f : 1f);
+            foreach (var (cross, time) in crosses) cross.canvasRenderer.SetAlpha(!replaying || replayTime >= time ? 1f : 0f);
+            foreach (var kv in lanterns)
+                kv.Value.canvasRenderer.SetAlpha(!replaying ? 1f : log.BurningAt(kv.Key, replayTime) ? 1f : 0.22f);
+
+            liveInk.Clear();
+            beamInk.Clear();
+            if (replaying)
+            {
+                var b = log.BeamAt(replayTime);
+                float half = Mathf.Lerp(SimBeam.WideHalfDeg, SimBeam.FocusHalfDeg, b.Focus) * Mathf.Deg2Rad;
+                var fan = new List<Vector2> { Project(lightPos) };
+                for (int i = 0; i <= 12; i++) fan.Add(Project(lightPos + Geo.Dir(b.Bearing - half + 2f * half * i / 12f) * b.Range));
+                beamInk.Polygon(fan, BeamFill);
+                beamInk.Line(fan[0], fan[1], 1.6f, BeamEdge);
+                beamInk.Line(fan[0], fan[fan.Count - 1], 1.6f, BeamEdge);
+                BeamShown = b;
+            }
+            foreach (var (track, name, lost, lured) in shipMarks)
+            {
+                bool shown = replaying && NightLog.ShipAt(track, replayTime, out var pos, out var state) && state != ShipState.Wrecked;
+                name.enabled = lost.enabled = lured.enabled = false;
+                if (!shown) continue;
+                NightLog.ShipAt(track, replayTime, out pos, out state);
+                var p = Project(pos);
+                var c = state == ShipState.Lost ? LostRed : state == ShipState.Lured ? LuredAmber : Ink;
+                liveInk.Disc(p, 9.5f, PaperHalo, 16);
+                liveInk.Disc(p, 7f, c, 16);
+                name.enabled = true;
+                name.color = state == ShipState.Lost ? NameRed : state == ShipState.Lured ? NameAmber : Ink;
+                name.rectTransform.anchoredPosition = p + new Vector2(0, -20f);
+                if (state == ShipState.Lost) { lost.enabled = true; lost.rectTransform.anchoredPosition = p + new Vector2(16f, 14f); }
+                if (state == ShipState.Lured) { lured.enabled = true; lured.rectTransform.anchoredPosition = p + new Vector2(16f, 14f); }
+            }
+            liveInk.Apply();
+            beamInk.Apply();
+        }
+
+        // For tours.
+        public bool Replaying => replaying;
+        public bool ReplayPlaying => playing;
+        public float ReplayTime => replayTime;
+        public float ReplayDuration => log != null ? log.Duration : 0f;
+        public NightLog.BeamSample BeamShown { get; private set; }
+        public UiButton ReplayButton => replayButton;
+        public UiSlider Timeline => timeline;
+        public string TimeShown => timeText.text;
+        /// <summary>A ship's mark in the replay: whether it's showing, where (chart area space), and
+        /// whether its "?" or lantern is up.</summary>
+        public (bool shown, Vector2 pos, bool lost, bool lured) ReplayMark(string ship)
+        {
+            foreach (var (track, name, lost, lured) in shipMarks)
+                if (track.Ship.Name == ship) return (name.enabled, name.rectTransform.anchoredPosition + new Vector2(0, 20f), lost.enabled, lured.enabled);
+            return (false, Vector2.zero, false, false);
+        }
+        public bool CrossShown(string ship)
+        {
+            for (int i = 0; i < wreckMarks.Count; i++)
+                if (wreckMarks[i].ship == ship) return wreckMarks[i].mark.GetComponent<Image>().canvasRenderer.GetAlpha() > 0.5f;
+            return false;
         }
 
         public override void Show()

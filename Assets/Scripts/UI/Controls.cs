@@ -10,6 +10,9 @@ namespace LastLight.UI
     public sealed class UiSlider : Selectable, IDragHandler, IPointerDownHandler
     {
         public Action<float> Changed;
+        /// <summary>How far one press of left or right moves it.</summary>
+        public float Step = 0.05f;
+        public Color KnobIdle = UiKit.Paper, KnobHot = UiKit.BrassBright;
         RectTransform track;
         Image fill, knob;
         float value;
@@ -75,7 +78,7 @@ namespace LastLight.UI
         {
             if (e.moveDir == MoveDirection.Left || e.moveDir == MoveDirection.Right)
             {
-                Value += e.moveDir == MoveDirection.Left ? -0.05f : 0.05f;
+                Value += e.moveDir == MoveDirection.Left ? -Step : Step;
                 Changed?.Invoke(value);
                 Sfx.Play("ui_tick", 0.3f, 0.8f + value * 0.5f, 0, Bus.Ui, 0f);
                 return;
@@ -87,7 +90,7 @@ namespace LastLight.UI
         {
             if (knob == null) return;
             bool hot = currentSelectionState == SelectionState.Highlighted || currentSelectionState == SelectionState.Selected || currentSelectionState == SelectionState.Pressed;
-            knob.color = Color.Lerp(knob.color, hot ? UiKit.BrassBright : UiKit.Paper, Unscaled.Delta * 10f);
+            knob.color = Color.Lerp(knob.color, hot ? KnobHot : KnobIdle, Unscaled.Delta * 10f);
         }
     }
 

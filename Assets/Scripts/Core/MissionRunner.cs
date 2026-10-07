@@ -116,11 +116,13 @@ namespace LastLight.Core
                 if (InputFilter != null) input = InputFilter(World, input);
                 foreach (var v in ships.Values) v.BeforeStep();
                 prevBearing = World.Beam.Bearing;
+                bool running = World.Outcome == MissionOutcome.Running;
                 World.Step(StepTime, input);
                 lastInput = input;
                 if (input.Horn) { Controls.ConsumeHorn(); input.Horn = false; }
                 foreach (var v in ships.Values) v.AfterStep();
-                if (!Attract) Log.Record(World);
+                // The log is the night: it stops when the night ends, though the bay sails on behind dawn.
+                if (!Attract && running) Log.Record(World);
                 Dispatch();
                 accumulator -= StepTime;
                 steps++;

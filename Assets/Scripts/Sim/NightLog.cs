@@ -6,7 +6,8 @@ namespace LastLight.Sim
     /// <summary>
     /// The night as a chart, for dawn: each ship's track with the state it was in, and the reefs,
     /// sandbanks and false lights the keeper saw. It only reads the simulation after each step, so
-    /// it never changes what happens.
+    /// it never changes what happens. Points carry their time, and the light's sweep and the false
+    /// lights' burning are kept too, so the chart can play the night back.
     /// </summary>
     public sealed class NightLog
     {
@@ -14,6 +15,21 @@ namespace LastLight.Sim
         {
             public Vector2 Pos;
             public ShipState State;
+            public float Time;
+        }
+
+        /// <summary>The light at a moment: where it pointed, how focused, how far it reached.</summary>
+        public struct BeamSample
+        {
+            public float Time, Bearing, Focus, Range;
+        }
+
+        /// <summary>A false light that burned, from when to when (End is the night's end if it
+        /// was still burning).</summary>
+        public sealed class Burn
+        {
+            public string Site;
+            public float Start, End = float.PositiveInfinity;
         }
 
         public sealed class Track
@@ -28,6 +44,15 @@ namespace LastLight.Sim
         public readonly HashSet<int> ChartedShoals = new HashSet<int>();
         /// <summary>Wrecker sites whose lantern burned tonight, by site id.</summary>
         public readonly HashSet<string> BurnedSites = new HashSet<string>();
+        public readonly List<BeamSample> Beam = new List<BeamSample>();
+        public readonly List<Burn> Burns = new List<Burn>();
+        /// <summary>The time of the last step recorded: how long the night ran.</summary>
+        public float Duration { get; private set; }
+
+        /// <summary>How often the light is sampled, in seconds of the night. A 30-minute watch keeps
+        /// 18,000 samples; past MaxBeamSamples they thin, as the tracks do.</summary>
+        public float BeamInterval { get; private set; } = 0.1f;
+        public const int MaxBeamSamples = 24000;
 
         /// <summary>A point is kept each time a ship has moved this far, or changed state.</summary>
         public float Spacing { get; private set; } = 2.5f;
@@ -40,9 +65,16 @@ namespace LastLight.Sim
         public NightLog(int maxPoints = DefaultMaxPoints) => MaxPoints = maxPoints;
 
         readonly Dictionary<SimShip, Track> byShip = new Dictionary<SimShip, Track>();
+        readonly Dictionary<SimWrecker, Burn> burning = new Dictionary<SimWrecker, Burn>();
 
         public void Record(SimWorld w)
         {
+            Duration = w.Time;
+            if (Beam.Count == 0 || w.Time - Beam[Beam.Count - 1].Time >= BeamInterval - 1e-4f)
+            {
+                Beam.Add(new BeamSample { Time = w.Time, Bearing = w.Beam.Bearing, Focus = w.Beam.Focus, Range = w.Beam.Range });
+                if (Beam.Count > MaxBeamSamples) ThinBeam();
+            }
             foreach (var s in w.Ships)
             {
                 if (!byShip.TryGetValue(s, out var t))
@@ -50,30 +82,109 @@ namespace LastLight.Sim
                     t = new Track { Ship = s };
                     byShip[s] = t;
                     Tracks.Add(t);
-                    Add(t, s);
+                    Add(t, s, w.Time);
                     continue;
                 }
                 if (t.Done) continue;
                 var last = t.Points[t.Points.Count - 1];
-                if (s.State != last.State || (s.Pos - last.Pos).sqrMagnitude >= Spacing * Spacing) Add(t, s);
+                if (s.State != last.State || (s.Pos - last.Pos).sqrMagnitude >= Spacing * Spacing) Add(t, s, w.Time);
                 if (s.Resolved)
                 {
                     // The last point is where the ship ended: in harbour, or on the rock.
                     var end = t.Points[t.Points.Count - 1];
-                    if (end.Pos != s.Pos || end.State != s.State) Add(t, s);
+                    if (end.Pos != s.Pos || end.State != s.State) Add(t, s, w.Time);
                     t.Done = true;
                 }
             }
             for (int i = 0; i < w.Reefs.Count; i++) if (w.Reefs[i].Charted) ChartedReefs.Add(i);
             for (int i = 0; i < w.Shoals.Count; i++) if (w.Shoals[i].Charted) ChartedShoals.Add(i);
-            foreach (var wr in w.Wreckers) if (wr.Burning) BurnedSites.Add(wr.Site.Id);
+            foreach (var wr in w.Wreckers)
+            {
+                burning.TryGetValue(wr, out var b);
+                if (wr.Burning)
+                {
+                    BurnedSites.Add(wr.Site.Id);
+                    if (b != null && b.Site != wr.Site.Id) { b.End = w.Time; b = null; }
+                    if (b == null) { b = new Burn { Site = wr.Site.Id, Start = w.Time }; Burns.Add(b); burning[wr] = b; }
+                }
+                else if (b != null) { b.End = w.Time; burning.Remove(wr); }
+            }
             if (PointCount > MaxPoints) Thin();
         }
 
-        void Add(Track t, SimShip s)
+        void Add(Track t, SimShip s, float time)
         {
-            t.Points.Add(new Point { Pos = s.Pos, State = s.State });
+            t.Points.Add(new Point { Pos = s.Pos, State = s.State, Time = time });
             PointCount++;
+        }
+
+        void ThinBeam()
+        {
+            BeamInterval *= 2f;
+            int n = 0;
+            for (int i = 0; i < Beam.Count; i++) if (i % 2 == 0 || i == Beam.Count - 1) Beam[n++] = Beam[i];
+            Beam.RemoveRange(n, Beam.Count - n);
+        }
+
+        // ---------------------------------------------------------------- playing it back
+
+        /// <summary>Where a ship was at a moment of the night, and in what state: false before it
+        /// entered the bay and after it reached harbour or left. A wrecked ship stays on its rock.</summary>
+        public static bool ShipAt(Track t, float time, out Vector2 pos, out ShipState state)
+        {
+            var p = t.Points;
+            pos = default;
+            state = ShipState.Sailing;
+            if (p.Count == 0 || time < p[0].Time) return false;
+            var last = p[p.Count - 1];
+            if (time >= last.Time)
+            {
+                pos = last.Pos;
+                state = last.State;
+                // Home (or away) is off the chart; a wreck stays where it struck.
+                return !t.Done || last.State == ShipState.Wrecked;
+            }
+            int lo = 0, hi = p.Count - 1;   // p[lo].Time <= time < p[hi].Time
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (p[mid].Time <= time) lo = mid; else hi = mid;
+            }
+            float span = p[hi].Time - p[lo].Time;
+            pos = Vector2.Lerp(p[lo].Pos, p[hi].Pos, span > 0f ? (time - p[lo].Time) / span : 1f);
+            state = p[lo].State;
+            return true;
+        }
+
+        /// <summary>The light at a moment of the night, between the samples either side.</summary>
+        public BeamSample BeamAt(float time)
+        {
+            if (Beam.Count == 0) return default;
+            if (time <= Beam[0].Time) return Beam[0];
+            if (time >= Beam[Beam.Count - 1].Time) return Beam[Beam.Count - 1];
+            int lo = 0, hi = Beam.Count - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (Beam[mid].Time <= time) lo = mid; else hi = mid;
+            }
+            var a = Beam[lo];
+            var b = Beam[hi];
+            float k = (time - a.Time) / Mathf.Max(1e-5f, b.Time - a.Time);
+            return new BeamSample
+            {
+                Time = time,
+                Bearing = Geo.WrapAngle(a.Bearing + Geo.DeltaAngle(a.Bearing, b.Bearing) * k),
+                Focus = Mathf.Lerp(a.Focus, b.Focus, k),
+                Range = Mathf.Lerp(a.Range, b.Range, k),
+            };
+        }
+
+        /// <summary>Whether a wrecker site's lantern was burning at a moment of the night.</summary>
+        public bool BurningAt(string site, float time)
+        {
+            foreach (var b in Burns) if (b.Site == site && time >= b.Start && time < b.End) return true;
+            return false;
         }
 
         /// <summary>Halve the points along every track, keeping each track's ends and every change
