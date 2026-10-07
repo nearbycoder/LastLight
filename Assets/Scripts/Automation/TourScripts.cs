@@ -577,14 +577,74 @@ namespace LastLight.Automation
             yield return null;
             g.TourShowSettings();
             yield return Tour.Wait(1.2f);
-            for (int i = 0; i < 13; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the left since Sound in background
+            var settings = (SettingsScreen)g.TourScreen("settings");
+            // The description under the right-hand column follows the selection, row by row.
+            var walked = new System.Collections.Generic.List<string>();
+            var expected = new System.Collections.Generic.List<string>();
+            foreach (var (name, about) in settings.AboutAll) expected.Add(name);
+            int aboutWrong = 0;
+            for (int i = 0; i < 13; i++)
+            {
+                yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the left since Sound in background
+                walked.Add(settings.AboutShown ?? "nothing");
+            }
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
-            for (int i = 0; i < 11; i++) yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness
+            yield return t.Shot("input_settings_about_pad");
+            for (int i = 0; i < 11; i++)
+            {
+                yield return PadPress(pad2, GamepadButton.DpadDown);   // eleven rows on the right since Brightness
+                walked.Add(settings.AboutShown ?? "nothing");
+            }
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
+            foreach (var (name, about) in settings.AboutAll) if (string.IsNullOrEmpty(about)) aboutWrong++;
+            bool aboutWalk = string.Join("|", walked) == string.Join("|", expected) && aboutWrong == 0;
+            t.Log($"{(aboutWalk ? "PASS" : "FAIL")} the description follows the d-pad through all {walked.Count} rows ({string.Join(", ", walked)})");
             InputSystem.RemoveDevice(pad2);
+            yield return null;
+            // The pointer: a row under the mouse is described, label or control.
+            InputMode.Set(false);
+            var renderLabel = settings.RowLabel("Render scale");
+            TourScripts.MouseTo(RectTransformUtility.WorldToScreenPoint(null, renderLabel.position) + new Vector2(5, 3));
+            yield return null;
+            yield return null;
+            yield return null;
+            string overLabel = settings.AboutShown;
+            yield return t.Shot("input_settings_about_mouse");
+            TourScripts.MouseTo(RectTransformUtility.WorldToScreenPoint(null, settings.RowControl("Game speed").position) + new Vector2(5, 3));   // over its stepper
+            yield return null;
+            yield return null;
+            yield return null;
+            string overControl = settings.AboutShown;
+            bool hoverOk = overLabel == "Render scale" && overControl == "Game speed";
+            t.Log($"{(hoverOk ? "PASS" : "FAIL")} the mouse over Render scale's label shows {overLabel}'s description, over Game speed's stepper {overControl}'s");
+            // Every description fits its box, at most three lines.
+            var box = settings.AboutLabel;
+            string longest = "";
+            float tallest = 0f;
+            int tooBig = 0;
+            foreach (var (name, about) in settings.AboutAll)
+            {
+                var size = box.rectTransform.rect.size;
+                var settingsGen = box.GetGenerationSettings(new Vector2(size.x, 0f));
+                float h = box.cachedTextGeneratorForLayout.GetPreferredHeight($"<color=#E2C27F><b>{name}</b></color>  ·  {about}", settingsGen) / box.pixelsPerUnit;
+                if (h > tallest) { tallest = h; longest = name; }
+                if (h > size.y) tooBig++;
+            }
+            t.Log($"{(tooBig == 0 ? "PASS" : "FAIL")} every setting's description fits its box (tallest {longest}, {tallest:0} of {box.rectTransform.rect.height:0} units)");
+            // And the box sits clear of every row and of Done.
+            Rect WorldRect(RectTransform rt) { var c = new Vector3[4]; rt.GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
+            var aboutRect = WorldRect(box.rectTransform);
+            var covers = new System.Collections.Generic.List<string>();
+            foreach (var (name, about) in settings.AboutAll)
+            {
+                var lr = settings.RowLabel(name);
+                if (lr != null && WorldRect(lr).Overlaps(aboutRect)) covers.Add(name + " (label)");
+                if (WorldRect(settings.RowControl(name)).Overlaps(aboutRect)) covers.Add(name);
+            }
+            t.Log($"{(covers.Count == 0 ? "PASS" : "FAIL")} the description's box covers no row and not Done{(covers.Count > 0 ? ": " + string.Join(", ", covers) : "")}");
             g.TourHideAll();
         }
 

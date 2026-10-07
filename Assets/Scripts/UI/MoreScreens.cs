@@ -254,6 +254,43 @@ namespace LastLight.UI
     {
         public Action OnBack, OnFocusMode;
         RectTransform panel;
+        Text about;
+        readonly List<(string name, RectTransform label, Selectable control, string about)> rows = new List<(string, RectTransform, Selectable, string)>();
+
+        /// <summary>The row the description is about: the one under the pointer, else the one chosen.</summary>
+        int AboutRow()
+        {
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null && !InputMode.Pad)
+            {
+                var at = mouse.position.ReadValue();
+                for (int i = 0; i < rows.Count; i++)
+                    if ((rows[i].label != null && RectTransformUtility.RectangleContainsScreenPoint(rows[i].label, at, null)) ||
+                        RectTransformUtility.RectangleContainsScreenPoint((RectTransform)rows[i].control.transform, at, null)) return i;
+            }
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            var sel = es != null ? es.currentSelectedGameObject : null;
+            for (int i = 0; i < rows.Count; i++) if (sel != null && rows[i].control.gameObject == sel) return i;
+            return -1;
+        }
+
+        void UpdateAbout()
+        {
+            if (about == null || !panel.gameObject.activeSelf) return;
+            int i = AboutRow();
+            AboutShown = i >= 0 ? rows[i].name : null;
+            // Named, so it can't be read as the row just above it.
+            string text = i >= 0 ? $"<color=#E2C27F><b>{(rows[i].label != null ? rows[i].name : "Done")}</b></color>  ·  {rows[i].about}" : "";
+            if (about.text != text) about.text = text;
+        }
+
+        /// <summary>For tours: which row the description is about, its words, and every row's.</summary>
+        public string AboutShown { get; private set; }
+        public string AboutText => about.text;
+        public Text AboutLabel => about;
+        public IEnumerable<(string name, string about)> AboutAll { get { foreach (var r in rows) yield return (r.name, r.about); } }
+        public RectTransform RowLabel(string name) { foreach (var r in rows) if (r.name == name) return r.label; return null; }
+        public RectTransform RowControl(string name) { foreach (var r in rows) if (r.name == name) return (RectTransform)r.control.transform; return null; }
 
         /// <summary>"Native" first, then the desktop's modes from 1280x720 up, smallest first.</summary>
         static List<Vector2Int> Resolutions()
@@ -293,7 +330,8 @@ namespace LastLight.UI
             var order = new List<Selectable>();
             int row = 0;
             float column = -410f;
-            void Row(string label, Component control)
+            rows.Clear();
+            void Row(string label, Component control, string about)
             {
                 // Label and control share a centre line.
                 float y = -196 - row * 60;
@@ -302,19 +340,29 @@ namespace LastLight.UI
                 l.Shadowed();
                 ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(column + 210, y), new Vector2(380, 46));
                 order.Add((Selectable)control);
+                rows.Add((label, l.rectTransform, (Selectable)control, about));
                 row++;
             }
-            Row("Master volume", UiSlider.Create(panel, save.master, v => { save.master = v; save.Apply(); }));
-            Row("Music", UiSlider.Create(panel, save.music, v => { save.music = v; save.Apply(); }));
-            Row("Sound effects", UiSlider.Create(panel, save.sfx, v => { save.sfx = v; save.Apply(); }));
-            Row("Radio voices", UiSlider.Create(panel, save.radio, v => { save.radio = v; save.Apply(); Sfx.Play("voice_ianto", 0.4f, 0.95f, 0, Bus.Radio, 0.5f); }));
-            Row("Sea and wind", UiSlider.Create(panel, save.ambience, v => { save.ambience = v; save.Apply(); }));
-            Row("Sound in background", UiStepper.Create(panel, new[] { "On", "Off" }, save.muteInBackground ? 1 : 0, i => save.muteInBackground = i == 1));
-            Row("Text speed", UiStepper.Create(panel, new[] { "Slow", "Normal", "Fast" }, save.textSpeed < 0.9f ? 0 : save.textSpeed > 1.1f ? 2 : 1, i => { save.textSpeed = i == 0 ? 0.7f : i == 2 ? 1.5f : 1f; }));
+            Row("Master volume", UiSlider.Create(panel, save.master, v => { save.master = v; save.Apply(); }),
+                "Everything the game plays, together.");
+            Row("Music", UiSlider.Create(panel, save.music, v => { save.music = v; save.Apply(); }),
+                "The score: the title waltz, the night's music and dawn.");
+            Row("Sound effects", UiSlider.Create(panel, save.sfx, v => { save.sfx = v; save.Apply(); }),
+                "The lens, horns, breakers, wrecks and flares, and the menus' clicks.");
+            Row("Radio voices", UiSlider.Create(panel, save.radio, v => { save.radio = v; save.Apply(); Sfx.Play("voice_ianto", 0.4f, 0.95f, 0, Bus.Radio, 0.5f); }),
+                "The captains' and the harbourmaster's voices. Their words always show as text.");
+            Row("Sea and wind", UiSlider.Create(panel, save.ambience, v => { save.ambience = v; save.Apply(); }),
+                "The swell, the wind and the rain.");
+            Row("Sound in background", UiStepper.Create(panel, new[] { "On", "Off" }, save.muteInBackground ? 1 : 0, i => save.muteInBackground = i == 1),
+                "Off: the game falls silent while its window is out of focus. A night pauses either way.");
+            Row("Text speed", UiStepper.Create(panel, new[] { "Slow", "Normal", "Fast" }, save.textSpeed < 0.9f ? 0 : save.textSpeed > 1.1f ? 2 : 1, i => { save.textSpeed = i == 0 ? 0.7f : i == 2 ? 1.5f : 1f; }),
+                "How fast the radio's calls type out.");
             float[] hudScales = { 1f, 1.15f, 1.3f };
             int hudIndex = System.Array.FindIndex(hudScales, v => Mathf.Abs(v - save.hudScale) < 0.01f);
-            Row("HUD text size", UiStepper.Create(panel, new[] { "100%", "115%", "130%" }, Mathf.Max(0, hudIndex), i => { save.hudScale = hudScales[i]; save.Apply(); }));
-            Row("Hints", UiStepper.Create(panel, new[] { "Off", "On" }, save.hints ? 1 : 0, i => save.hints = i == 1));
+            Row("HUD text size", UiStepper.Create(panel, new[] { "100%", "115%", "130%" }, Mathf.Max(0, hudIndex), i => { save.hudScale = hudScales[i]; save.Apply(); }),
+                "Everything drawn during a night: the radio, hints, names, score and markers. The menus keep their size.");
+            Row("Hints", UiStepper.Create(panel, new[] { "Off", "On" }, save.hints ? 1 : 0, i => save.hints = i == 1),
+                "Short tips the first time each idea comes up. Each one shows once.");
             UiButton replay = null;
             replay = UiButton.Create(panel, "Show hints again", UiKit.BodyMedium, 26, () =>
             {
@@ -322,35 +370,56 @@ namespace LastLight.UI
                 save.Save();
                 replay.Label.text = "Hints will show again";
             }, TextAnchor.MiddleCenter);
-            Row("Seen hints", replay);
+            Row("Seen hints", replay,
+                "Brings back every tip you've already seen.");
             keysButton = UiButton.Create(panel, "Change keys", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
-            Row("Keyboard keys", keysButton);
+            Row("Keyboard keys", keysButton,
+                "Choose the keys for turning, focus and the foghorn. The mouse and gamepad keep their buttons.");
             int[] caps = { 0, 60, 30 };
-            Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }));
+            Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }),
+                "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");
 
             row = 0;
             column = 410f;
-            Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i));
+            Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i),
+                "Hard: ships lose heart faster, charts and buoys fade sooner, and the crew give no breakers warning. From the next night.");
             float[] speeds = { 1f, 0.85f, 0.7f };
             int speedIndex = System.Array.FindIndex(speeds, v => Mathf.Abs(v - save.gameSpeed) < 0.01f);
-            Row("Game speed", UiStepper.Create(panel, new[] { "100%", "85%", "70%" }, Mathf.Max(0, speedIndex), i => save.gameSpeed = speeds[i]));
-            Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
-            Row("Focus", UiStepper.Create(panel, new[] { "Hold", "Toggle" }, save.focusToggle ? 1 : 0, i => { save.focusToggle = i == 1; OnFocusMode?.Invoke(); }));
-            Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
-            Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }));
+            Row("Game speed", UiStepper.Create(panel, new[] { "100%", "85%", "70%" }, Mathf.Max(0, speedIndex), i => save.gameSpeed = speeds[i]),
+                "Slows the whole night together: ships, the lens, fog, storms and wreckers. Only you gain time. Dawn notes a slowed night.");
+            Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1),
+                "The camera's jolt at a wreck, the foghorn, lightning and a doused false light.");
+            Row("Focus", UiStepper.Create(panel, new[] { "Hold", "Toggle" }, save.focusToggle ? 1 : 0, i => { save.focusToggle = i == 1; OnFocusMode?.Invoke(); }),
+                "Hold: the beam is focused while the button is held. Toggle: press once to focus, again to widen.");
+            Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)),
+                "How fast the keys turn the lens. The mouse and the sticks point it directly.");
+            Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }),
+                "In a window, or filling the screen.");
             var sizes = Resolutions();
             int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
             var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
-            Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }));
-            Row("Brightness", UiStepper.Create(panel, new[] { "−2", "−1", "Standard", "+1", "+2" }, Mathf.Clamp(save.brightness, -2, 2) + 2, i => { save.brightness = i - 2; save.Apply(display: false); }));
-            Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }));
+            Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }),
+                "The window's size, or the screen's when fullscreen. Native is the display's own.");
+            Row("Brightness", UiStepper.Create(panel, new[] { "−2", "−1", "Standard", "+1", "+2" }, Mathf.Clamp(save.brightness, -2, 2) + 2, i => { save.brightness = i - 2; save.Apply(display: false); }),
+                "The bay, from half a stop darker to a stop brighter. The menus and the HUD stay as they are.");
+            Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }),
+                "Detail in the fog and the beam's haze. Lower runs faster on fog nights.");
             float[] scales = { 1f, 0.85f, 0.7f, 0.5f };
             int scaleIndex = System.Array.FindIndex(scales, v => Mathf.Abs(v - save.renderScale) < 0.01f);
-            Row("Render scale", UiStepper.Create(panel, new[] { "100%", "85%", "70%", "50%" }, Mathf.Max(0, scaleIndex), i => { save.renderScale = scales[i]; save.Apply(); }));
-            Row("Reduce flashing", UiStepper.Create(panel, new[] { "Off", "On" }, save.reduceFlashing ? 1 : 0, i => { save.reduceFlashing = i == 1; save.Apply(); }));
+            Row("Render scale", UiStepper.Create(panel, new[] { "100%", "85%", "70%", "50%" }, Mathf.Max(0, scaleIndex), i => { save.renderScale = scales[i]; save.Apply(); }),
+                "Draws the bay at a lower resolution while text stays sharp. 70% helps fog nights on a weaker GPU.");
+            Row("Reduce flashing", UiStepper.Create(panel, new[] { "Off", "On" }, save.reduceFlashing ? 1 : 0, i => { save.reduceFlashing = i == 1; save.Apply(); }),
+                "The storm's lightning lights the bay at about a tenth of its strength.");
             var back = UiButton.Create(panel, "Done", UiKit.Heading, 44, () => { SaveData.Current.Save(); OnBack?.Invoke(); }, TextAnchor.MiddleCenter);
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
             order.Add(back);
+            // What the chosen setting does, in the space under the right-hand column.
+            // Between the right column's last row (Reduce flashing, centred at -796) and Done: two lines.
+            about = Label(panel, "", UiKit.Italic, 23, new Color(0.78f, 0.8f, 0.83f), TextAnchor.UpperLeft, new Vector2(0.5f, 1), new Vector2(430, -852), new Vector2(780, 62));
+            about.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            about.lineSpacing = 1f;
+            about.Shadowed(0.7f, 1.5f);
+            rows.Add(("Done", null, back, "Settings are kept as you leave."));
             for (int i = 0; i < order.Count; i++)
             {
                 var nav = new Navigation
@@ -510,6 +579,7 @@ namespace LastLight.UI
 
         void Update()
         {
+            UpdateAbout();
             var es = UnityEngine.EventSystems.EventSystem.current;
             if (KeysOpen)
             {
