@@ -67,10 +67,19 @@ along with text speed, hints, screen shake, **focus** (hold the button, or toggl
 focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
 fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp)
 **reduce flashing** (the storm's lightning lights the bay at about a tenth of its strength),
-HUD text size and difficulty.
+HUD text size, difficulty and **game speed**.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
-The pause menu shows the night's latest radio calls, so a call you missed can be read again. The
-mouse pointer hides while you play with a gamepad.
+The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
+the controls for the device you're using. The mouse pointer hides while you play with a gamepad.
+Menus and the HUD fit screens of other shapes (checked at 16:10, 5:4 and 21:9 as well as 16:9),
+and on screens narrower than 16:9 the camera widens its view so the whole bay stays in sight.
+
+**Game speed** (100, 85 or 70%) is an assist that slows the whole night together: ships, the
+lens, fog, storms and wreckers. Only you gain time. Music, the radio's typing and the menus keep
+their pace. The dawn card and the table of best watches say when a night or watch was slowed.
+
+Press Esc, Start or B during the ending and a second press skips to the title (the ending still
+counts as seen), which helps when replaying night XII.
 
 **HUD text size** (100, 115 or 130%) enlarges everything drawn during a night: the radio, hints,
 manifest, score, foghorn and markers. The menus keep their size.
@@ -166,7 +175,8 @@ brings its own weather: one to three fog banks in different places, squalls that
 every few minutes with current, rain and lightning (stronger as the night wears on), and wreckers
 lighting up at their own times, with the mimic light late in a long watch. Ianto gives the forecast
 in the briefing, and the game keeps your five best watches. The briefing shows the top three, and
-the dawn card tells you where a watch ranks.
+the dawn card tells you where a watch ranks. To stop, choose **End the watch** in the pause menu:
+dawn comes at once, and the watch is kept and ranked as if the last wreck had ended it.
 
 ## Content overview
 
@@ -259,7 +269,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (57 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (58 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -272,7 +282,7 @@ contains a copy of it.
   check that the AutoKeeper wins all twelve nights on Hard, that its Standard scores match the
   tuned game exactly, and that Hard really is harder: shorter charts and buoys, no warning, closer
   watch ships. Two check the pause menu's radio log: calls kept in order, capped, and cleared each
-  night.
+  night. One checks that only a Night Watch can be stood down, and that its score stands.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -289,7 +299,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
   The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
   staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
@@ -297,7 +307,12 @@ contains a copy of it.
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
   pad pauses the night, and that the d-pad walks both settings columns. It switches Focus to Toggle
 and checks each control both ways, checks the pointer hides for pad play, and logs the input
-devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log. `flash` measures screen
+devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
+  at whatever window size the player starts with (`LL_W` and `LL_H`), that every menu panel is on
+  screen, that the HUD's blocks don't overlap (night 11, the longest top bar), and that the harbour and
+  every hazard are in view. `watchend` ends a Night Watch from the pause menu and checks it was kept.
+  `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
+  speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
@@ -427,5 +442,14 @@ Linux. Here's what is still unproven or rough:
   while the machine was heavily loaded by other work, so treat the numbers as rough.
 - On the development machine, the X11/XWayland window path hung at startup. Use `LastLight.sh`
   under Wayland.
+- **Screen shapes were checked in windows, on one machine.** The `screens` tour passes at
+  1280×800, 1280×1024, 1600×900 and 2560×1080 windows on KDE Wayland. Fullscreen at those shapes, real
+  4:3 or 16:10 monitors, and a Steam Deck haven't been tried. Westpoint's false light and the rock it
+  lures ships onto sit just past the left edge of the frame (as released, at every shape), so a ship
+  lured there wrecks a little off screen. When the game was started in a 1280×1024 window, the `ui`
+  tour's switch to 1280×720 didn't take (the window stayed 1280×1024). Started at 1600×900, it
+  works. That wasn't investigated further.
+- **Game speed shares records.** A night kept at 70% counts in the logbook like any other, and only
+  the dawn card and the watch table mark it. Whether slowed scores should be kept apart is open.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.

@@ -459,3 +459,66 @@ how to focus or sound the horn has nowhere to look.
 ### Not in this round
 - **Standard difficulty and the Night Watch ramp**: the owner's call.
 - **Real gamepad, listening pass, playtests, Windows, macOS signing, WebGL**: as before.
+
+## Round 4 results (2026-10-06)
+
+All five items landed on `improvements-4`, one commit each. Verification was on the built Linux
+player: 58/58 EditMode tests (57 before, plus one for standing a watch down), and the `input`,
+`ui`, `status`, `radiolog`, `ending`, `endingskip`, `watchend` and `speed` tours, plus `screens` at
+four window sizes, all with 0 errors and every check passing (110 checks in the final pass, `Builds/round4/final.log`). The load
+average during that pass was 15 to 26, except `watchend` (80) and `speed` (50), whose checks run on
+simulation time and on the game's own frame time. Captures are in
+`docs/media/improvements/round4/`. The only simulation change is `SimWorld.StandDown`, which only
+the pause menu calls and only in a watch, so the AutoKeeper's pinned Standard scores still pass and
+balance is unchanged on both difficulties. The validation report wasn't re-run. The real save's
+checksum was the same before and after. Its file was rewritten once with identical contents during
+a batch editor build, and the test runner updated `TestResults.xml` beside it, as in round 3.
+
+1. **Every screen shape.** As planned, plus a fix the new tour found at 16:9. The canvases now
+   expand around the 1920×1080 layout (`ScreenMatchMode.Expand`), and screens narrower than 16:9
+   widen the camera's vertical field of view (30° becomes 41.7° at 5:4 in the play view) so the
+   bay keeps its 16:9 width. The `screens` tour was run on the old layout first: at 5:4 the
+   harbour, two Widow's Ledge reefs, a Hen's Chicks reef and the fairway buoy were off screen,
+   Settings and the radio log ran off the edge, and at 21:9 the logbook was taller than the
+   screen. **At 16:9 with 130% HUD text,** night 11's twelve-ship manifest ran into the night's
+   title and the hint panel covered the wreck allowance row ("ONE MORE WRECK ALLOWED"). Round 3's
+   130% check had missed it because the row's text grows after a wreck. The HUD now lays its
+   top bar out itself: the manifest stays centred while it fits, otherwise it moves into the
+   space between the title and the score and shrinks if it must (to 77–80% here), and the hint
+   drops below the night's block when they'd meet. At 16:9 with 100% text nothing moves, apart
+   from the hint sitting 4 px lower to clear the manifest's marks. Afterwards every check passes
+   at 1280×800, 1280×1024, 1600×900 and 2560×1080 (`screens_*` captures). Westpoint's false light
+   and its rock sit just past the left edge at 16:9, as released, so the tour holds them to "no
+   further out than 16:9" (within 6%) rather than reframing the camera, which would change every
+   capture and the trailer. That's listed under known issues.
+2. **End the watch.** As planned. The `watchend` tour kept a watch for 150 s of sim time, ended it
+   from the pause menu, and found it on the dawn card ("You stood the watch down after 2:30, 5
+   ships home.") and fourth in the table, with the same score, ships and time. Night II's pause
+   menu still offers "Restart the night".
+3. **Skip the ending.** As planned. The prompt went to the top right, because at the bottom it sat
+   where the radio panel appears. A skipped ending also restarts the title's sea, because the
+   ending's own scene (one steamer, the lens winding down) would otherwise linger behind the title.
+   The full ending, watched without skipping, is unchanged. `endingskip` passes with Esc in the
+   dawn scene, a pad's Start in the credits and a pad's B, each back at the title 1.5 s after the
+   second press. One press alone lets the ending go on, and the prompt lapses after 3 s.
+4. **Game speed.** As planned, with one change to the verification. The watch table's mark is
+   checked by the `speed` tour (with a blank save) rather than an EditMode test, because recording
+   a watch calls `Save()`, which in the editor writes the same prefs file the player uses. Measured
+   at a load of about 25: 1.000, 0.851 and 0.701 sim seconds per real second at 100, 85 and 70%.
+   The dawn heading reads "DAWN · NIGHT II · 70% SPEED", and an 85% watch is kept and listed as
+   "300 (85%)". Settings gained a row, so the panel is 60 units taller and the `input` tour's
+   d-pad walk takes ten steps down the right column instead of nine.
+5. **Controls in the pause menu.** Changed from a strip to a card. A strip under the menu would
+   have run into the HUD's radio panel at 130% text, and one at the top into a dropped hint, so
+   the controls are a card left of the menu that mirrors the radio log. The `input` tour checks
+   the mouse-and-keys and pad wordings, and `screens` checks the card fits.
+
+**One process slip.** While committing item 1 on its own, I copied three backup files into the
+shared /tmp as `Game.cs`, `Screens.cs` and `MoreScreens.cs` by mistake, and the same command then
+deleted those three names. Had another session kept files with exactly those names there, they
+would have been overwritten and removed. There's no way to tell now.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart from full-speed ones (owner), a real-gamepad pass, a listening pass, human playtests,
+fullscreen and real-hardware checks of other screen shapes (a Steam Deck in particular), Windows
+(module install) and macOS signing (Developer ID).
