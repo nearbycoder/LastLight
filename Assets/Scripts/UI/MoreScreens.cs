@@ -569,7 +569,7 @@ namespace LastLight.UI
     public sealed class ResultsScreen : UiScreen
     {
         public Action OnNext, OnRetry, OnLogbook, OnChart;
-        Text heading, title, verdict, stats, scoreLine, scoreParts, best, debrief, saveNote;
+        Text heading, title, verdict, stats, scoreLine, scoreParts, best, debrief, saveNote, helpNote;
         float debriefExtra;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
@@ -620,6 +620,8 @@ namespace LastLight.UI
             best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
             // Said plainly when the night couldn't be saved.
             saveNote = Label(card, "", UiKit.BodyMedium, 22, new Color(1f, 0.62f, 0.52f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -740), new Vector2(900, 34));
+            // After the same night fails twice running: where the assists are.
+            helpNote = Label(card, "", UiKit.Italic, 24, new Color(0.8f, 0.82f, 0.86f, 0.9f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -680), new Vector2(900, 34));
             next = UiButton.Create(card, "Next night", UiKit.Heading, 42, () => OnNext?.Invoke(), TextAnchor.MiddleCenter);
             ((RectTransform)next.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-300, 50), new Vector2(300, 60));
             retry = UiButton.Create(card, "Try again", UiKit.Heading, 42, () => OnRetry?.Invoke(), TextAnchor.MiddleCenter);
@@ -722,6 +724,8 @@ namespace LastLight.UI
         {
             float parts = scoreParts.text != "" ? 40f : 0f;
             float note = saveNote.text != "" ? 44f : 0f;
+            // A failed night has no score, so the offer of help takes the score's place.
+            ((RectTransform)helpNote.transform).anchoredPosition = new Vector2(0, -640 - debriefExtra);
             card.sizeDelta = new Vector2(1000, 860 + debriefExtra + parts + note);
             ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - debriefExtra);
             ((RectTransform)scoreParts.transform).anchoredPosition = new Vector2(0, -684 - debriefExtra);
@@ -735,6 +739,12 @@ namespace LastLight.UI
             saveNote.text = text ?? "";
             Relayout();
         }
+
+        /// <summary>A word on the assists after the same night has failed twice running (null for none).</summary>
+        public void SetHelpNote(string text) => helpNote.text = text ?? "";
+
+        /// <summary>The offer of help as shown; for tours.</summary>
+        public string HelpNoteShown => helpNote.text;
 
         /// <summary>The score's parts as shown; for tours.</summary>
         public string ScorePartsShown => scoreParts.text;

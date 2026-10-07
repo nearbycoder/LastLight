@@ -49,6 +49,7 @@ namespace LastLight.Core
         float outcomeTimer = -1f;
         bool recorded;
         int previousBest;
+        int failNight, failStreak;   // the same night failed this many times running
         int watchRank;
         Ending ending;
         ParticleSystem rainFx;
@@ -476,12 +477,18 @@ namespace LastLight.Core
                 foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
                 if (Watching) watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names, SpeedPercent);
                 else if (won) SaveData.Current.RecordNight(Night, w.Lamps, w.Score, names);
+                if (!Watching)
+                {
+                    failStreak = won ? 0 : failNight == Night ? failStreak + 1 : 1;
+                    failNight = Night;
+                }
             }
             Hud.Show(false, 1.2f);
             if (Watching) results.SetupWatch(w, previousBest, watchRank, SpeedPercent);
             else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won, SpeedPercent);
             // Only a night that was kept (or a watch) tried to save.
             results.SetSaveNote(Watching || won ? SaveData.Unsaved : null);
+            results.SetHelpNote(!Watching && !won ? HelpNote(failStreak, SaveData.Current) : null);
             results.Show();
             if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
             Music.PlayTrack(won ? "music_dawn" : "music_title", 2.5f);
@@ -491,6 +498,17 @@ namespace LastLight.Core
                     ShaderGlobals.DawnAmount = t * 0.35f;
                     Stage.Moon.color = Color.Lerp(Stage.MoonColor, new Color(0.95f, 0.75f, 0.6f), t * 0.35f);
                 }, 0f, Tween.EaseInOut);
+        }
+
+        /// <summary>After the same night fails twice running, a word on the assists that are there
+        /// and not yet in use: Difficulty when it's on Hard, otherwise Game speed. Nothing changes
+        /// by itself, and nothing is said once both are as easy as they go.</summary>
+        public static string HelpNote(int failsRunning, SaveData save)
+        {
+            if (failsRunning < 2) return null;
+            if (save.difficulty == 1) return "If you'd like it gentler: Settings ▸ Difficulty ▸ Standard gives ships more nerve and charts longer.";
+            if (save.gameSpeed > 0.75f) return $"If you'd like more time: Settings ▸ Game speed slows the whole night ({(save.gameSpeed > 0.9f ? "85% or 70%" : "70%")}).";
+            return null;
         }
 
         /// <summary>The slowest game speed this night was played at, in percent.</summary>
