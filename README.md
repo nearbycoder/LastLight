@@ -293,7 +293,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (64 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (71 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -309,6 +309,9 @@ contains a copy of it.
   night. One checks that only a Night Watch can be stood down, and that its score stands. Six cover the
   rebindable keys: the defaults, moving a key between actions, clearing, Esc and P staying as
   pause, reset, repairing a damaged save, and the save format (none of them touch the real save).
+  Four check what a radio call points at for names on the water (whole words, the longest name
+  first, and no hidden reef or sandbank before it's charted), and three check that the keeper's
+  notes open with the season and name the device, keys and difficulty in play.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -325,7 +328,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save.
   The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
   staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
@@ -342,7 +345,11 @@ devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log
   their edge markers and a lured ship's mark stay on screen. `confirm` checks the pause menu's
   questions with keys, the simulated pad and clicks. `brightness` measures the scene at each
   Brightness step. `keys` rebinds keys through Settings with the simulated keyboard and plays a
-  night with them.
+  night with them. `names` checks that Porthkell, a ship on the radio, the Hen Bell and the Teeth
+  are labelled where they are (and the Teeth not before they're charted). `notes` opens the
+  keeper's notes from the title with a new and a finished season, walks them with keys and a
+  pad, checks every entry fits, and opens them from the pause menu on night V. `framerate`
+  measures a night at each Frame rate choice (`-llFrameNight 1` plays a cheaper night).
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
@@ -489,5 +496,14 @@ Linux. Here's what is still unproven or rough:
   for the default turn-left key, but only a US layout has been tried.
 - **Game speed shares records.** A night kept at 70% counts in the logbook like any other, and only
   the dawn card and the watch table mark it. Whether slowed scores should be kept apart is open.
+- **Names on the water and the keeper's notes are judged by tours, not people.** Whether the
+  labels help or clutter, and whether the notes say enough, needs a playtest. Only places a
+  call names, and reef groups the first time they're charted, get labels; a call that names
+  nothing on the map ("the Hen's side") points at nothing.
+- **Frame rate was measured in a window, at low settings, on one machine.** For much of round 6
+  the shared development machine's GPU was fully busy with other work and the game reached only
+  about 30 fps even at 640×360. When it freed up, night I at 1280×720 (50% render scale, low fog)
+  measured 120.0, 60.0 and 30.0 fps for Display (a 120 Hz screen), 60 and 30. Battery and heat
+  savings on a real laptop or handheld haven't been measured.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.

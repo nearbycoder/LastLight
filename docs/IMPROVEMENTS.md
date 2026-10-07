@@ -727,3 +727,63 @@ stay under `Builds/round6/`. The real save directory is checksummed before and a
   hardware here to check them on, and switching this shared machine's display would disturb other
   sessions.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 6 results (2026-10-07)
+
+All four items landed on `improvements-6`, one commit each. Verification was on the built Linux
+player from the final commit: 71/71 EditMode tests (64 before, plus four for names on the water and
+three for the keeper's notes), and a final pass of 20 tour runs: `input`, `ui`, `status`,
+`radiolog`, `ending`, `endingskip`, `offscreen`, `brightness`, `keys`, the new `names`, `notes` and
+`framerate`, `watchend`, `confirm`, `speed`, and `screens` at four window sizes with 130% HUD text
+(`Builds/round6/final.log`). Every run had 0 errors. One check failed in the first pass: I had
+started `speed` with `-llSeasonDone`, whose sample watches outrank the tour's short watch, so it
+can't reach the briefing's top three; run as designed, on a blank save, it passed 6/6. `input`
+and `ui` first ran at load averages of 48 and 62 (other sessions), so they were run again at 12;
+both passed both times. The other runs were at loads of 10 to 30. No simulation code changed, so
+the pinned Standard scores still pass and balance is unchanged on both difficulties; the
+validation report wasn't re-run. The real prefs file's checksum was the same before and after
+(its timestamp moved when a batch build rewrote it with identical contents, and the test runner
+updated `TestResults.xml` beside it, as in rounds 3 to 5). Captures are in
+`docs/media/improvements/round6/`.
+
+1. **Names on the water.** As planned. Which places and ships a call names is decided by
+   `PlaceNames`, a pure class with its own tests: whole words, the longest name first ("Teeth
+   Bell" is the buoy, "Corleys" are people), and an uncharted reef group or sandbank claims its
+   name without being shown. Reef labels sit just north of the group's furthest reef, because at
+   the group's centre the label covered the white water. The `names` tour found a one-frame flash:
+   a new tag was drawn at full strength in the canvas's corner until the HUD's next update, which
+   also fooled its own fade-in check. New tags now start unseen. The tour checks Porthkell on
+   night I, the Little Auk's tag under its hull, the Hen Bell on its buoy, and on night II that
+   nothing points at the Teeth while Ianto names them uncharted, then that they're named when
+   charted. It passes at 1600×900 and at 1280×1024 with 130% HUD text. The trailer and stills
+   shoots turn names off.
+2. **Keeper's notes.** As planned: 16 entries, five from the start (the light, lost ships, lamps
+   and the allowance, names on the water, and the assists), the rest as nights open, and the
+   Night Watch after the season. The pause menu gained an item between Settings and the logbook,
+   so the `confirm` and `screens` tours choose by the new positions. Writing the tests found that
+   asking the keyboard for a key's layout name crashes a batch editor (no display); key names fall
+   back to the key's own name there. The book rewords itself if the keeper picks up the other
+   device with it open.
+3. **Frame rate.** As planned. For most of the session the shared GPU read 100% busy with other
+   sessions' work and the game managed only about 30 fps even at 640×360, so the caps couldn't be
+   told apart from that limit; a forced 20 fps target held exactly. In the final pass the GPU had
+   freed up and night I (1280×720, 50% render scale, low fog) measured 120.0, 60.0 and 30.0 fps
+   for Display (a 120 Hz screen), 60 and 30.
+4. **Sound in background.** Done. *On* keeps today's behaviour. *Off* sets the listener's volume
+   to zero while the window is out of focus (the night pauses as before) and back on return. The
+   `input` tour checks both through the focus handler, since a tour can't lose real focus. The
+   Settings panel is 60 units taller (1000) for the row; `screens` passes at all four shapes.
+
+**Process notes.** I edited scripts while the first build was running, so that build held a mix
+of item 1 and half of item 2; it was used only for the first `names` run, and everything was
+rebuilt before any result was kept. Items 3 and 4 share four files; I committed item 3 by
+removing item 4's lines and restoring them afterwards, so the item 3 commit on its own wasn't
+built or toured (the next commit, with both, was). One `screens` loop in my shell split the sizes
+wrongly and ran at 1280×900, 1600×900 and 2560×900; those runs were discarded and redone.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, human playtests
+(now including whether the names help or clutter and whether the notes say enough), fullscreen
+and real-hardware checks of other screen shapes (a Steam Deck in particular), the frame-rate caps'
+effect on a real laptop's battery, non-US keyboard layouts, Windows (module install) and macOS
+signing (Developer ID).
