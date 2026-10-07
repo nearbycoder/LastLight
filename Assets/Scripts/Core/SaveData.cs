@@ -15,6 +15,7 @@ namespace LastLight.Core
     {
         public int score, ships, seconds;
         public bool hard;
+        public int speed;                        // game speed in percent when below full; 0 = full speed
     }
 
     /// <summary>Progress and preferences, stored as JSON in PlayerPrefs.</summary>
@@ -43,6 +44,7 @@ namespace LastLight.Core
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
         public int difficulty;                   // 0 Standard (the game as tuned), 1 Hard
         public float hudScale = 1f;              // HUD and radio text size: 1, 1.15 or 1.3
+        public float gameSpeed = 1f;             // an assist: the simulation at 1, 0.85 or 0.7 of full speed
         public Difficulty Difficulty => difficulty == 1 ? Difficulty.Hard : Difficulty.Standard;
         public bool focusToggle;                 // focus: hold the button (false) or press to switch it on and off
         public bool shake = true;
@@ -138,9 +140,9 @@ namespace LastLight.Core
 
         /// <summary>Records a finished watch; returns its place in the table of best watches (1 = best),
         /// or 0 if it didn't make the table.</summary>
-        public int RecordWatch(int score, int ships, float seconds, IEnumerable<string> names)
+        public int RecordWatch(int score, int ships, float seconds, IEnumerable<string> names, int speed = 100)
         {
-            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds), hard = difficulty == 1 };
+            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds), hard = difficulty == 1, speed = speed < 100 ? speed : 0 };
             watches.Add(record);
             watches.Sort((a, b) => b.score != a.score ? b.score.CompareTo(a.score) : b.seconds.CompareTo(a.seconds));
             int rank = watches.IndexOf(record) + 1;

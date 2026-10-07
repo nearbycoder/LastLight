@@ -406,12 +406,12 @@ namespace LastLight.Core
                 recorded = true;
                 var names = new List<string>();
                 foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
-                if (Watching) watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names);
+                if (Watching) watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names, SpeedPercent);
                 else if (won) SaveData.Current.RecordNight(Night, w.Lamps, w.Score, names);
             }
             Hud.Show(false, 1.2f);
-            if (Watching) results.SetupWatch(w, previousBest, watchRank);
-            else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won);
+            if (Watching) results.SetupWatch(w, previousBest, watchRank, SpeedPercent);
+            else results.Setup(Runner.Def, w, previousBest, Night < MissionLibrary.All.Count, Night >= 12 && won, SpeedPercent);
             results.Show();
             if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
             Music.PlayTrack(won ? "music_dawn" : "music_title", 2.5f);
@@ -422,6 +422,9 @@ namespace LastLight.Core
                     Stage.Moon.color = Color.Lerp(Stage.MoonColor, new Color(0.95f, 0.75f, 0.6f), t * 0.35f);
                 }, 0f, Tween.EaseInOut);
         }
+
+        /// <summary>The slowest game speed this night was played at, in percent.</summary>
+        int SpeedPercent => Runner != null ? Mathf.RoundToInt(Runner.SlowestSpeed * 100f) : 100;
 
         void StartEnding()
         {

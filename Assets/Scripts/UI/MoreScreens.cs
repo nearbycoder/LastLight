@@ -88,6 +88,9 @@ namespace LastLight.UI
 
         static string PromptText() => InputMode.Pick("click, or press Space", "press A");
 
+        /// <summary>The line under the title (the date, or a watch's records); for tours.</summary>
+        public string DateLine => date.text;
+
         // The new-thing cards that name a control, in gamepad words.
         static readonly Dictionary<string, string> PadNewThings = new Dictionary<string, string>
         {
@@ -130,7 +133,7 @@ namespace LastLight.UI
                 var parts = new List<string>();
                 int longest = 0;
                 foreach (var r in watch.watches) longest = Mathf.Max(longest, r.seconds);
-                for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0") + (watch.watches[i].hard ? " (Hard)" : ""));
+                for (int i = 0; i < watch.watches.Count && i < 3; i++) parts.Add(watch.watches[i].score.ToString("N0") + Marks(watch.watches[i]));
                 date.text = $"Best watches  {string.Join("  ·  ", parts)}     longest {UiKit.Clock(longest)}";
             }
             stakes.text = def.endless ? "" : StakesText(def.allowedWrecks);
@@ -146,6 +149,15 @@ namespace LastLight.UI
                 SetNewIcon(n.icon);
             }
             else newCard.gameObject.SetActive(false);
+        }
+
+        /// <summary>" (Hard)", " (70%)" or " (Hard, 70%)" after a watch kept that way.</summary>
+        public static string Marks(WatchRecord r)
+        {
+            var marks = new List<string>();
+            if (r.hard) marks.Add("Hard");
+            if (r.speed > 0 && r.speed < 100) marks.Add(r.speed + "%");
+            return marks.Count == 0 ? "" : " (" + string.Join(", ", marks) + ")";
         }
 
         /// <summary>"The Board allows one wreck tonight. A second ends the night."</summary>
@@ -241,7 +253,7 @@ namespace LastLight.UI
         {
             var dim = UiKit.Image("Dim", Root, null, new Color(0, 0.01f, 0.02f, 0.72f));
             dim.rectTransform.Fill();
-            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 820));
+            panel = UiKit.Rect("Panel", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1660, 880));
             Frames.Add(panel);
             var bg = UiKit.Image("Bg", panel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
             bg.rectTransform.Fill();
@@ -287,6 +299,9 @@ namespace LastLight.UI
             row = 0;
             column = 410f;
             Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i));
+            float[] speeds = { 1f, 0.85f, 0.7f };
+            int speedIndex = System.Array.FindIndex(speeds, v => Mathf.Abs(v - save.gameSpeed) < 0.01f);
+            Row("Game speed", UiStepper.Create(panel, new[] { "100%", "85%", "70%" }, Mathf.Max(0, speedIndex), i => save.gameSpeed = speeds[i]));
             Row("Screen shake", UiStepper.Create(panel, new[] { "Off", "On" }, save.shake ? 1 : 0, i => save.shake = i == 1));
             Row("Focus", UiStepper.Create(panel, new[] { "Hold", "Toggle" }, save.focusToggle ? 1 : 0, i => { save.focusToggle = i == 1; OnFocusMode?.Invoke(); }));
             Row("Lens turn speed (keys)", UiSlider.Create(panel, Mathf.InverseLerp(0.5f, 1.25f, save.turnSpeed), v => save.turnSpeed = Mathf.Lerp(0.5f, 1.25f, v)));
@@ -377,10 +392,15 @@ namespace LastLight.UI
             ((RectTransform)logbook.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(300, 50), new Vector2(300, 60));
         }
 
-        public void Setup(MissionDef def, SimWorld w, int previousBest, bool hasNext, bool finale)
+        static string SpeedMark(int speed) => speed < 100 ? $"  ·  {speed}% SPEED" : "";
+
+        /// <summary>The heading's words, for tours.</summary>
+        public string Heading => heading.text;
+
+        public void Setup(MissionDef def, SimWorld w, int previousBest, bool hasNext, bool finale, int speed = 100)
         {
             bool won = w.Outcome == MissionOutcome.Won;
-            heading.text = UiKit.Spaced((won ? "DAWN  ·  NIGHT " + UiKit.Roman(def.night) : "NIGHT " + UiKit.Roman(def.night)) + (w.Hard ? "  ·  HARD" : ""));
+            heading.text = UiKit.Spaced((won ? "DAWN  ·  NIGHT " + UiKit.Roman(def.night) : "NIGHT " + UiKit.Roman(def.night)) + (w.Hard ? "  ·  HARD" : "") + SpeedMark(speed));
             title.text = def.title;
             int lost = 0;
             SimShip wavered = null;
@@ -406,9 +426,9 @@ namespace LastLight.UI
         }
 
         /// <summary>The end of a Night Watch: how long it lasted, and lamps for ships brought home.</summary>
-        public void SetupWatch(SimWorld w, int previousBest, int rank = 0)
+        public void SetupWatch(SimWorld w, int previousBest, int rank = 0, int speed = 100)
         {
-            heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH" + (w.Hard ? "  ·  HARD" : ""));
+            heading.text = UiKit.Spaced("DAWN  ·  THE NIGHT WATCH" + (w.Hard ? "  ·  HARD" : "") + SpeedMark(speed));
             title.text = "The watch ends";
             string home = w.Arrivals == 0 ? "not one ship home" : w.Arrivals == 1 ? "one ship home" : $"{w.Arrivals} ships home";
             verdict.text = w.StoodDown ? $"You stood the watch down after {UiKit.Clock(w.Time)}, {home}."

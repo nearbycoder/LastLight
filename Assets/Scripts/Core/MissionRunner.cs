@@ -25,6 +25,8 @@ namespace LastLight.Core
         public bool Attract;
         public float AttractTurn = 0.13f;
         public float TimeScale = 1f;
+        /// <summary>The slowest game speed (Settings ▸ Game speed) the night has been played at.</summary>
+        public float SlowestSpeed { get; private set; } = 1f;
         public event Action<SimEvent> OnEvent;
         public KeeperControls Controls { get; } = new KeeperControls();
         public AutoKeeper Bot { get; } = new AutoKeeper();
@@ -85,10 +87,9 @@ namespace LastLight.Core
         {
             if (Paused) return;
             float dt = Mathf.Min(Time.deltaTime, 0.1f) * TimeScale;
-            accumulator += dt;
-
             if (Holding)
             {
+                accumulator += dt;
                 prevBearing = World.Beam.Bearing;
                 World.Beam.Step(new KeeperInput { Turn = AttractTurn }, dt);
                 Bearing = World.Beam.Bearing;
@@ -96,6 +97,11 @@ namespace LastLight.Core
                 Render(1f);
                 return;
             }
+
+            // Game speed slows the whole simulation together, so only the keeper gains time.
+            float speed = Attract ? 1f : Mathf.Clamp(SaveData.Current.gameSpeed, 0.5f, 1f);
+            if (World.Outcome == MissionOutcome.Running && !Attract) SlowestSpeed = Mathf.Min(SlowestSpeed, speed);
+            accumulator += dt * speed;
 
             Controls.Sensitivity = SaveData.Current.turnSpeed;
             Controls.ToggleFocus = SaveData.Current.focusToggle;
