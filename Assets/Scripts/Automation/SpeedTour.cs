@@ -75,6 +75,7 @@ namespace LastLight.Automation
             g.TourPause();
             yield return Tour.Wait(0.5f);
             g.TourPauseChoose(1);
+            g.TourPauseConfirm(1);
             int score = g.Runner.World.Score;
             WatchRecord kept = null;
             foreach (var r in save.watches) if (r.score == score && r.speed == 85) kept = r;

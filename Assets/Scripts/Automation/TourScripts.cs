@@ -301,7 +301,7 @@ namespace LastLight.Automation
             }
         }
 
-        static void MouseTo(Vector2 screen, bool left = false, bool right = false)
+        internal static void MouseTo(Vector2 screen, bool left = false, bool right = false)
         {
             var mouse = Mouse.current;
             if (mouse == null) return;
@@ -311,7 +311,7 @@ namespace LastLight.Automation
             InputSystem.QueueStateEvent(mouse, state);
         }
 
-        static void Key(Key key, bool down)
+        internal static void Key(Key key, bool down)
         {
             var kb = Keyboard.current;
             if (kb == null) return;
@@ -595,7 +595,7 @@ namespace LastLight.Automation
             g.TourResume();
         }
 
-        static IEnumerator PadPress(Gamepad pad, GamepadButton button)
+        internal static IEnumerator PadPress(Gamepad pad, GamepadButton button)
         {
             InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(button));
             yield return null;

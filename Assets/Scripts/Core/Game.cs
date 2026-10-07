@@ -499,6 +499,7 @@ namespace LastLight.Core
             if (back)
             {
                 if (Current == State.Playing) Pause();
+                else if (Current == State.Paused && pause.Visible && pause.Confirming) pause.Cancel();
                 else if (Current == State.Paused && pause.Visible) Resume();
                 else if (Current == State.Paused && settings.Visible) { settings.Hide(); SaveData.Current.Save(); pause.Show(); }
                 else if (Current == State.Briefing) { briefing.Hide(); ShowTitle(); }
@@ -591,5 +592,9 @@ namespace LastLight.Core
         public string TourPauseItem(int i) => pause.ItemLabel(i);
         public string TourPauseControls => pause.ControlsShown;
         public void TourPauseChoose(int i) => pause.Choose(i);
+        public bool TourPauseConfirming => pause.Confirming;
+        public string TourPauseConfirmHeading => pause.ConfirmHeading;
+        public string TourPauseConfirmLabel(int i) => pause.ConfirmLabel(i);
+        public void TourPauseConfirm(int i) => pause.ConfirmChoose(i);
     }
 }

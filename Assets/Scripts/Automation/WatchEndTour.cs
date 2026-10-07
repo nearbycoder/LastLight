@@ -34,6 +34,11 @@ namespace LastLight.Automation
             string label = g.TourPauseItem(1);
             t.Log($"{(label == "End the watch" ? "PASS" : "FAIL")} the watch's pause menu offers \"{label}\"");
             g.TourPauseChoose(1);
+            yield return Tour.Wait(0.6f);
+            yield return t.Shot("01b_watch_end_confirm");
+            string answer = g.TourPauseConfirmLabel(1);
+            t.Log($"{(g.TourPauseConfirming && answer == "End the watch" ? "PASS" : "FAIL")} ending the watch asks first: \"{g.TourPauseConfirmHeading}\" ({g.TourPauseConfirmLabel(0)} / {answer})");
+            g.TourPauseConfirm(1);
             // The watch is recorded as it's stood down; the sea keeps moving behind the dawn card.
             int score = w.Score, ships = w.Arrivals, seconds = Mathf.RoundToInt(w.Time);
             WatchRecord kept = null;

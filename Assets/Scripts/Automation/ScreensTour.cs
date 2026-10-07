@@ -64,6 +64,11 @@ namespace LastLight.Automation
             yield return Tour.Wait(1.2f);
             yield return t.Shot("06_pause");
             CheckScreen(t, "pause", g.TourScreen("pause"));
+            g.TourPauseChoose(4);
+            yield return Tour.Wait(0.6f);
+            CheckScreen(t, "pause question", g.TourScreen("pause"));
+            yield return t.Shot("06b_pause_question");
+            g.TourPauseConfirm(0);
             g.TourResume();
             g.Runner.TimeScale = 10f;
             float waited = 0f;

@@ -370,13 +370,18 @@ namespace LastLight.UI
             core.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 60), new Vector2(1000, 860));
             Label(Root, "The light burns on", UiKit.Italic, 28, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(800, 40));
             Label(Root, "Paused", UiKit.Title, 96, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 175), new Vector2(800, 120)).Shadowed(0.8f, 3f);
+            // Restarting, leaving or ending throws the night away (or ends a watch), so those ask first.
             var items = new (string, Action)[]
             {
                 ("Resume", () => OnResume?.Invoke()),
-                ("Restart the night", () => { if (watch) OnEndWatch?.Invoke(); else OnRestart?.Invoke(); }),
+                ("Restart the night", () =>
+                {
+                    if (watch) Ask(1, "End the watch now?", "It will be kept and ranked, as if the last wreck had ended it.", ("End the watch", OnEndWatch));
+                    else Ask(1, "Start the night again?", "Tonight so far won't be kept.", ("Restart the night", OnRestart));
+                }),
                 ("Settings", () => OnSettings?.Invoke()),
-                ("Keeper's logbook", () => OnLogbook?.Invoke()),
-                ("Leave the lighthouse", () => OnTitle?.Invoke()),
+                ("Keeper's logbook", () => AskLeave(3, "Open the logbook", OnLogbook)),
+                ("Leave the lighthouse", () => AskLeave(4, "Leave the lighthouse", OnTitle)),
             };
             for (int i = 0; i < items.Length; i++)
             {
@@ -387,6 +392,20 @@ namespace LastLight.UI
                 buttons.Add(b);
                 Frames.Add((RectTransform)b.transform);
             }
+
+            // The question, in the menu's place: what will happen, with Stay first.
+            confirm = UiKit.Rect("Confirm", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -60), new Vector2(900, 330));
+            confirmHeading = Label(confirm, "", UiKit.Heading, 44, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -30), new Vector2(900, 60)).Shadowed(0.8f, 2f);
+            confirmBody = Label(confirm, "", UiKit.Italic, 27, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -90), new Vector2(900, 40));
+            for (int i = 0; i < 3; i++)
+            {
+                int index = i;
+                var b = UiButton.Create(confirm, "", UiKit.Heading, 40, () => confirmActions[index]?.Invoke(), TextAnchor.MiddleCenter);
+                ((RectTransform)b.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -160 - i * 62), new Vector2(560, 58));
+                confirmButtons.Add(b);
+            }
+            confirm.gameObject.SetActive(false);
+            Frames.Add(confirm);
 
             // The controls, for a keeper who forgot: a card left of the menu, mirroring the radio log.
             var card = UiKit.Rect("Controls", Root).Pin(new Vector2(0.5f, 0.5f), new Vector2(1, 1), new Vector2(-340, 290), new Vector2(500, 200));
@@ -418,6 +437,67 @@ namespace LastLight.UI
             Frames.Add(logPanel);
         }
 
+        RectTransform confirm;
+        Text confirmHeading, confirmBody;
+        readonly List<UiButton> confirmButtons = new List<UiButton>();
+        readonly Action[] confirmActions = new Action[3];
+        int confirmFrom = -1;
+
+        /// <summary>The menu is asking whether to go ahead.</summary>
+        public bool Confirming => confirmFrom >= 0;
+
+        /// <summary>Leaving a night loses it; leaving a watch loses it too, but ending it keeps it.</summary>
+        void AskLeave(int from, string label, Action act)
+        {
+            if (watch) Ask(from, "Leave without keeping the watch?", "It won't be kept or ranked. End the watch keeps it.", ("End the watch", OnEndWatch), ("Leave anyway", act));
+            else Ask(from, "Leave tonight's watch?", "The night won't be kept.", (label, act));
+        }
+
+        /// <summary>Swap the menu for a question. Stay comes first and is selected, so a second
+        /// press of the same button changes nothing.</summary>
+        void Ask(int from, string heading, string body, params (string label, Action act)[] choices)
+        {
+            confirmFrom = from;
+            confirmHeading.text = heading;
+            confirmBody.text = body;
+            confirmActions[0] = () => Cancel();
+            confirmButtons[0].Label.text = "Stay";
+            confirmButtons[0].name = "Button Stay";
+            for (int i = 1; i < confirmButtons.Count; i++)
+            {
+                bool used = i - 1 < choices.Length;
+                confirmButtons[i].gameObject.SetActive(used);
+                if (!used) continue;
+                var act = choices[i - 1].act;
+                confirmButtons[i].Label.text = choices[i - 1].label;
+                confirmButtons[i].name = "Button " + choices[i - 1].label;
+                confirmActions[i] = () => act?.Invoke();
+            }
+            foreach (var b in buttons) b.gameObject.SetActive(false);
+            confirm.gameObject.SetActive(true);
+            Tween.Fade(confirm.Group(0f), 1f, 0.25f);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(confirmButtons[0].gameObject);
+            Sfx.Play("ui_page", 0.4f, 1.1f);
+        }
+
+        /// <summary>Back to the menu, on the item that asked.</summary>
+        public void Cancel(bool select = true)
+        {
+            if (!Confirming) return;
+            int from = confirmFrom;
+            confirmFrom = -1;
+            confirm.gameObject.SetActive(false);
+            foreach (var b in buttons) b.gameObject.SetActive(true);
+            if (select && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(buttons[from].gameObject);
+        }
+
+        /// <summary>The question's heading and its choices as shown; for tours.</summary>
+        public string ConfirmHeading => Confirming ? confirmHeading.text : "";
+        public string ConfirmLabel(int i) => Confirming && confirmButtons[i].gameObject.activeSelf ? confirmButtons[i].Label.text : "";
+
+        /// <summary>Choose one of the question's answers as a click would (0 is Stay); for tours.</summary>
+        public void ConfirmChoose(int i) { if (Confirming) confirmButtons[i].OnClick?.Invoke(); }
+
         /// <summary>A Night Watch can't be restarted, only ended (and kept); a night only restarted.</summary>
         public void SetWatch(bool on)
         {
@@ -427,6 +507,7 @@ namespace LastLight.UI
 
         public override void Show()
         {
+            Cancel(false);
             controls.text = ControlLines();   // the Focus setting may have changed
             base.Show();
         }
