@@ -14,7 +14,7 @@ namespace LastLight.UI
     public sealed class BriefingScreen : UiScreen
     {
         public Action OnStart;
-        Text number, title, date, speech, newTitle, newText, prompt, stakes;
+        Text number, title, date, record, speech, newTitle, newText, prompt, stakes;
 
         /// <summary>The "new tonight" card's words as shown; for tours.</summary>
         public string NewThingShown => newText.text;
@@ -46,6 +46,11 @@ namespace LastLight.UI
             title.Shadowed(0.85f, 3f);
             date = Label(card, "", UiKit.Italic, 28, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(0, -165), new Vector2(800, 40));
             date.rectTransform.pivot = new Vector2(0, 0.5f);
+            // A night already kept: its lamps, its best, and what's still to earn (beside the date).
+            record = Label(card, "", UiKit.BodyMedium, 23, UiKit.Brass, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(0, -166), new Vector2(1100, 40));
+            record.rectTransform.pivot = new Vector2(0, 0.5f);
+            record.horizontalOverflow = HorizontalWrapMode.Overflow;
+            record.Shadowed();
             var bar = UiKit.Image("Bar", card, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.8f));
             bar.rectTransform.Pin(new Vector2(0, 1), new Vector2(0, 0.5f), new Vector2(0, -200), new Vector2(620, 4));
 
@@ -80,7 +85,7 @@ namespace LastLight.UI
             var start = UiButton.Create(card, "Begin the watch", UiKit.Heading, 46, () => { if (ready) OnStart?.Invoke(); });
             ((RectTransform)start.transform).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(22, 40), new Vector2(520, 64));
             FirstSelected = start;
-            prompt = Label(card, PromptText(), UiKit.Italic, 24, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(330, 72), new Vector2(360, 30));
+            prompt = Label(card, PromptText(), UiKit.Italic, 24, UiKit.Muted, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(330, 72), new Vector2(560, 30));
             prompt.rectTransform.pivot = new Vector2(0, 0.5f);
             InputMode.Changed += () =>
             {
@@ -89,7 +94,7 @@ namespace LastLight.UI
             };
         }
 
-        static string PromptText() => InputMode.Pick("click, or press Space", "press A");
+        static string PromptText() => InputMode.Pick("click, or press Space     ·     Esc to go back", "press A     ·     B to go back");
 
         /// <summary>The line under the title (the date, or a watch's records); for tours.</summary>
         public string DateLine => date.text;
@@ -127,8 +132,9 @@ namespace LastLight.UI
         };
 
         /// <summary>Fill the card for a night; `watch` carries the Night Watch records.</summary>
-        public void Setup(MissionDef def, SaveData watch = null)
+        public void Setup(MissionDef def, SaveData save = null)
         {
+            var watch = def.endless ? save : null;
             number.text = UiKit.Spaced(def.endless ? "AFTER THE SEASON" : "NIGHT " + UiKit.Roman(def.night) + " OF XII");
             title.text = def.title;
             date.text = def.date;
@@ -142,6 +148,9 @@ namespace LastLight.UI
                 date.text = $"Best watches  {string.Join("  ·  ", parts)}     longest {UiKit.Clock(longest)}";
             }
             stakes.text = def.endless ? "" : StakesText(def.allowedWrecks);
+            record.text = def.endless || save == null || def.night < 1 || def.night > 12 ? "" : RecordText(save.lamps[def.night - 1], save.best[def.night - 1]);
+            // Beside the date, which is set in italics at 28.
+            record.rectTransform.anchoredPosition = new Vector2(date.preferredWidth + 34f, -166);
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
@@ -155,6 +164,19 @@ namespace LastLight.UI
             }
             else newCard.gameObject.SetActive(false);
         }
+
+        /// <summary>What a night already kept has earned and what's left: "·  Two lamps, best 880.
+        /// Still to earn: a steady hand." Empty for a night not yet kept.</summary>
+        public static string RecordText(int lamps, int best)
+        {
+            if (lamps <= 0) return "";
+            string kept = lamps >= 3 ? "All three lamps" : lamps == 2 ? "Two lamps" : "One lamp";
+            string left = lamps >= 3 ? "" : lamps == 2 ? "  Still to earn: a steady hand." : "  Still to earn: no ship lost, and a steady hand.";
+            return $"·   {kept}, best {best:N0}.{left}";
+        }
+
+        /// <summary>The record line beside the date, for tours.</summary>
+        public string RecordLine => record.text;
 
         /// <summary>" (Hard)", " (70%)" or " (Hard, 70%)" after a watch kept that way.</summary>
         public static string Marks(WatchRecord r)

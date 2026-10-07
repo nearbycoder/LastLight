@@ -56,9 +56,9 @@ namespace LastLight.Core
                     "When it runs out, the captain is Lost: the ring turns red, a ? bobs over the ship, and it slows, wanders and drifts toward the shore until you light it again.\n\n" +
                     "The ships in the top bar carry the same marks, with a tick once a ship is home and a cross if it's wrecked."),
                 new Entry("lamps", 1, "Lamps and the Board",
-                    "Dawn lights up to three lamps: one for keeping the light through the night, one for losing no ship, and one for a steady hand, when no ship was ever Lost or Lured.\n\n" +
+                    "Dawn lights up to three lamps: one for keeping the light through the night, one for losing no ship, and one for a steady hand, when no ship was ever Lost or Lured. The lamps under the score show what's still in play: the third goes out when a ship first loses its way, the second at the first wreck.\n\n" +
                     "The briefing says how many wrecks the Board allows tonight, and the hulls under the night's title count them down. One wreck more ends the night at once.\n\n" +
-                    "The logbook keeps your best for every night, so you can go back for a cleaner watch."),
+                    "The logbook keeps your best for every night, and a night's briefing says which lamp is still to earn. At dawn, Chart shows where every ship went."),
                 new Entry("names", 1, "Names on the water",
                     "When a ship is on the radio, its name shows under its hull.\n\n" +
                     "A place the radio names, such as a buoy, a cliff or Porthkell harbour, is labelled on the water for a moment. A reef gets its name the first time you chart it each night."),

@@ -141,6 +141,7 @@ namespace LastLight.UI
             scoreLabel = UiKit.Text("Value", tr, "0", UiKit.BodyBold, 40, UiKit.Paper, TextAnchor.UpperRight).Shadowed(0.8f, 2f);
             scoreLabel.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -80), new Vector2(0, -20));
 
+            BuildLamps();
             BuildRadio();
             BuildHorn();
             BuildHint();
@@ -254,6 +255,9 @@ namespace LastLight.UI
                 manifestIcons.Add(new ManifestIcon { Icon = icon, Mark = mark, Question = q, Def = sched[i] });
             }
             hornPanel.gameObject.SetActive(def.foghorn);
+            // Under the lamps at stake on the twelve nights; where they'd be in a watch.
+            hornPanel.anchoredPosition = new Vector2(-50, def.endless ? -130 : -212);
+            BindLamps(def);
             radioGroup.alpha = 0f;
             radio.Started -= OnRadio;
             radio.Started += OnRadio;
@@ -628,6 +632,7 @@ namespace LastLight.UI
 
             if (watchText != null) UpdateWatchStrip(w);
             if (allowanceText != null) UpdateAllowance(w);
+            UpdateLamps(w, dt);
             float width = ((RectTransform)canvas.transform).rect.width;
             if (Time.frameCount > boundFrame && (width != laidOutWidth || (allowanceText != null && allowanceText.text != laidOutCaption))) LayoutTop();
 

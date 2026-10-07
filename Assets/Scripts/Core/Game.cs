@@ -300,7 +300,7 @@ namespace LastLight.Core
             Current = State.Briefing;
             Rig.BlendTo(CameraRig.PlayPose, 3.2f);
             Stage.MoonTowards(false, 3.2f);
-            briefing.Setup(def, Watching ? SaveData.Current : null);
+            briefing.Setup(def, SaveData.Current);
             briefing.Show();
             Music.PlayTrack("music_night", 4f);
             Music.SetTension(0f);
