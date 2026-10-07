@@ -1076,3 +1076,76 @@ kept apart (owner), a gamepad remap and a real-gamepad pass, a listening pass, h
 real-hardware checks of other screen shapes (a Steam Deck in particular), non-US keyboard layouts,
 the save's location and its trouble notices on macOS and Windows, a full disk, Windows (module
 install) and macOS signing (Developer ID).
+
+## Round 9 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records).
+These items come from reading round 7 and 8's captures and the code as a returning player would
+meet them. The dawn chart shows every track at once: on a busy night the lines are unlabelled and
+overlap, and nothing says *when* anything happened or where the light was at the time, which is
+what a keeper needs to learn from a wreck. Settings has 22 rows with one- or two-word labels
+("Render scale", "Focus", "Game speed") and nothing says what any of them does. And a Night Watch
+can run half an hour, but closing the window during one (the window's close button, Alt+F4, a
+logout) throws it away; only "End the watch" in the pause menu keeps it. None of the items changes
+the simulation, so the pinned Standard scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `chart`, `confirm`, `keys`
+and `screens` tours at 0 errors. Captures go to `docs/media/improvements/round9/`. Tour output
+and logs stay under `Builds/round9/`. My own save folder is checksummed before and after
+(`Builds/round9/save_before.txt`). Where I can, test windows run in a private nested KWin
+(`kwin_wayland --virtual` under its own D-Bus session) rather than on the shared desktop.
+
+### 1. Replay the night on the dawn chart
+- The chart gains **Replay**: the night plays back on the paper at several times its speed. Each
+  ship afloat is a small mark at its place, with its name, coloured and marked by its state
+  (on course, lost with a "?", lured with a lantern); the light's beam sweeps from Gannet Head as
+  it did, wide or focused; a false light glows while it burned; a wreck's cross appears when it
+  happens. The full tracks stay, faint, underneath.
+- A timeline under the key shows the time ("2:14 of 4:05"). ←/→ or the d-pad step it back and
+  forth, a click or drag on the timeline jumps, Space, Enter or A plays and pauses. It starts
+  paused at the start; Back still returns to dawn.
+- The log gains a time for each point, the beam's bearing and focus a few times a second, and
+  when each false light burned. It still only reads the simulation.
+- **Verify:** EditMode tests: the log's beam samples match the beam a bot actually swept, a
+  ship's interpolated position at a logged point's time is that point, the replay's state for a
+  wrecked ship turns to wrecked at its wreck time, and a 30-minute watch's beam log stays capped.
+  The `chart` tour opens the replay with the mouse, keys and the simulated pad, steps and drags
+  the timeline, and checks at several times that each ship's mark sits where the log puts it (in
+  screen space, within 3 px) and that the beam's wedge points at the logged bearing; at the end,
+  every wrecked ship's mark is on its cross. `screens` checks the replay fits at all four shapes.
+  Screenshots read by me.
+
+### 2. Settings say what they do
+- Under the right-hand column, a short description of the setting that's selected or under the
+  pointer: what it changes and when it applies ("Slows the whole night together: ships, the lens,
+  fog, storms and wreckers. Only you gain time. The dawn card notes a slowed night.").
+- **Verify:** the `input` tour's d-pad walk checks the description follows the selection through
+  every row, and that hovering a row with the mouse shows that row's. `screens` checks the
+  description fits inside the panel at all four shapes and at its longest. Screenshots read by me.
+
+### 3. Closing the game keeps a Night Watch
+- Quitting the game while a watch is under way (playing or paused) stands the watch down and keeps
+  it, as "End the watch" does, before the game closes. The twelve nights are unchanged: closing
+  mid-night keeps nothing, as now. "Leave the lighthouse ▸ Leave anyway" still keeps nothing.
+  The keeper's notes on the Night Watch say so.
+- **Verify:** a `quitwatch` run of `Tools/season_tour.sh` (a throwaway config with a finished
+  season) plays a watch with the AutoKeeper for a couple of minutes and quits the way a window's
+  close button does; the script then checks `save.json` holds the watch with its score, ships and
+  time. A second run sends the player SIGTERM (as a logout does) and checks the same; a third
+  quits mid-night and checks the save is unchanged. My own save folder is checksummed before and
+  after.
+
+### 4. Button names for PlayStation and Nintendo pads (if time allows)
+- Settings ▸ **Pad buttons**: *Auto* (from the pad's name where Unity reports one), *Xbox* (A, B,
+  RT, Start, as now), *PlayStation* (Cross, Circle, R2, Options) or *Nintendo* (B, A, ZR, +, by
+  position). Every prompt that names a pad button follows it.
+- **Verify:** an EditMode test of the names for each style; the `input` tour switches styles and
+  checks the title strip, a hint, the pause card and the briefing prompt. Only simulated pads;
+  whether Unity on Linux reports a real DualShock's name isn't known.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp and slowed records**: the owner's call.
+- **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts, the
+  save on macOS and Windows, a full disk**: no hardware or platforms here to check them on.
+- **Re-cutting the trailer**: the owner's call.
