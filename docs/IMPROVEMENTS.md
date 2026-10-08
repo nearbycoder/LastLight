@@ -1149,3 +1149,78 @@ and logs stay under `Builds/round9/`. My own save folder is checksummed before a
 - **Gamepad remapping, a real pad, fullscreen at other shapes, a Steam Deck, non-US layouts, the
   save on macOS and Windows, a full disk**: no hardware or platforms here to check them on.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 9 results (2026-10-07)
+
+All three planned items and the optional fourth landed on `improvements-9`, one commit each, plus
+a tooling commit. Verification was on the built Linux player from the final commit: 106/106
+EditMode tests (93 before, plus two for the replay and eleven for the pad buttons' names), and a
+final pass of 31 runs (`Builds/round9/final.log`): `input`, `ui`, `status`, `radiolog`, `ending`,
+`endingskip`, `offscreen`, `brightness`, `keys`, `names`, `notes`, `chart`, `lamps`, `watchend`,
+`confirm`, `speed`, `best`, `screens` at four window sizes with 130% HUD text, `framerate`, `help`,
+and the `season` tour eight ways (three of them new). 336 checks passed and none failed; every
+tour ended with 0 errors. The pass waited for the load average to fall below 24 before each run,
+and ran at 10.8 to 22.1. The `ui` tour's resize to 1280×720, which failed once in round 8, took
+0.02 s. Captures are in `docs/media/improvements/round9/`.
+
+**Test windows stayed off the shared desktop.** `Tools/nested.sh` (new) runs a command inside a
+private `kwin_wayland --virtual` with its own D-Bus session and its own config, data, cache and
+state folders, and every tour this round ran in it. The player renders on the GPU as before; the
+virtual screen runs at 60 Hz, so `framerate` measured Display at 60 (60.0, 59.9 and 30.0 fps).
+
+No simulation code changed. The night's log reads more of the simulation and stops recording
+when the night ends, and a test still shows a logged night scores exactly as an unlogged one, so
+the pinned Standard scores pass and balance is unchanged on both difficulties. The validation
+report wasn't re-run.
+
+1. **Replay on the dawn chart.** As planned, except that Space doesn't play and pause: Space
+   could also press whichever button was chosen, so the Replay button does it (a click, Enter or
+   a pad's A). The log now keeps a time on each point, the light ten times a second (thinning
+   past 24,000 samples; a 30-minute watch keeps 18,000) and when each false light burned. The
+   tests play nights II and IX with a neglected ship and compare the replay with the night as it
+   was played: the light within 1.44°, every ship within 0.88 units, no state late, each wreck at
+   the moment it struck. The `chart` tour plays and pauses with clicks (9 s of night in 1.5 s at
+   6×), jumps to the middle with a click on the timeline (0.500), steps 5 s with the arrows and
+   the pad, and at five moments of each night checks every ship's mark on screen against the log
+   (0.0 px off), its "?" or lantern, the light, and that each cross shows only from its wreck.
+   **Found on the way:** the bay sails on behind the dawn card, and the log went on recording it,
+   so a failed night's chart (and the replay's length) included up to a few minutes after the
+   night had ended. The log now stops at the night's end; the replay's length matched the night's
+   end within a frame (145.8 s and 211.3 s against 145.8 and 211.4). The light's wedge was first
+   drawn over the crosses and reef marks; it now lies under them.
+2. **Settings say what they do.** As planned, with the line named ("Render scale · Draws the
+   bay…") because, sitting just under the last row, an unnamed line read as that row's. After
+   item 4 it runs across the panel under both columns. The `input` tour walks all 25 rows with the
+   pad and checks the line follows, checks the mouse over a label and over a stepper, and checks
+   every description fits on one line of its box and covers no row or Done. The `screens` check
+   is the panel's own (it didn't grow), at all four shapes.
+3. **Closing the game keeps a Night Watch.** As planned. `quitwatch` paused a 2:00 watch and quit
+   as the window's close button does; `termwatch` sent the playing player SIGTERM, as a logout
+   does. Both times `save.json` held the watch (600 points, 4 ships, 120 s; then 450, 3, 120) at
+   rank 4. `quitnight` closed night III mid-night and `save.json` was byte-for-byte as seeded. A
+   watch the bot plays from the command line (`-llAuto`) isn't kept. The compositor's close button
+   itself wasn't clicked; a crash or SIGKILL still loses the watch.
+4. **Pad buttons.** Done. Settings ▸ Pad buttons (Auto, Xbox, PlayStation, Nintendo) renames the
+   title strip, the hints and their keycaps, the briefing's prompt and new-idea card, the pause
+   card, the HUD's horn key, the keeper's notes and the ending's prompt. Nintendo goes by
+   position, so the bottom button is B. Auto guesses from the pad's name (an Xbox "Wireless
+   Controller" stays Xbox) and falls back to Xbox. The `input` tour chose PlayStation with the
+   pad's d-pad on the stepper and checked all of those for each style. To fit the row, settings
+   rows sit 56 units apart instead of 60, and the title strip now refreshes whenever the title
+   shows. Only simulated pads were used: what Unity calls a real Sony or Nintendo pad on Linux is
+   unknown, and Steam Input usually presents every pad as an Xbox one.
+
+**Process notes.** Items were built and toured one at a time and committed after each, so every
+commit except the tooling one was built and toured as it stands, apart from the final small fix
+to Auto's Xbox check, which the final pass covers. My own save folder held the editor's `prefs`
+(same checksum before and after) and the test runner's `TestResults.xml` (rewritten by each test
+run), and no `save.json`, as in rounds 7 and 8. One of my own checks was wrong at first: the
+quit runs expected `save.json` untouched mid-watch, but a hint seen during the watch saves it;
+they now check no watch was recorded before the quit.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), the offer of help's wording and threshold (owner), a gamepad remap and a
+real-gamepad pass (now including Auto's guess for Sony and Nintendo pads), a listening pass, human
+playtests (now including the replay's pace and the settings descriptions), fullscreen and
+real-hardware checks of other screen shapes, non-US keyboard layouts, the save on macOS and
+Windows, a full disk, Windows (module install) and macOS signing (Developer ID).

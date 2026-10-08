@@ -63,7 +63,10 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
 
 The keyboard keys for turning, focus and the foghorn can be changed in **Settings ▸ Keys** (three
-keys each; Esc and P always pause). The mouse buttons and the gamepad keep theirs.
+keys each; Esc and P always pause). The mouse buttons and the gamepad keep theirs. The pad's
+buttons are named as an Xbox pad's above; **Settings ▸ Pad buttons** gives every prompt
+PlayStation names (Cross, Circle, R2, Options) or Nintendo's (B, A, ZR, +, by position, so the
+bottom button is B), and on *Auto* the game guesses from the pad's name.
 
 The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
 along with text speed, hints, screen shake, **focus** (hold the button, or toggle: press once to
@@ -72,7 +75,9 @@ focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
 laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
 **brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
-a tenth of its strength), HUD text size, difficulty, **game speed** and the keyboard **keys**.
+a tenth of its strength), HUD text size, difficulty, **game speed**, the keyboard **keys** and
+the **pad buttons**' names. A line under the settings says what the one chosen (or under the
+pointer) does.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 With **Sound in background** off, the game also falls silent while its window is out of focus.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
@@ -198,7 +203,11 @@ and by which false light, and who lost their way. **Chart** on the dawn card ope
 chart, Merrow Bay drawn on paper with every ship's track: solid while the captain was on course,
 dotted red with a **?** where they lost their way, dashed amber with a lantern where a false light
 had them, and a cross at each wreck, with the reefs, sandbanks and false lights you saw that night.
-The chart's names are set clear of each other and of the crosses, most important first. Under
+The chart's names are set clear of each other and of the crosses, most important first.
+**Replay the night** plays it back on the chart: each ship afloat at its place with its name,
+a "?" or a lantern while it's lost or lured, your light's sweep (wide or focused), the false
+lights while they burned, and each wreck's cross as it happens. A timeline marks the wrecks;
+click or drag it to jump, or step it with ← and → (the d-pad on a pad). Under
 the score, the dawn card says where it came from ("6 ships home 750 · 6 steady hands +300"; a
 ship that ran dark counts double). If the same night fails twice running, the card points to
 Settings ▸ Game speed (or Difficulty, on Hard); it changes nothing by itself.
@@ -216,7 +225,8 @@ every few minutes with current, rain and lightning (stronger as the night wears 
 lighting up at their own times, with the mimic light late in a long watch. Ianto gives the forecast
 in the briefing, and the game keeps your five best watches. The briefing shows the top three, and
 the dawn card tells you where a watch ranks. To stop, choose **End the watch** in the pause menu:
-dawn comes at once, and the watch is kept and ranked as if the last wreck had ended it.
+dawn comes at once, and the watch is kept and ranked as if the last wreck had ended it. Closing
+the game during a watch (the window's close button, Alt+F4, logging out) keeps it the same way.
 
 ## Content overview
 
@@ -313,7 +323,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (93 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (106 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -341,7 +351,10 @@ contains a copy of it.
   is kept aside and said, one that can't be opened is never written over, and a failed write is
   reported and clears once a write works. Five check the label placer behind names on the water
   and the chart, three that the dawn card's score parts add up to the score on all twelve nights
-  (kept and shaky) and a watch, and two the offer of help after repeated failures.
+  (kept and shaky) and a watch, and two the offer of help after repeated failures. Two play
+  nights II and IX and check the dawn chart's replay against the night as it happened (the light
+  within 1.5°, every ship within a unit, wrecks when they struck, false lights while they burned),
+  and eleven check the pad buttons' names and the guess Auto makes from a pad's name.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -368,7 +381,9 @@ contains a copy of it.
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
   pad pauses the night, and that the d-pad walks both settings columns. It switches Focus to Toggle
 and checks each control both ways, checks the pointer hides for pad play, and logs the input
-devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
+devices Unity sees. It walks Settings with the pad and the mouse and checks the line that says
+what each setting does, and sets Pad buttons to each style and checks the title strip, hints,
+briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
   at whatever window size the player starts with (`LL_W` and `LL_H`), that every menu panel is on
   screen, that the HUD's blocks don't overlap (night 11, the longest top bar), and that the harbour and
   every hazard are in view (judged from the play view at rest; the live view, which leans toward
@@ -388,7 +403,9 @@ devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log
   against the dawn card, and reads the briefing's record line. `names` also leaves the Little Auk
   in the dark on night III and checks every frame that no name covers another or a ship's mark,
   and `chart` that none of the chart's names covers another or a cross (`-llNamesOverlap` draws
-  names as before round 8, to show the checks catch it). `best` stages bests of 880 on night III
+  names as before round 8, to show the checks catch it). `chart` also plays the replay with a
+  click, the arrows and the simulated pad, jumps it from the timeline, and checks at five moments of
+  each night that every ship's mark sits where the night's log puts it on screen. `best` stages bests of 880 on night III
   and 600 for a watch and checks every frame that the line under the score matches the
   simulation. `help` fails night II again and again from the dawn card and checks the offer of
   help at each step.
@@ -398,12 +415,18 @@ devices Unity sees. `radiolog` pauses night 6 late on to read back the radio log
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
   any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
-- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable> <dir>` runs the `season`
+- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable|quitwatch|termwatch|quitnight> <dir>` runs the `season`
   tour, which uses a real save, against a throwaway config directory under `<dir>` seeded with
   one: a finished season cleared from the logbook, a damaged save, an older build's save carried
   over, a save folder that can't be written (made read-only for the run), or something at
-  `save.json` that can't be opened. It refuses to
+  `save.json` that can't be opened. `quitwatch` and `termwatch` close the game during a Night
+  Watch (from the pause menu as the window's close button does, or with SIGTERM as a logout
+  does) and check `save.json` kept it; `quitnight` closes it mid-night and checks nothing was
+  written. It refuses to
   run anywhere else, and checks your own save folder is unchanged.
+- `Tools/nested.sh <command>` runs a tour (or the game) inside a private, invisible KWin with
+  its own D-Bus session and config folders, so test windows never appear on the desktop you're
+  using: `Tools/nested.sh Tools/tour.sh chart "$PWD/Builds/out" -llFresh`. It needs `kwin_wayland`.
 - `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
   as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
   colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it, and checks that each
@@ -543,6 +566,11 @@ Linux. Here's what is still unproven or rough:
 - **Rebinding covers the keyboard only.** The gamepad's buttons are fixed (there's no real pad to
   check a remap on). Key names come from the keyboard layout, so an AZERTY keyboard should show "Q"
   for the default turn-left key, but only a US layout has been tried.
+- **Pad buttons' names were checked with simulated pads only.** Choosing PlayStation or Nintendo
+  in Settings renames every prompt, and that's tested. *Auto* guesses from the name Unity gives a
+  pad ("Wireless Controller", "DualSense", "Pro Controller" and the like), but which name Unity
+  reports for a real Sony or Nintendo pad on Linux is unknown, and Steam Input usually presents
+  every pad as an Xbox one. Without a match, Auto reads as Xbox, as before.
 - **Game speed shares records.** A night kept at 70% counts in the logbook like any other, and only
   the dawn card and the watch table mark it. Whether slowed scores should be kept apart is open.
 - **Names on the water and the keeper's notes are judged by tours, not people.** Whether the
@@ -566,13 +594,20 @@ Linux. Here's what is still unproven or rough:
   This was checked on Linux only; macOS and Windows use Unity's usual data folder, untested.
 - **The dawn chart and the lamps at stake are judged by tours, not people.** Whether the chart
   is worth opening, whether a busy night's tracks read, and whether the lamps under the score
-  help or distract need a playtest. The same goes for round 8's score to beat, the score's parts
+  help or distract need a playtest; so do round 9's replay (whether it plays at the right pace,
+  6× a night's speed, faster for a long watch, so none runs much over 45 seconds) and the
+  descriptions in Settings. The replay's light is sampled ten times a second and drawn between
+  samples, within about 1.5° of where it was. The same goes for round 8's score to beat, the score's parts
   on the dawn card and the offer of help after two failures (its wording, and whether two is the
   right number, are guesses).
 - **Save trouble was checked on Linux only.** The notices for a save that can't be read, opened
   or written were checked with a read-only folder and an unopenable `save.json` in a throwaway
   config. A full disk wasn't tried, and the wording of the reasons comes from the exception, so on
   macOS and Windows it may read differently.
+- **Closing the game keeps a watch, but only a clean close.** Closing during a Night Watch keeps
+  it, checked on Linux with the game's own quit (the path a window's close button takes) and with
+  SIGTERM (a logout). The compositor's close button itself wasn't clicked in a test, and a crash,
+  a power cut or SIGKILL still loses the watch, since it's only written when the game closes.
 - **Names step aside, but only a line or two.** On a crowded spot (two wrecks at the same rock on
   the chart) the names stack up beside each other; when no clear place is near, a name takes the
   least covered one.
