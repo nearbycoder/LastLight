@@ -90,6 +90,8 @@ namespace LastLight.Automation
                 if (Want(s.Name)) yield return Film(c, s);
             if (Want("logbook")) yield return LogbookShot(c);
             if (Want("results")) yield return ResultsShot(c, 2);
+            if (Want("replay")) yield return ReplayShot(c);
+            if (Want("settings")) yield return SettingsShot(c);
             // The ending last: it follows the results, and its credits keep running after the clip.
             if (Want("ending")) yield return EndingShot(c);
 
@@ -104,9 +106,8 @@ namespace LastLight.Automation
             g.AutoPlay = true;
             var save = SaveData.Current;
             save.hints = false;
-            UI.Hud.NamesShown = false;     // names on the water came after the released trailer and stills
-            UI.Hud.LampsAtStakeShown = false;   // so did the lamps at stake under the score
-            UI.Hud.BestShown = false;           // and the score to beat
+            // Names on the water, the lamps at stake and the score to beat show as a player sees
+            // them (the v0.1.0 trailer and stills came before them and were shot with them off).
             save.music = 0f;            // the score is laid in the edit, under the game's own sound
             Sfx.MusicVolume = 0f;
             return new Ctx { Tour = t, Cam = TrailerCam.Create(g.Rig), Stills = stills };
@@ -520,6 +521,77 @@ namespace LastLight.Automation
             yield return Roll(c, "results", 7.5f);
         }
 
+        /// <summary>
+        /// Night II played off camera with the Little Auk left in the dark, so it strikes the Teeth
+        /// (one wreck, within the night's allowance). Then the dawn card's debrief, and its chart
+        /// replaying the night from a few seconds before the Auk loses its way.
+        /// </summary>
+        static IEnumerator ReplayShot(Ctx c)
+        {
+            var g = Game.Instance;
+            c.Cam.Stop();
+            g.TourHideAll();
+            g.TourBriefing(2);
+            g.TourBegin();
+            g.TourNeglect("Little Auk");
+            g.Rig.Snap(CameraRig.PlayPose);
+            g.Runner.TimeScale = 6f;
+            while (!g.ShowingResults) yield return null;
+            yield return Hold(1f);
+            if (c.Stills) yield return Hold(3.5f);
+            else yield return Roll(c, "debrief", 5f);
+            g.TourShowChart();
+            yield return Hold(1.2f);
+            var chart = g.TourChart;
+            // From 21 s of night before the wreck (3.5 s at the replay's 6×), or the start, so the
+            // replay reaches the Auk's cross a few seconds in.
+            var moments = chart.ReplayMoments;
+            float wreckAt = moments.Count > 0 ? moments[moments.Count - 1].Time : 0f;
+            chart.SetReplayTime(Mathf.Max(0f, wreckAt - 21f));
+            if (c.Stills)
+            {
+                chart.ToggleReplay();
+                yield return Hold(4f);
+                chart.ToggleReplay();
+                yield return Hold(0.3f);
+                yield return c.Tour.Shot("dawn_chart");
+                yield break;
+            }
+            var roll = Roll(c, "replay", 9f);
+            roll.MoveNext();            // start rolling this frame, then play
+            chart.ToggleReplay();
+            while (roll.MoveNext()) yield return roll.Current;
+        }
+
+        /// <summary>The rows the Settings shot walks, a few of the choices a keeper makes first.</summary>
+        static readonly string[] SettingsRows = { "Graphics fidelity", "Game speed", "Radio lettering", "Sound", "Pad buttons", "Keys and buttons" };
+
+        /// <summary>Settings over the title: the band moves down the rows as keys or a pad would
+        /// choose them, and the line under them says what each does.</summary>
+        static IEnumerator SettingsShot(Ctx c)
+        {
+            var g = Game.Instance;
+            c.Cam.Stop();
+            g.TourTitle();
+            g.Rig.Snap(CameraRig.TitlePose);
+            yield return Hold(1.5f);
+            g.TourHideAll();
+            TourScripts.MouseTo(new Vector2(2f, 2f));   // the pointer off the panel, so the choice leads
+            var settings = (UI.SettingsScreen)g.TourScreen("settings");
+            g.TourShowSettings();
+            void Choose(string row) => UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(settings.RowControl(row).gameObject);
+            Choose(SettingsRows[0]);
+            yield return Hold(1f);
+            if (c.Stills) { yield return Hold(1f); yield return c.Tour.Shot("settings"); yield break; }
+            // A new row every 1.3 s.
+            var roll = Roll(c, "settings", 8f);
+            for (int frame = 0; roll.MoveNext(); frame++)
+            {
+                if (frame > 0 && frame % 39 == 0 && frame / 39 < SettingsRows.Length) Choose(SettingsRows[frame / 39]);
+                yield return roll.Current;
+            }
+        }
+
         /// <summary>The ending: dawn, the Calloway's thanks, and the light put out.</summary>
         static IEnumerator EndingShot(Ctx c)
         {
@@ -544,7 +616,9 @@ namespace LastLight.Automation
             foreach (var s in StillList())
                 if (only.Count == 0 || only.Contains(s.Name)) yield return Film(c, s);
             if (only.Count == 0 || only.Contains("results")) yield return ResultsShot(c, 2);
+            if (only.Count == 0 || only.Contains("dawn_chart")) yield return ReplayShot(c);
             if (only.Count == 0 || only.Contains("logbook")) yield return LogbookShot(c);
+            if (only.Count == 0 || only.Contains("settings")) yield return SettingsShot(c);
             if (only.Count == 0 || only.Contains("ending"))
             {
                 g.TourEnding();

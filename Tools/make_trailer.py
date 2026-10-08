@@ -96,21 +96,24 @@ def edl():
     b.append(Beat([Shot("hull_trawler", 0.4, 3 * BEAT, gain=0.85), Shot("hull_steamer", 0.4, 3 * BEAT, gain=0.85),
                    Shot("hull_ferry", 1.2, 3 * BEAT, gain=0.95)],
                   ("THREE HULLS", "Trawlers, colliers and the ferry", "Colliers turn wide and ground on sandbanks. The ferry is worth the most.")))
-    b.append(Beat([Shot("fog", 0.7, 3 * BAR, gain=0.85)],
+    b.append(Beat([Shot("fog", 0.9, 2 * BAR, gain=0.85)],
                   ("SEA FRET", "Sound the foghorn", "Fog swallows the beam. The horn steadies every ship in earshot.")))
-    b.append(Beat([Shot("mayday", 0.9, 3 * BAR, gain=0.85)],
+    b.append(Beat([Shot("mayday", 1.2, 2 * BAR, gain=0.85)],
                   ("MAYDAY", "Find the ships running dark", "Damaged vessels show no lights, only a radio bearing and their flares.")))
     b.append(Beat([Shot("storm", 0.9, 2 * BAR, gain=0.85)],
                   ("SQUALL", "Ride out the storm", "Currents drag ships off course. Lightning shows every reef.")))
     b.append(Beat([Shot("false_light", 1.2, 3 * BAR, gain=0.85)],
                   ("WRECKERS", "Douse the false lights", "Wreckers sweep lanterns that imitate yours. Hold your beam on one to put it out.")))
-    b.append(Beat([Shot("wreck", 1.5, 3 * BAR, gain=0.9)],
+    b.append(Beat([Shot("wreck", 2.0, 2 * BAR, gain=0.9)],
                   ("WRECKS", "Every ship counts", "Miss a reef and the hull burns and sinks. Lose too many and the night is over.")))
     b.append(Beat([Shot("results", 0.3, 2 * BAR, gain=0.9)],
-                  ("TWELVE NIGHTS", "Keep the light until dawn", "Three lamps a night, and a logbook of every night you've kept.", "narrow")))
-    b.append(Beat([Shot("logbook", 0.2, BAR, gain=0.9)]))
+                  ("TWELVE NIGHTS", "Keep the light until dawn", "Three lamps a night. At dawn, a chart of every ship's track to replay.", "narrow")))
+    # The dawn chart replaying a night with a wreck, then Settings (both fill the screen, so they
+    # carry no caption: the chart's legend and the line under Settings say what they are).
+    b.append(Beat([Shot("replay", 0.6, 2 * BAR, gain=0.9)]))
+    b.append(Beat([Shot("settings", 0.4, 2 * BAR, gain=0.9)]))
     b.append(Beat([Shot("watch", 0.5, 2 * BAR, gain=0.85)],
-                  ("NIGHT WATCH", "Then keep watch for good", "Finish the season to open an endless watch: every hazard, ships without end.")))
+                  ("NIGHT WATCH", "Then keep watch for good", "Finish the season to open an endless watch: every hazard, its own weather, ships without end.")))
     # Escalation: the late nights, cut to the tension layer's pulse, ending on a hit to black.
     p = 4 * PULSE
     b.append(Beat([Shot("finale", 0.6, p, gain=1.0), Shot("finale_lightning", 0.9, p, gain=1.1),

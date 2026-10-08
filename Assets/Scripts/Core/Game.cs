@@ -93,6 +93,9 @@ namespace LastLight.Core
             if (HasArg("-llHard")) SaveData.Current.difficulty = 1;
             int hudScale = Arg("-llHudScale", 0);
             if (hudScale > 0) SaveData.Current.hudScale = hudScale / 100f;
+            // Captures choose their Graphics fidelity step (the trailer and stills shoot on Ultra).
+            int fidelity = Arg("-llFidelity", -1);
+            if (fidelity >= 0) SaveData.Current.quality = fidelity;
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
