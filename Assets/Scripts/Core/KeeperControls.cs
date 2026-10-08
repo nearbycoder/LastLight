@@ -7,9 +7,10 @@ namespace LastLight.Core
 {
     /// <summary>
     /// Reads the keeper's hands: the mouse aims the lens (with its weight handled by the sim),
-    /// LMB/RT or the focus keys focus, RMB/A or the horn keys sound the foghorn, the turn keys turn
-    /// the lens directly, and the right stick points it. The keys are the player's (see KeyBindings;
-    /// by default Shift/W/↑, Space, and A-D/arrows). With <see cref="ToggleFocus"/> a press switches focus on or
+    /// LMB, the focus keys or the focus buttons focus, RMB, the horn keys or the horn buttons sound
+    /// the foghorn, the turn keys turn the lens directly, and the right stick points it. The keys and
+    /// buttons are the player's (see KeyBindings and PadBindings; by default Shift/W/↑, Space and
+    /// A-D/arrows, and the triggers and A). With <see cref="ToggleFocus"/> a press switches focus on or
     /// off instead of having to be held.
     /// </summary>
     public sealed class KeeperControls
@@ -20,7 +21,7 @@ namespace LastLight.Core
         bool hornLatch;
         public float Sensitivity = 1f;
         public bool ToggleFocus;
-        bool focusOn, triggerDown;
+        bool focusOn;
         int ignorePressesUntil = -1;
 
         /// <summary>The focus switched on (Toggle mode).</summary>
@@ -95,12 +96,12 @@ namespace LastLight.Core
                     input.HasTarget = true;
                     input.TargetBearing = lastTarget;
                 }
-                float trigger = Mathf.Max(pad.rightTrigger.ReadValue(), pad.leftTrigger.ReadValue());
-                if (trigger > 0.3f) focusHeld = true;
-                // A trigger press counts once it's past halfway, and again only after it's let go.
-                if (trigger > 0.5f && !triggerDown) { triggerDown = true; focusPressed = true; }
-                else if (trigger < 0.3f) triggerDown = false;
-                if (pad.buttonSouth.wasPressedThisFrame && playing) hornLatch = true;
+                // The keeper's buttons (by default the triggers focus and A sounds the horn). A
+                // trigger is held from a light touch, and pressed once it's past halfway.
+                var buttons = SaveData.Current.pad;
+                if (buttons.Held(pad, KeeperAction.Focus)) focusHeld = true;
+                if (buttons.Pressed(pad, KeeperAction.Focus)) focusPressed = true;
+                if (buttons.Pressed(pad, KeeperAction.Horn) && playing) hornLatch = true;
             }
 
             if (focusPressed && playing) focusOn = !focusOn;

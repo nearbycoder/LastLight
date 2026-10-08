@@ -149,11 +149,11 @@ namespace LastLight.Automation
             yield return Tour.Wait(0.6f);
             s.TourShowKeys();
             yield return Tour.Wait(0.3f);
-            EventSystem.current.SetSelectedGameObject(GameObject.Find("Button Reset keys"));
+            EventSystem.current.SetSelectedGameObject(GameObject.Find("Button Reset to defaults"));
             yield return null;
             yield return Press(Key.Enter);
             Check(t, keys.Get(KeeperAction.Horn, 0) == Key.Space && keys.Get(KeeperAction.Focus, 0) == Key.LeftShift && keys.Get(KeeperAction.TurnLeft, 2) == Key.None && title.FooterShown.Contains("Space  foghorn"),
-                $"Reset keys restores the defaults ({s.KeysNote}; strip \"{title.FooterShown}\")");
+                $"Reset to defaults restores the keys ({s.KeysNote}; strip \"{title.FooterShown}\")");
             g.TourHideAll();
             t.Log($"real save untouched: {Game.HasArg("-llFresh")}");
             t.Log($"keys {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");

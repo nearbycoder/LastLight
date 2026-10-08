@@ -112,8 +112,8 @@ namespace LastLight.UI
             string horn = SaveData.Current.keys.First(KeeperAction.Horn);
             if (horn == "") horn = "right-click";
             if (id == "fog" && SaveData.Current.focusToggle)
-                return InputMode.Pick($"Fog swallows the light. Click to focus, {horn} for the horn.", $"Fog swallows the light. Press {PadButtons.RightTrigger} to focus, {PadButtons.South} for the horn.");
-            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad.Replace("{RT}", PadButtons.RightTrigger).Replace("{A}", PadButtons.South) : keys.Replace("{horn}", horn);
+                return InputMode.Pick($"Fog swallows the light. Click to focus, {horn} for the horn.", $"Fog swallows the light. Press {PadButtons.Focus} to focus, {PadButtons.Horn} for the horn.");
+            return InputMode.Pad && PadNewThings.TryGetValue(id, out var pad) ? pad.Replace("{RT}", PadButtons.Focus).Replace("{A}", PadButtons.Horn) : keys.Replace("{horn}", horn);
         }
 
         static readonly Dictionary<string, (string title, string text, string icon)> NewThings = new Dictionary<string, (string, string, string)>
@@ -374,9 +374,9 @@ namespace LastLight.UI
             }, TextAnchor.MiddleCenter);
             Row("Seen hints", replay,
                 "Brings back every tip you've already seen.");
-            keysButton = UiButton.Create(panel, "Change keys", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
-            Row("Keyboard keys", keysButton,
-                "Choose the keys for turning, focus and the foghorn. The mouse and gamepad keep their buttons.");
+            keysButton = UiButton.Create(panel, "Change", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
+            Row("Keys and buttons", keysButton,
+                "Choose the keys for turning, focus and the foghorn, and the gamepad's buttons for focus and the foghorn.");
             int[] caps = { 0, 60, 30 };
             Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }),
                 "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");
@@ -438,23 +438,37 @@ namespace LastLight.UI
             BuildKeys();
         }
 
-        // ---------------------------------------------------------------- keys
+        // ---------------------------------------------------------------- keys and buttons
 
-        // The keyboard's keys for turning, focus and the horn: three slots each. Choose a slot,
-        // press a key. The panel takes the settings panel's place while it's open.
+        // The keyboard's keys for turning, focus and the horn (three slots each), and the pad's
+        // buttons for focus and the horn (two each). Choose a slot, press a key or a button. The
+        // panel takes the settings panel's place while it's open.
         RectTransform keysPanel;
-        UiButton keysButton, keysDone, settingsFirst;
+        UiButton keysButton, keysDone, keysReset, settingsFirst;
         readonly UiButton[,] slots = new UiButton[4, KeyBindings.Slots];
         readonly Image[,] cells = new Image[4, KeyBindings.Slots];
-        Text keysNote;
+        readonly UiButton[,] padSlots = new UiButton[2, PadBindings.Slots];
+        readonly Image[,] padCells = new Image[2, PadBindings.Slots];
+        Text keysNote, keysHelp;
         KeeperAction listenAction;
-        int listenSlot = -1, listenFrame, restoreNavFrame = -1;
+        int listenSlot = -1, listenFrame, restoreNavFrame = -1, padListenEnded = -1;
+        bool listenPad;
 
-        /// <summary>The keys panel is open, and whether it's waiting for a key; for tours.</summary>
+        /// <summary>The keys panel is open, and whether it's waiting for a key or a button; for tours.</summary>
         public bool KeysOpen => keysPanel != null && keysPanel.gameObject.activeSelf;
         public bool Listening => listenSlot >= 0;
+        public bool ListeningPad => Listening && listenPad;
 
-        const string KeysHelp = "Choose a slot, then press a key. Backspace empties it, Esc cancels.\nEsc and P always pause. The mouse and gamepad keep their buttons.";
+        /// <summary>The pad's B is a button to bind while a pad slot waits (and on the frame it was
+        /// bound), not a way back.</summary>
+        public bool PadBackTaken => ListeningPad || Time.frameCount <= padListenEnded;
+
+        // The pad rows are the keys panel's focus and foghorn rows.
+        static int PadRow(KeeperAction a) => a == KeeperAction.Focus ? 0 : 1;
+
+        static string KeysHelp() =>
+            $"Choose a slot, then press a key or a button. Backspace or the pad's {PadButtons.Select} empties a slot; Esc or {PadButtons.Start} cancels.\n" +
+            $"Esc, P and {PadButtons.Start} always pause. The mouse keeps its buttons, and either stick turns the light.";
 
         void BuildKeys()
         {
@@ -462,55 +476,94 @@ namespace LastLight.UI
             Frames.Add(keysPanel);
             var bg = UiKit.Image("Bg", keysPanel, SpriteFactory.Rounded, new Color(0.03f, 0.045f, 0.06f, 0.86f), true);
             bg.rectTransform.Fill();
-            Label(keysPanel, "Keys", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
+            Label(keysPanel, "Keys and buttons", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(1000, 100)).Shadowed();
             var rule = UiKit.Image("Rule", keysPanel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f));
             rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -146), new Vector2(620, 3));
+            // Columns: the actions, the keyboard's three slots, the pad's two.
+            const float keyX = -340f, keyStep = 230f, keyW = 214f, padX = 405f, padStep = 245f, padW = 230f;
+            var keysHead = Label(keysPanel, "KEYBOARD", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(keyX + keyStep, -200), new Vector2(600, 36));
+            keysHead.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            var padHead = Label(keysPanel, "GAMEPAD", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(padX + padStep / 2, -200), new Vector2(460, 36));
+            padHead.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            UiButton Slot(string name, float x, float y, float w, Action click, out Image cell)
+            {
+                var b = UiButton.Create(keysPanel, "", UiKit.BodyBold, 28, click, TextAnchor.MiddleCenter);
+                b.name = name;
+                ((RectTransform)b.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(x, y), new Vector2(w, 64));
+                cell = UiKit.Image("Cell", b.transform, SpriteFactory.Rounded, CellIdle, true);
+                cell.rectTransform.Fill();
+                cell.raycastTarget = false;
+                cell.transform.SetAsFirstSibling();
+                return b;
+            }
             for (int r = 0; r < 4; r++)
             {
                 var action = KeyBindings.Actions[r];
-                float y = -236 - r * 92;
-                var l = Label(keysPanel, KeyBindings.ActionName(action), UiKit.BodyMedium, 30, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-560, y), new Vector2(380, 56));
+                float y = -262 - r * 88;
+                var l = Label(keysPanel, KeyBindings.ActionName(action), UiKit.BodyMedium, 30, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(-625, y), new Vector2(270, 56));
                 l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
                 for (int c = 0; c < KeyBindings.Slots; c++)
                 {
                     int slot = c;
-                    var b = UiButton.Create(keysPanel, "", UiKit.BodyBold, 28, () => Listen(action, slot), TextAnchor.MiddleCenter);
-                    b.name = $"Slot {action} {slot + 1}";
-                    ((RectTransform)b.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(-110 + c * 320, y), new Vector2(290, 64));
-                    var cell = cells[r, c] = UiKit.Image("Cell", b.transform, SpriteFactory.Rounded, CellIdle, true);
-                    cell.rectTransform.Fill();
-                    cell.raycastTarget = false;
-                    cell.transform.SetAsFirstSibling();
-                    slots[r, c] = b;
+                    slots[r, c] = Slot($"Slot {action} {slot + 1}", keyX + c * keyStep, y, keyW, () => Listen(action, slot, false), out cells[r, c]);
+                }
+                if (PadBindings.CanBind(action))
+                    for (int c = 0; c < PadBindings.Slots; c++)
+                    {
+                        int slot = c;
+                        padSlots[PadRow(action), c] = Slot($"Pad {action} {slot + 1}", padX + c * padStep, y, padW, () => Listen(action, slot, true), out padCells[PadRow(action), c]);
+                    }
+                else
+                {
+                    // The sticks turn the light; that isn't for changing.
+                    var stick = Label(keysPanel, "either stick", UiKit.Italic, 26, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(padX + padStep / 2, y), new Vector2(460, 56));
+                    stick.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 }
             }
-            keysNote = Label(keysPanel, "", UiKit.Italic, 27, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -620), new Vector2(1400, 40));
-            var help = Label(keysPanel, KeysHelp, UiKit.BodyMedium, 24, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -700), new Vector2(1400, 80));
-            help.lineSpacing = 1.1f;
-            var reset = UiButton.Create(keysPanel, "Reset keys", UiKit.Heading, 40, () =>
+            keysNote = Label(keysPanel, "", UiKit.Italic, 27, UiKit.BrassBright, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -626), new Vector2(1500, 40));
+            keysHelp = Label(keysPanel, KeysHelp(), UiKit.BodyMedium, 24, UiKit.Muted, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -706), new Vector2(1500, 80));
+            keysHelp.lineSpacing = 1.1f;
+            keysReset = UiButton.Create(keysPanel, "Reset to defaults", UiKit.Heading, 40, () =>
             {
                 StopListening();
                 SaveData.Current.keys.Reset();
-                RefreshKeys("The keys are back as they were.");
+                SaveData.Current.pad.Reset();
+                RefreshKeys("The keys and buttons are back as they were.");
             }, TextAnchor.MiddleCenter);
-            ((RectTransform)reset.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-240, 36), new Vector2(340, 60));
+            ((RectTransform)keysReset.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-240, 36), new Vector2(400, 60));
             keysDone = UiButton.Create(keysPanel, "Done", UiKit.Heading, 44, () => HideKeys(), TextAnchor.MiddleCenter);
             ((RectTransform)keysDone.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(240, 36), new Vector2(300, 60));
 
-            // A grid for the pad and arrows: across the slots, down the actions, then Reset and Done.
+            // A grid for the pad and arrows: across a row's keys and then its buttons, down the
+            // columns, then Reset and Done.
+            const int columns = KeyBindings.Slots + PadBindings.Slots;
+            Selectable At(int r, int c)
+            {
+                if (c < KeyBindings.Slots) return slots[r, c];
+                return PadBindings.CanBind(KeyBindings.Actions[r]) ? padSlots[PadRow(KeyBindings.Actions[r]), c - KeyBindings.Slots] : null;
+            }
             for (int r = 0; r < 4; r++)
-                for (int c = 0; c < KeyBindings.Slots; c++)
-                    slots[r, c].navigation = new Navigation
+                for (int c = 0; c < columns; c++)
+                {
+                    var self = At(r, c);
+                    if (self == null) continue;
+                    Selectable left = null, right = null, up = null, down = null;
+                    for (int d = 1; d < columns && left == null; d++) left = At(r, (c - d + columns) % columns);
+                    for (int d = 1; d < columns && right == null; d++) right = At(r, (c + d) % columns);
+                    for (int rr = r - 1; rr >= 0 && up == null; rr--) up = At(rr, c);
+                    for (int rr = r + 1; rr < 4 && down == null; rr++) down = At(rr, c);
+                    self.navigation = new Navigation
                     {
                         mode = Navigation.Mode.Explicit,
-                        selectOnLeft = slots[r, (c + KeyBindings.Slots - 1) % KeyBindings.Slots],
-                        selectOnRight = slots[r, (c + 1) % KeyBindings.Slots],
-                        selectOnUp = r > 0 ? slots[r - 1, c] : keysDone,
-                        selectOnDown = r < 3 ? slots[r + 1, c] : c == 0 ? reset : keysDone,
+                        selectOnLeft = left ?? self,
+                        selectOnRight = right ?? self,
+                        selectOnUp = up ?? keysDone,
+                        selectOnDown = down ?? (c == 0 ? (Selectable)keysReset : keysDone),
                     };
-            reset.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = keysDone, selectOnLeft = keysDone, selectOnUp = slots[3, 0], selectOnDown = slots[0, 0] };
-            keysDone.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = reset, selectOnRight = reset, selectOnUp = slots[3, KeyBindings.Slots - 1], selectOnDown = slots[0, 0] };
+                }
+            keysReset.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = keysDone, selectOnLeft = keysDone, selectOnUp = slots[3, 0], selectOnDown = slots[0, 0] };
+            keysDone.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = keysReset, selectOnRight = keysReset, selectOnUp = padSlots[1, PadBindings.Slots - 1], selectOnDown = slots[0, 0] };
             keysPanel.gameObject.SetActive(false);
         }
 
@@ -520,12 +573,22 @@ namespace LastLight.UI
             for (int r = 0; r < 4; r++)
                 for (int c = 0; c < KeyBindings.Slots; c++)
                 {
-                    bool waiting = Listening && listenAction == KeyBindings.Actions[r] && listenSlot == c;
+                    bool waiting = Listening && !listenPad && listenAction == KeyBindings.Actions[r] && listenSlot == c;
                     var k = keys.Get(KeyBindings.Actions[r], c);
                     slots[r, c].Label.text = waiting ? "<i>press a key…</i>" : k == UnityEngine.InputSystem.Key.None ? "<color=#8A8F96>—</color>" : KeyBindings.KeyName(k);
                 }
+            var pad = SaveData.Current.pad;
+            var style = PadButtons.Style;
+            foreach (var a in PadBindings.Actions)
+                for (int c = 0; c < PadBindings.Slots; c++)
+                {
+                    bool waiting = ListeningPad && listenAction == a && listenSlot == c;
+                    var b = pad.Get(a, c);
+                    padSlots[PadRow(a), c].Label.text = waiting ? "<i>press a button…</i>" : b == null ? "<color=#8A8F96>—</color>" : PadButtons.Name(b.Value, style);
+                }
+            keysHelp.text = KeysHelp();
             if (note != null) keysNote.text = note;
-            OnFocusMode?.Invoke();   // the title's control strip names the horn key
+            OnFocusMode?.Invoke();   // the title's control strip names the horn's key and button
         }
 
         void ShowKeys()
@@ -548,29 +611,33 @@ namespace LastLight.UI
             if (select && UnityEngine.EventSystems.EventSystem.current != null) UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(keysButton.gameObject);
         }
 
-        /// <summary>Wait for a key for this slot. Menu navigation is off meanwhile, so an arrow or
-        /// Enter can be bound rather than moving the selection.</summary>
-        void Listen(KeeperAction action, int slot)
+        static string SlotName(KeeperAction action, int slot, bool pad) => $"{KeyBindings.ActionName(action)}, {(pad ? "button" : "key")} {slot + 1}";
+
+        /// <summary>Wait for a key or a button for this slot. Menu navigation is off meanwhile, so an
+        /// arrow, Enter, the d-pad or A can be bound rather than moving the selection.</summary>
+        void Listen(KeeperAction action, int slot, bool pad)
         {
             listenAction = action;
             listenSlot = slot;
+            listenPad = pad;
             listenFrame = Time.frameCount;
             restoreNavFrame = -1;
             var es = UnityEngine.EventSystems.EventSystem.current;
             if (es != null) es.sendNavigationEvents = false;
-            RefreshKeys($"{KeyBindings.ActionName(action)}, key {slot + 1}: press a key.");
+            RefreshKeys($"{SlotName(action, slot, pad)}: press {(pad ? "a button on the gamepad" : "a key")}.");
         }
 
         void StopListening(string note = null)
         {
             if (!Listening) return;
+            if (listenPad) padListenEnded = Time.frameCount;
             listenSlot = -1;
             restoreNavFrame = Time.frameCount + 1;   // not this frame: the key just pressed mustn't also navigate
             RefreshKeys(note);
         }
 
-        /// <summary>Esc, P or B: stop waiting for a key, or close the keys panel. False when there's
-        /// nothing here to back out of (Settings itself then closes).</summary>
+        /// <summary>Esc, P, Start or B: stop waiting for a key, or close the keys panel. False when
+        /// there's nothing here to back out of (Settings itself then closes).</summary>
         public bool Back()
         {
             if (Listening) { StopListening("Nothing changed."); return true; }
@@ -587,13 +654,20 @@ namespace LastLight.UI
             var es = UnityEngine.EventSystems.EventSystem.current;
             if (KeysOpen)
             {
-                // The selected slot (and the one waiting for a key) lights up, even when empty.
+                // The selected slot (and the one waiting) lights up, even when empty.
                 var sel = es != null ? es.currentSelectedGameObject : null;
                 for (int r = 0; r < 4; r++)
                     for (int c = 0; c < KeyBindings.Slots; c++)
                     {
-                        bool hot = slots[r, c].gameObject == sel || (Listening && listenAction == KeyBindings.Actions[r] && listenSlot == c);
+                        bool hot = slots[r, c].gameObject == sel || (Listening && !listenPad && listenAction == KeyBindings.Actions[r] && listenSlot == c);
                         cells[r, c].color = Color.Lerp(cells[r, c].color, hot ? CellHot : CellIdle, Unscaled.Delta * 12f);
+                    }
+                foreach (var a in PadBindings.Actions)
+                    for (int c = 0; c < PadBindings.Slots; c++)
+                    {
+                        int r = PadRow(a);
+                        bool hot = padSlots[r, c].gameObject == sel || (ListeningPad && listenAction == a && listenSlot == c);
+                        padCells[r, c].color = Color.Lerp(padCells[r, c].color, hot ? CellHot : CellIdle, Unscaled.Delta * 12f);
                     }
             }
             if (restoreNavFrame >= 0 && Time.frameCount >= restoreNavFrame)
@@ -603,6 +677,30 @@ namespace LastLight.UI
             }
             if (!Listening || Time.frameCount <= listenFrame) return;
             var kb = UnityEngine.InputSystem.Keyboard.current;
+            string what = SlotName(listenAction, listenSlot, listenPad);
+            if (listenPad)
+            {
+                // A button on the pad; View or Backspace empties the slot. Start and Esc back out (see Back).
+                var gamepad = UnityEngine.InputSystem.Gamepad.current;
+                var buttons = SaveData.Current.pad;
+                bool clear = (gamepad != null && gamepad.selectButton.wasPressedThisFrame) || (kb != null && kb.backspaceKey.wasPressedThisFrame);
+                if (clear)
+                {
+                    StopListening(buttons.Clear(listenAction, listenSlot) ? $"{what} is empty."
+                        : $"The {KeyBindings.ActionName(listenAction).ToLowerInvariant()} needs a button on the gamepad, so this one stays.");
+                    return;
+                }
+                var pressed = PadBindings.PressedNow(gamepad);
+                if (pressed == null) return;
+                var style = PadButtons.Style;
+                string name = PadButtons.Name(pressed.Value, style);
+                if (buttons.Bind(listenAction, listenSlot, pressed.Value, out var from, out var swapped))
+                    StopListening(from == null ? $"{what} is {name}."
+                        : swapped != null ? $"{name} moved from {KeyBindings.ActionName(from.Value)} to {KeyBindings.ActionName(listenAction)}, and {PadButtons.Name(swapped.Value, style)} went the other way."
+                        : $"{name} moved from {KeyBindings.ActionName(from.Value)} to {KeyBindings.ActionName(listenAction)}.");
+                else StopListening($"{name} is the {KeyBindings.ActionName(from ?? (listenAction == KeeperAction.Horn ? KeeperAction.Focus : KeeperAction.Horn)).ToLowerInvariant()}'s only button. Give it another first.");
+                return;
+            }
             if (kb == null) return;
             foreach (var c in kb.allKeys)
             {
@@ -610,7 +708,6 @@ namespace LastLight.UI
                 var key = c.keyCode;
                 if (KeyBindings.Reserved(key)) return;   // Esc and P back out (see Back)
                 var keys = SaveData.Current.keys;
-                string what = $"{KeyBindings.ActionName(listenAction)}, key {listenSlot + 1}";
                 if (key == UnityEngine.InputSystem.Key.Backspace) { keys.Clear(listenAction, listenSlot); StopListening($"{what} is empty."); return; }
                 if (keys.Bind(listenAction, listenSlot, key, out var from))
                     StopListening(from != null ? $"{KeyBindings.KeyName(key)} moved from {KeyBindings.ActionName(from.Value)} to {KeyBindings.ActionName(listenAction)}." : $"{what} is {KeyBindings.KeyName(key)}.");
@@ -634,6 +731,7 @@ namespace LastLight.UI
         /// <summary>For tours: open the keys panel, and the label a slot shows.</summary>
         public void TourShowKeys() => ShowKeys();
         public string SlotLabel(KeeperAction a, int slot) => slots[(int)a, slot].Label.text;
+        public string PadSlotLabel(KeeperAction a, int slot) => padSlots[PadRow(a), slot].Label.text;
         public string KeysNote => keysNote.text;
     }
 

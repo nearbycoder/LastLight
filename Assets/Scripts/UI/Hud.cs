@@ -193,11 +193,11 @@ namespace LastLight.UI
             hornPanel.gameObject.SetActive(false);
         }
 
-        /// <summary>The horn's key under its gauge: the first bound key, the right button, or A.</summary>
+        /// <summary>The horn's key under its gauge: the first bound key, the right button, or the horn's pad button.</summary>
         static string HornKeyText()
         {
             string key = SaveData.Current.keys.First(KeeperAction.Horn);
-            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", PadButtons.South.ToUpperInvariant());
+            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", PadButtons.Horn.ToUpperInvariant());
         }
 
         /// <summary>For the tours: the key shown under the horn's gauge.</summary>

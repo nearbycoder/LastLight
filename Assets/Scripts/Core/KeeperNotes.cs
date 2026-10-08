@@ -34,15 +34,18 @@ namespace LastLight.Core
         {
             bool hard = save.difficulty == 1, toggle = save.focusToggle;
             var keys = save.keys ?? new KeyBindings();
-            var buttons = PadButtons.For(PadButtons.StyleFor(save));
+            var style = PadButtons.StyleFor(save);
+            var buttons = PadButtons.For(style);
+            var padBound = save.pad ?? new PadBindings();
+            string padHorn = PadButtons.Name(padBound.First(KeeperAction.Horn), style), padFocus = PadButtons.FocusWordsFor(save);
             string turnKeys = keys.TurnPair(), focusKey = keys.First(KeeperAction.Focus), hornKey = keys.First(KeeperAction.Horn);
             string turn = pad ? "Point the right stick to turn the light."
                 : turnKeys != "" ? $"Move the mouse to turn the light, or use {turnKeys}." : "Move the mouse to turn the light.";
             string focus = pad
-                ? (toggle ? "Press the right trigger to focus, and again to widen the beam." : "Hold the right trigger to focus.")
+                ? (toggle ? $"Press {padFocus} to focus, and again to widen the beam." : $"Hold {padFocus} to focus.")
                 : (toggle ? "Click the left button" + (focusKey != "" ? $" or press {focusKey}" : "") + " to focus, and again to widen the beam."
                           : "Hold the left button" + (focusKey != "" ? $" or {focusKey}" : "") + " to focus.");
-            string horn = pad ? $"Press {buttons.south}" : hornKey != "" ? $"Press {hornKey} or click the right button" : "Click the right button";
+            string horn = pad ? $"Press {padHorn}" : hornKey != "" ? $"Press {hornKey} or click the right button" : "Click the right button";
             string pause = pad ? buttons.start : "Esc";
             int chart = hard ? 15 : 22, buoy = hard ? 20 : 28;
 
@@ -94,7 +97,7 @@ namespace LastLight.Core
                     "An endless watch with every reef, sandbank and buoy out and no end to the ships. Each watch brings its own fog, squalls and wreckers, and Ianto gives the forecast in the briefing.\n\n" +
                     "The third wreck ends it. To stop sooner, choose End the watch in the pause menu: the watch is kept and ranked. Closing the game during a watch keeps it the same way, and if the game is ever cut off, the next start keeps the watch as it stood moments before. The game keeps your five best."),
                 new Entry("assists", 1, "If it's too much",
-                    "Settings can slow the whole night (Game speed), make focus a press instead of a hold, enlarge the HUD and radio text, soften the lightning, brighten the scene, and change the keyboard's keys.\n\n" +
+                    "Settings can slow the whole night (Game speed), make focus a press instead of a hold, enlarge the HUD and radio text, soften the lightning, brighten the scene, and change the keys and the gamepad's buttons.\n\n" +
                     "Settings ▸ Show hints again brings back the one-time hints."),
             };
         }

@@ -712,7 +712,8 @@ namespace LastLight.Core
             var pad = Gamepad.current;
             bool back = (kb != null && (kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame)) || (pad != null && pad.startButton.wasPressedThisFrame);
             // B backs out of menus (but never pauses: it's too easy to hit mid-watch).
-            if (pad != null && pad.buttonEast.wasPressedThisFrame && Current != State.Playing) back = true;
+            // While Settings waits for a pad button, B is one to bind.
+            if (pad != null && pad.buttonEast.wasPressedThisFrame && Current != State.Playing && !(settings.Visible && settings.PadBackTaken)) back = true;
             if (back)
             {
                 if (Current == State.Playing) Pause();

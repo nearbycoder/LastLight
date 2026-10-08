@@ -48,6 +48,7 @@ namespace LastLight.Core
             pad.buttonWest.wasPressedThisFrame || pad.buttonNorth.wasPressedThisFrame ||
             pad.startButton.wasPressedThisFrame || pad.selectButton.wasPressedThisFrame ||
             pad.leftShoulder.wasPressedThisFrame || pad.rightShoulder.wasPressedThisFrame ||
+            pad.leftStickButton.wasPressedThisFrame || pad.rightStickButton.wasPressedThisFrame ||
             pad.dpad.up.wasPressedThisFrame || pad.dpad.down.wasPressedThisFrame ||
             pad.dpad.left.wasPressedThisFrame || pad.dpad.right.wasPressedThisFrame ||
             pad.leftTrigger.ReadValue() > 0.5f || pad.rightTrigger.ReadValue() > 0.5f ||

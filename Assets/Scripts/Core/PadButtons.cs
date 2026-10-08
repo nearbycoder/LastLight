@@ -1,5 +1,6 @@
 using System;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 namespace LastLight.Core
 {
@@ -63,6 +64,51 @@ namespace LastLight.Core
             PadStyle.Nintendo => ("Y", "L", "R"),
             _ => ("X", "LB", "RB"),
         };
+
+        /// <summary>Any bindable button by the style's name for it ("RB", "R1" or "R").</summary>
+        public static string Name(GamepadButton b, PadStyle style)
+        {
+            var main = For(style);
+            var others = Others(style);
+            bool ps = style == PadStyle.PlayStation, nin = style == PadStyle.Nintendo;
+            return b switch
+            {
+                GamepadButton.South => main.south,
+                GamepadButton.East => main.east,
+                GamepadButton.West => others.west,
+                GamepadButton.North => ps ? "Triangle" : nin ? "X" : "Y",
+                GamepadButton.LeftShoulder => others.leftShoulder,
+                GamepadButton.RightShoulder => others.rightShoulder,
+                GamepadButton.LeftTrigger => ps ? "L2" : nin ? "ZL" : "LT",
+                GamepadButton.RightTrigger => main.trigger,
+                GamepadButton.LeftStick => ps ? "L3" : "LS",
+                GamepadButton.RightStick => ps ? "R3" : "RS",
+                GamepadButton.DpadUp => "D-pad ↑",
+                GamepadButton.DpadDown => "D-pad ↓",
+                GamepadButton.DpadLeft => "D-pad ←",
+                GamepadButton.DpadRight => "D-pad →",
+                GamepadButton.Start => main.start,
+                GamepadButton.Select => ps ? "Create" : nin ? "−" : "View",
+                _ => b.ToString(),
+            };
+        }
+
+        /// <summary>The foghorn's and focus's first bound buttons, as the pad in use names them.</summary>
+        public static string Horn => Name(SaveData.Current.pad.First(KeeperAction.Horn), Style);
+        public static string Focus => Name(SaveData.Current.pad.First(KeeperAction.Focus), Style);
+
+        /// <summary>Focus's button in a sentence: "the right trigger" (as the prompts always said), or its name.</summary>
+        public static string FocusWords => FocusWordsFor(SaveData.Current);
+
+        public static string FocusWordsFor(SaveData save) => (save.pad ?? new PadBindings()).First(KeeperAction.Focus) switch
+        {
+            GamepadButton.RightTrigger => "the right trigger",
+            GamepadButton.LeftTrigger => "the left trigger",
+            var b => Name(b, StyleFor(save)),
+        };
+
+        /// <summary>The button that empties a pad slot in Settings ▸ Keys and buttons.</summary>
+        public static string Select => Name(GamepadButton.Select, Style);
 
         public static string West => Others(Style).west;
         public static string LeftShoulder => Others(Style).leftShoulder;
