@@ -435,6 +435,26 @@ namespace LastLight.UI
 
         // ---------------------------------------------------------------- radio
 
+        // The panel is 150 units tall: the name above, 12 below, 88 for the call. A call that
+        // needs more grows the panel upward to fit (eased), and it settles back once the radio
+        // falls quiet.
+        const float RadioPanelHeight = 150f, RadioChrome = 62f, RadioPanelMost = 300f;
+        float radioPanelTarget = RadioPanelHeight;
+
+        /// <summary>How tall the radio panel stands for this call: its usual height, or taller for a
+        /// call that needs more room, in the current lettering.</summary>
+        public float RadioPanelHeightFor(string text)
+        {
+            float width = radioPanel.sizeDelta.x - 150f - 24f;
+            var settings = radioText.GetGenerationSettings(new Vector2(width, 0f));
+            float need = radioText.cachedTextGeneratorForLayout.GetPreferredHeight(text, settings) / radioText.pixelsPerUnit;
+            return Mathf.Clamp(Mathf.Ceil(need + 2f) + RadioChrome, RadioPanelHeight, RadioPanelMost);
+        }
+
+        /// <summary>For tours: the radio's text box height for a call, once the panel has grown for it.</summary>
+        public float RadioRoomFor(string text) => RadioPanelHeightFor(text) - RadioChrome;
+        public RectTransform TourRadioPanel => radioPanel;
+
         void OnRadio(RadioMessage m)
         {
             var sp = m.Speaker;
@@ -443,6 +463,7 @@ namespace LastLight.UI
             radioInitials.text = string.IsNullOrEmpty(sp.Initials) ? Initials(m.Title) : sp.Initials;
             radioInitials.color = sp.Color;
             radioFull = m.Text;
+            radioPanelTarget = RadioPanelHeightFor(m.Text);
             radioTyped = 0f;
             radioTypeRate = 42f * radio.TextSpeed;
             radioText.text = "";
@@ -463,6 +484,15 @@ namespace LastLight.UI
         void UpdateRadio(float dt)
         {
             if (radio == null) return;
+            if (radio.Current == null && radioGroup.alpha < 0.01f) radioPanelTarget = RadioPanelHeight;
+            var size = radioPanel.sizeDelta;
+            if (Mathf.Abs(size.y - radioPanelTarget) > 0.1f)
+            {
+                // Grows before the words reach the margin (quickly), shrinks only while hidden.
+                size.y = Mathf.Lerp(size.y, radioPanelTarget, 1f - Mathf.Exp(-Unscaled.Delta * 14f));
+                if (Mathf.Abs(size.y - radioPanelTarget) < 0.5f) size.y = radioPanelTarget;
+                radioPanel.sizeDelta = size;
+            }
             if (radio.Current == null)
             {
                 if (radioGroup.alpha > 0.99f) Tween.Fade(radioGroup, 0f, 0.6f);

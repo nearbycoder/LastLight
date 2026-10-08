@@ -46,7 +46,7 @@ namespace LastLight.Automation
 
         /// <summary>How many texts run past <paramref name="room"/> (the box, or the panel below it),
         /// how many past the box itself, and the tallest.</summary>
-        static (int over, int pastBox, float tallest, string longest, int lines) Fit(Text box, IEnumerable<string> texts, float room)
+        static (int over, int pastBox, float tallest, string longest, int lines) Fit(Text box, IEnumerable<string> texts, System.Func<string, float> room)
         {
             int over = 0, pastBox = 0;
             float tallest = 0f;
@@ -55,14 +55,11 @@ namespace LastLight.Automation
             {
                 float h = Height(box, s);
                 if (h > tallest) { tallest = h; longest = s; }
-                if (h > room + 0.5f) over++;
+                if (h > room(s) + 0.5f) over++;
                 if (h > box.rectTransform.rect.height + 0.5f) pastBox++;
             }
             return (over, pastBox, tallest, longest, Lines(box, longest));
         }
-
-        // The radio's text box stops 12 units above the panel's foot.
-        const float RadioPadding = 12f;
 
         static IEnumerator Press(Key key)
         {
@@ -101,12 +98,13 @@ namespace LastLight.Automation
                 UiKit.SetRadioLettering(radioBox, 23);
                 UiKit.SetRadioLettering(speechBox, 28);
                 Canvas.ForceUpdateCanvases();
-                float radioRoom = radioBox.rectTransform.rect.height + RadioPadding;
-                var r = Fit(radioBox, calls, radioRoom);
-                var b = Fit(speechBox, briefings, speechBox.rectTransform.rect.height);
+                // Since round 12 a long call grows the panel, so each must fit the text box the panel
+                // gives it, margin and all.
+                var r = Fit(radioBox, calls, g.Hud.RadioRoomFor);
+                var b = Fit(speechBox, briefings, _ => speechBox.rectTransform.rect.height);
                 string name = plain ? "Plain" : "Typewriter";
                 t.Log($"{name}: radio {radioBox.font.name} {radioBox.fontSize}, briefing {speechBox.font.name} {speechBox.fontSize}");
-                Check(t, r.over == 0, $"{name}: all {calls.Count} calls stay inside the radio panel (tallest {r.tallest:0} of {radioRoom:0} units, {r.lines} lines; {r.pastBox} run past the text box into its padding: \"{r.longest}\")");
+                Check(t, r.over == 0, $"{name}: all {calls.Count} calls fit the radio's text box, clear of the panel's margin (tallest {r.tallest:0} units in a box of {g.Hud.RadioRoomFor(r.longest):0}, {r.lines} lines; {r.pastBox} would have run past the usual 88-unit box, so the panel grows for them: \"{r.longest}\")");
                 Check(t, b.over == 0, $"{name}: all {briefings.Count} briefings fit Ianto's box (tallest {b.tallest:0} of {speechBox.rectTransform.rect.height:0} units, {b.lines} lines)");
                 if (!plain) longestCall = r.longest;
             }
@@ -142,9 +140,9 @@ namespace LastLight.Automation
                 while (g.Radio.Busy) yield return null;
                 g.Radio.Say("ianto", longestCall, 5);
                 yield return Tour.Wait(7f);
-                float h = Height(radioBox, longestCall), room = radioBox.rectTransform.rect.height + RadioPadding;
+                float h = Height(radioBox, longestCall), room = radioBox.rectTransform.rect.height;
                 Check(t, radioBox.text == longestCall && h <= room + 0.5f,
-                    $"{(plain ? "Plain" : "Typewriter")} at {scale * 100:0}%: the longest call is on the radio, typed out and inside the panel ({h:0} of {room:0} units, {Lines(radioBox, longestCall)} lines)");
+                    $"{(plain ? "Plain" : "Typewriter")} at {scale * 100:0}%: the longest call is on the radio, typed out and inside its text box, clear of the margin ({h:0} of {room:0} units, {Lines(radioBox, longestCall)} lines; the panel stands {g.Hud.TourRadioPanel.sizeDelta.y:0} tall)");
                 yield return t.Shot($"lettering_radio_{(plain ? "plain" : "typewriter")}_{scale * 100:0}");
             }
             g.TourPause();
