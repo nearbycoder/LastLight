@@ -180,6 +180,45 @@ namespace LastLight.Sim
             };
         }
 
+        public enum MomentKind { Lost, Lured, Wrecked }
+
+        /// <summary>A turning point of the night: a ship lost its way, was lured, or was wrecked.</summary>
+        public struct Moment
+        {
+            public float Time;
+            public SimShip Ship;
+            public MomentKind Kind;
+            /// <summary>Lost straight from a doused lure, rather than for want of the light.</summary>
+            public bool AfterLure;
+        }
+
+        /// <summary>The night's turning points in the order they happened: each time a ship lost its
+        /// way, was lured or was wrecked, as its track records it.</summary>
+        public List<Moment> Moments()
+        {
+            var list = new List<Moment>();
+            foreach (var t in Tracks)
+            {
+                var prev = ShipState.Sailing;
+                foreach (var p in t.Points)
+                {
+                    if (p.State != prev && (p.State == ShipState.Lost || p.State == ShipState.Lured || p.State == ShipState.Wrecked))
+                        list.Add(new Moment
+                        {
+                            Time = p.Time, Ship = t.Ship, AfterLure = prev == ShipState.Lured,
+                            Kind = p.State == ShipState.Lost ? MomentKind.Lost : p.State == ShipState.Lured ? MomentKind.Lured : MomentKind.Wrecked,
+                        });
+                    prev = p.State;
+                }
+            }
+            // In time order; at the same moment, in the order the ships sailed.
+            var order = new List<(Moment m, int i)>();
+            for (int i = 0; i < list.Count; i++) order.Add((list[i], i));
+            order.Sort((a, b) => a.m.Time != b.m.Time ? a.m.Time.CompareTo(b.m.Time) : a.i.CompareTo(b.i));
+            for (int i = 0; i < list.Count; i++) list[i] = order[i].m;
+            return list;
+        }
+
         /// <summary>Whether a wrecker site's lantern was burning at a moment of the night.</summary>
         public bool BurningAt(string site, float time)
         {

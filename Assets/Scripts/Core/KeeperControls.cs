@@ -36,6 +36,10 @@ namespace LastLight.Core
             var kb = Keyboard.current;
             var pad = Gamepad.current;
             bool focusHeld = false, focusPressed = false;
+            // Behind the dawn card and the chart the bay sails on with the keeper's aim, but Space
+            // and the buttons there belong to the menus, not the horn.
+            // The press that began or resumed the night (A on Resume is the pad's horn) isn't for the horn either.
+            bool playing = (Game.Instance == null || Game.Instance.Current == Game.State.Playing) && Time.frameCount > ignorePressesUntil;
 
             if (mouse != null)
             {
@@ -51,7 +55,7 @@ namespace LastLight.Core
                 }
                 if (mouse.leftButton.isPressed) focusHeld = true;
                 if (mouse.leftButton.wasPressedThisFrame) focusPressed = true;
-                if (mouse.rightButton.wasPressedThisFrame) hornLatch = true;
+                if (mouse.rightButton.wasPressedThisFrame && playing) hornLatch = true;
             }
 
             if (kb != null)
@@ -72,7 +76,7 @@ namespace LastLight.Core
                 }
                 if (keys.Held(kb, KeeperAction.Focus)) focusHeld = true;
                 if (keys.Pressed(kb, KeeperAction.Focus)) focusPressed = true;
-                if (keys.Pressed(kb, KeeperAction.Horn)) hornLatch = true;
+                if (keys.Pressed(kb, KeeperAction.Horn) && playing) hornLatch = true;
             }
 
             if (pad != null)
@@ -96,11 +100,10 @@ namespace LastLight.Core
                 // A trigger press counts once it's past halfway, and again only after it's let go.
                 if (trigger > 0.5f && !triggerDown) { triggerDown = true; focusPressed = true; }
                 else if (trigger < 0.3f) triggerDown = false;
-                if (pad.buttonSouth.wasPressedThisFrame) hornLatch = true;
+                if (pad.buttonSouth.wasPressedThisFrame && playing) hornLatch = true;
             }
 
-            bool playing = Game.Instance == null || Game.Instance.Current == Game.State.Playing;
-            if (focusPressed && playing && Time.frameCount > ignorePressesUntil) focusOn = !focusOn;
+            if (focusPressed && playing) focusOn = !focusOn;
             input.Focus = ToggleFocus ? focusOn : focusHeld;
 
             if (!input.HasTarget && input.Turn == 0f && usingMouse) input.HasTarget = true;

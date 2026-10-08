@@ -415,6 +415,15 @@ namespace LastLight.Automation
             yield return PadPress(pad, GamepadButton.East);
             yield return Tour.Wait(0.5f);
             t.Log($"{(padPaused && Time.timeScale == 1f ? "PASS" : "FAIL")} Start pauses and B resumes");
+            // A on Resume is the pad's horn button too: it must not sound the horn as the night resumes.
+            while (g.Runner.World.HornCooldown > 0f) yield return null;
+            yield return PadPress(pad, GamepadButton.Start);
+            yield return Tour.Wait(0.5f);
+            bool pausedAgain = g.TourPaused;
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Tour.Wait(0.6f);
+            float resumeCd = g.Runner.World.HornCooldown;
+            t.Log($"{(pausedAgain && !g.TourPaused && resumeCd == 0f ? "PASS" : "FAIL")} A on Resume resumes without sounding the horn (cooldown {resumeCd:0.0}, paused {g.TourPaused})");
 
             // ---- Prompts follow the device in use, and each hint shows once per save.
             bool promptsOk = InputMode.Pad;

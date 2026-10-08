@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using LastLight.Audio;
+using LastLight.Core;
 using LastLight.Sim;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace LastLight.UI
@@ -104,7 +107,7 @@ namespace LastLight.UI
                 ("A false light that burned", null),
                 ("Buoys and the light", (k, p) => { k.Disc(p - new Vector2(22, 0), 5f, BuoyColor("green")); k.Disc(p - new Vector2(9, 0), 5f, BuoyColor("red")); k.Disc(p + new Vector2(4, 0), 5f, BuoyColor("bell")); Light(k, p + new Vector2(22, 0), 7f); }),
             };
-            float y = 210f;
+            float y = 200f;
             for (int i = 0; i < rows.Length; i++)
             {
                 var at = new Vector2(-150 + 30, 450 - y);   // the KeyInk rect is centred on the column
@@ -115,7 +118,7 @@ namespace LastLight.UI
                 if (i == 2) Icon(col, "lanternSolid", LuredAmber, new Vector2(64, -y), 22f);
                 var t = Label(col, rows[i].text, UiKit.BodyMedium, 22, Ink, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(i == 1 || i == 2 ? 84 : 70, -y), new Vector2(240, 30));
                 t.rectTransform.pivot = new Vector2(0, 0.5f);
-                y += 50f;
+                y += 46f;
             }
             key.Apply();
 
@@ -123,6 +126,7 @@ namespace LastLight.UI
             back.Normal = Ink;
             back.Hover = new Color(0.55f, 0.3f, 0.1f);
             back.Label.GetComponent<Shadow>().enabled = false;
+            back.IgnoreSpace = true;
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 20), new Vector2(290, 56));
             FirstSelected = back;
             BuildReplay(col);
@@ -421,8 +425,12 @@ namespace LastLight.UI
         ChartInk liveInk, beamInk;
         UiButton replayButton;
         UiSlider timeline;
-        Text timeText;
+        Text timeText, momentText, controlsText;
         RectTransform ticks;
+        List<NightLog.Moment> moments = new List<NightLog.Moment>();
+        bool controlsForPad;
+        /// <summary>A jump to a moment lands this many seconds of the night before it.</summary>
+        public const float MomentLead = 6f;
         readonly Dictionary<string, Image> lanterns = new Dictionary<string, Image>();
         readonly List<(Image cross, float time)> crosses = new List<(Image, float)>();
         // One mark per ship that sailed: its name, and a "?" or lantern while lost or lured.
@@ -443,10 +451,11 @@ namespace LastLight.UI
             replayButton.Normal = Ink;
             replayButton.Hover = new Color(0.55f, 0.3f, 0.1f);
             replayButton.Label.GetComponent<Shadow>().enabled = false;
-            ((RectTransform)replayButton.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -636), new Vector2(290, 50));
+            replayButton.IgnoreSpace = true;
+            ((RectTransform)replayButton.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -590), new Vector2(290, 50));
 
             timeline = UiSlider.Create(col, 0f, v => Scrub(v));
-            ((RectTransform)timeline.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -694), new Vector2(290, 40));
+            ((RectTransform)timeline.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -640), new Vector2(290, 40));
             // The slider is drawn for a dark panel; on paper its track wants ink.
             foreach (var img in timeline.GetComponentsInChildren<Image>())
             {
@@ -455,11 +464,19 @@ namespace LastLight.UI
             }
             timeline.KnobIdle = Ink;
             timeline.KnobHot = new Color(0.55f, 0.3f, 0.1f);
-            // Wrecks as red ticks along the timeline, so they're easy to find.
+            // The night's moments as ticks along the timeline, so they're easy to find: wrecks tall
+            // and red, ships lost (red) or lured (amber) short.
             ticks = UiKit.Rect("Ticks", timeline.transform).Stretch(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(12, -12), new Vector2(-12, 12));
             ticks.SetAsFirstSibling();
-            timeText = Label(col, "", UiKit.BodyMedium, 21, InkSoft, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -730), new Vector2(290, 30));
+            timeText = Label(col, "", UiKit.BodyMedium, 21, InkSoft, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -672), new Vector2(290, 30));
             timeText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            // The moment ahead (or just past), in words; and the replay's keys.
+            momentText = Label(col, "", UiKit.Italic, 20, Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -716), new Vector2(300, 50));
+            momentText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            momentText.lineSpacing = 0.95f;
+            controlsText = Label(col, "", UiKit.BodyMedium, 18, InkSoft, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -775), new Vector2(300, 44));
+            controlsText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            controlsText.lineSpacing = 1f;
 
             Navigation Nav(Selectable up, Selectable down) => new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = up, selectOnDown = down };
             replayButton.navigation = Nav(back, timeline);
@@ -496,14 +513,17 @@ namespace LastLight.UI
                 lured.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(20, 20));
                 shipMarks.Add((t, name, lost, lured));
             }
-            foreach (var (cross, time) in crosses)
+            moments = log.Moments();
+            foreach (var m in moments)
             {
-                var tick = UiKit.Image("Wreck", ticks, null, LostRed);
+                bool wreck = m.Kind == NightLog.MomentKind.Wrecked;
+                var tick = UiKit.Image(m.Kind.ToString(), ticks, null, m.Kind == NightLog.MomentKind.Lured ? LuredAmber : LostRed);
                 tick.raycastTarget = false;
-                float x = log.Duration > 0f ? time / log.Duration : 0f;
+                float x = log.Duration > 0f ? m.Time / log.Duration : 0f;
                 tick.rectTransform.anchorMin = tick.rectTransform.anchorMax = new Vector2(x, 0.5f);
-                tick.rectTransform.sizeDelta = new Vector2(3, 22);
-                tick.rectTransform.anchoredPosition = Vector2.zero;
+                tick.rectTransform.sizeDelta = wreck ? new Vector2(3, 22) : new Vector2(2, 10);
+                tick.rectTransform.anchoredPosition = wreck ? Vector2.zero : new Vector2(0, -12);
+                if (wreck) tick.transform.SetAsLastSibling();
             }
             timeline.Step = log.Duration > 0f ? Mathf.Clamp(5f / log.Duration, 0.005f, 0.05f) : 0.05f;
             replaying = playing = false;
@@ -540,9 +560,60 @@ namespace LastLight.UI
             ApplyReplay();
         }
 
+        /// <summary>Jumps to a few seconds before the next (or previous) moment: a ship lost, lured
+        /// or wrecked. Before the first moment, back goes to the start. A playing replay plays on.</summary>
+        public void JumpMoment(int direction)
+        {
+            if (log == null) return;
+            float to = -1f;
+            if (direction > 0)
+            {
+                foreach (var m in moments)
+                    if (Mathf.Max(0f, m.Time - MomentLead) > replayTime + 0.05f) { to = Mathf.Max(0f, m.Time - MomentLead); break; }
+                if (to < 0f) return;   // nothing more happens
+            }
+            else
+            {
+                to = 0f;
+                for (int i = moments.Count - 1; i >= 0; i--)
+                    if (Mathf.Max(0f, moments[i].Time - MomentLead) < replayTime - 0.05f) { to = Mathf.Max(0f, moments[i].Time - MomentLead); break; }
+            }
+            replaying = true;
+            replayTime = Mathf.Clamp(to, 0f, log.Duration);
+            ApplyReplay();
+            Sfx.Play("ui_tick", 0.35f, 1.1f, 0, Bus.Ui, 0f);
+        }
+
+        /// <summary>Steps the replay by some seconds of the night, paused (as the timeline's arrows do).</summary>
+        public void StepReplay(float seconds)
+        {
+            if (log == null) return;
+            SetReplayTime(replayTime + seconds);
+        }
+
+        // Space (or the pad's left face button) plays and pauses wherever the selection is; Q and E,
+        // Page Up and Down, or the shoulder buttons jump between moments; the arrows and the d-pad
+        // step it even when the timeline isn't chosen (when it is, it steps itself).
+        void ReplayKeys()
+        {
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            var es = EventSystem.current;
+            bool onTimeline = es != null && es.currentSelectedGameObject == timeline.gameObject;
+            if ((kb != null && kb.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonWest.wasPressedThisFrame)) ToggleReplay();
+            if ((kb != null && (kb.eKey.wasPressedThisFrame || kb.pageDownKey.wasPressedThisFrame)) || (pad != null && pad.rightShoulder.wasPressedThisFrame)) JumpMoment(1);
+            if ((kb != null && (kb.qKey.wasPressedThisFrame || kb.pageUpKey.wasPressedThisFrame)) || (pad != null && pad.leftShoulder.wasPressedThisFrame)) JumpMoment(-1);
+            if (onTimeline) return;
+            if ((kb != null && kb.rightArrowKey.wasPressedThisFrame) || (pad != null && pad.dpad.right.wasPressedThisFrame)) StepReplay(5f);
+            if ((kb != null && kb.leftArrowKey.wasPressedThisFrame) || (pad != null && pad.dpad.left.wasPressedThisFrame)) StepReplay(-5f);
+        }
+
         void Update()
         {
-            if (!Visible || !playing || log == null) return;
+            if (!Visible || log == null) return;
+            ReplayKeys();
+            if (controlsForPad != InputMode.Pad) ShowControls();
+            if (!playing) return;
             replayTime += Unscaled.Delta * ReplayRate;
             if (replayTime >= log.Duration) { replayTime = log.Duration; playing = false; }
             ApplyReplay();
@@ -553,6 +624,7 @@ namespace LastLight.UI
             if (log == null) return;
             string clock = $"{UiKit.Clock(replayTime)} of {UiKit.Clock(log.Duration)}";
             timeText.text = replaying ? clock : $"The night ran {UiKit.Clock(log.Duration)}";
+            momentText.text = MomentLine();
             replayButton.Label.text = playing ? "Pause" : replaying && replayTime > 0.01f && replayTime < log.Duration - 0.01f ? "Play on" : "Replay the night";
             timeline.Value = log.Duration > 0f ? replayTime / log.Duration : 0f;
             // The whole night faint underneath while it plays back; as it was once it's done.
@@ -594,13 +666,52 @@ namespace LastLight.UI
             beamInk.Apply();
         }
 
+        /// <summary>The moment ahead, or the one just past: "Next at 1:47: the Dunlin struck Widow's Ledge".</summary>
+        string MomentLine()
+        {
+            if (moments.Count == 0) return "A clean night: no ship lost its way.";
+            // The moment just jumped to (a few seconds ahead) first; otherwise one just past, for a
+            // couple of seconds; otherwise the next.
+            int next = -1, past = -1;
+            for (int i = 0; i < moments.Count; i++)
+            {
+                if (moments[i].Time > replayTime + 0.05f) { next = i; break; }
+                if (moments[i].Time >= replayTime - 2f) past = i;
+            }
+            int shown = next >= 0 && moments[next].Time - replayTime <= MomentLead + 0.1f ? next : past >= 0 ? past : next;
+            if (shown < 0) return "Nothing more went wrong.";
+            var m = moments[shown];
+            string when = !replaying ? $"First, at {UiKit.Clock(m.Time)}" : m.Time > replayTime + 0.05f ? $"Next at {UiKit.Clock(m.Time)}" : UiKit.Clock(m.Time);
+            return $"{when}: {MomentWords(m)}";
+        }
+
+        public static string MomentWords(NightLog.Moment m) => m.Kind switch
+        {
+            NightLog.MomentKind.Wrecked => $"the {m.Ship.Name} {Debrief.Hit(m.Ship)}",
+            NightLog.MomentKind.Lured => $"the {m.Ship.Name} was lured",
+            _ => m.AfterLure ? $"the {m.Ship.Name}, freed, lost its way" : $"the {m.Ship.Name} lost its way",
+        };
+
+        /// <summary>The replay's keys, or the pad's buttons in the chosen style's names.</summary>
+        void ShowControls()
+        {
+            controlsForPad = InputMode.Pad;
+            controlsText.text = InputMode.Pick(
+                $"Space plays  ·  ← → step 5 s\n{KeyBindings.KeyName(Key.Q)} and {KeyBindings.KeyName(Key.E)} jump to each moment",
+                $"{PadButtons.West} plays  ·  d-pad steps 5 s\n{PadButtons.LeftShoulder} and {PadButtons.RightShoulder} jump to each moment");
+        }
+
         // For tours.
         public bool Replaying => replaying;
+        public string MomentShown => momentText.text;
+        public string ControlsShown => controlsText.text;
+        public IReadOnlyList<NightLog.Moment> ReplayMoments => moments;
         public bool ReplayPlaying => playing;
         public float ReplayTime => replayTime;
         public float ReplayDuration => log != null ? log.Duration : 0f;
         public NightLog.BeamSample BeamShown { get; private set; }
         public UiButton ReplayButton => replayButton;
+        public UiButton BackButton => back;
         public UiSlider Timeline => timeline;
         public string TimeShown => timeText.text;
         /// <summary>A ship's mark in the replay: whether it's showing, where (chart area space), and
@@ -621,6 +732,7 @@ namespace LastLight.UI
         public override void Show()
         {
             base.Show();
+            ShowControls();
             panel.localScale = Vector3.one * 0.96f;
             Tween.Scale(panel, 0.96f, 1f, 0.45f, 0f, Tween.EaseOutBack);
             Sfx.Play("ui_page", 0.6f);

@@ -54,7 +54,7 @@ namespace LastLight.Sim
         public static string WreckText(SimShip s)
         {
             string where = s.WreckShoal ? "the " + s.WreckCause : s.WreckCause;
-            string hit = s.WreckShoal ? "ran aground on " + where : where == "the shore" ? "ran ashore" : "struck " + where;
+            string hit = Hit(s);
             switch (s.WreckedWhile)
             {
                 case ShipState.Lured:
@@ -65,6 +65,13 @@ namespace LastLight.Sim
                     if (where == "the shore") return hit;
                     return !s.WreckCharted ? $"{hit}, uncharted" : s.WreckLate ? $"{hit}, charted too late to turn" : $"{hit} despite the chart";
             }
+        }
+
+        /// <summary>"struck the Merrow Teeth", "ran aground on the Long Sands" or "ran ashore".</summary>
+        public static string Hit(SimShip s)
+        {
+            string where = s.WreckShoal ? "the " + s.WreckCause : s.WreckCause;
+            return s.WreckShoal ? "ran aground on " + where : where == "the shore" ? "ran ashore" : "struck " + where;
         }
 
         static string LuredText(SimShip s)

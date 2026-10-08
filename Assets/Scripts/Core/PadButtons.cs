@@ -56,6 +56,18 @@ namespace LastLight.Core
             _ => ("A", "B", "RT", "Start"),
         };
 
+        /// <summary>The left face button and the shoulder buttons, which only the replay uses.</summary>
+        public static (string west, string leftShoulder, string rightShoulder) Others(PadStyle style) => style switch
+        {
+            PadStyle.PlayStation => ("Square", "L1", "R1"),
+            PadStyle.Nintendo => ("Y", "L", "R"),
+            _ => ("X", "LB", "RB"),
+        };
+
+        public static string West => Others(Style).west;
+        public static string LeftShoulder => Others(Style).leftShoulder;
+        public static string RightShoulder => Others(Style).rightShoulder;
+
         public static readonly string[] Choices = { "Auto", "Xbox", "PlayStation", "Nintendo" };
     }
 }

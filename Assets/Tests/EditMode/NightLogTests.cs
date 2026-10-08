@@ -173,6 +173,50 @@ namespace LastLight.Tests
             }
         }
 
+        [Test]
+        public void TheNightsMomentsAreEachTurnOnce([Values(2, 9)] int night)
+        {
+            // The replay jumps between these: every wreck, every time a ship was lured and every
+            // time it lost its way, once each and in order.
+            // Nobody keeps the light for the first stretch, so ships are lost (and on night IX lured);
+            // then the bot keeps it, but leaves the first ship to its fate.
+            var def = Validation.FreshMissions()[night - 1];
+            def.allowedWrecks = 99;
+            var w = new SimWorld(Validation.FreshMap(), def, 7);
+            var log = new NightLog();
+            var bot = new AutoKeeper { Ignore = s => s.Name == def.ships[0].name };
+            for (int i = 0; i < 60 * 900 && w.Outcome == MissionOutcome.Running; i++)
+            {
+                var input = bot.Decide(w, 1f / 60f);
+                w.Step(1f / 60f, w.Time < 100f ? new KeeperInput { TargetBearing = input.TargetBearing } : input);
+                log.Record(w);
+            }
+            var moments = log.Moments();
+            for (int i = 1; i < moments.Count; i++)
+                Assert.LessOrEqual(moments[i - 1].Time, moments[i].Time, "in the order they happened");
+            int lostSeen = 0, luredSeen = 0;
+            foreach (var s in w.Ships)
+            {
+                int wrecked = 0, lured = 0, lost = 0;
+                foreach (var m in moments)
+                {
+                    if (m.Ship != s) continue;
+                    if (m.Kind == NightLog.MomentKind.Wrecked) { wrecked++; Assert.AreEqual(s.WreckTime, m.Time, 1e-3f, $"the {s.Name}'s wreck is when it struck"); }
+                    if (m.Kind == NightLog.MomentKind.Lured) lured++;
+                    if (m.Kind == NightLog.MomentKind.Lost && !m.AfterLure) lost++;
+                }
+                Assert.AreEqual(s.State == ShipState.Wrecked ? 1 : 0, wrecked, $"night {night}: the {s.Name} is wrecked once, if at all");
+                Assert.AreEqual(s.LuredCount, lured, $"night {night}: each time the {s.Name} was lured");
+                Assert.AreEqual(s.LostCount, lost, $"night {night}: each time the {s.Name} lost its way");
+                lostSeen += lost;
+                luredSeen += lured;
+            }
+            Debug.Log($"[NightLog] night {night}: {moments.Count} moments ({w.Wrecks} wrecks, {lostSeen} lost, {luredSeen} lured)");
+            Assert.Greater(w.Wrecks, 0, "a neglected ship wrecks someone");
+            Assert.Greater(lostSeen, 0, "and some ship lost its way");
+            if (night == 9) Assert.Greater(luredSeen, 0, "and on night IX some ship was lured");
+        }
+
         static string Changes(NightLog.Track t)
         {
             var sb = new System.Text.StringBuilder();

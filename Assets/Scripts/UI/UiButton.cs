@@ -93,7 +93,15 @@ namespace LastLight.UI
             Press();
         }
 
-        public void OnSubmit(BaseEventData eventData) => Press();
+        /// <summary>Space doesn't press this button (on the chart, Space plays the replay).</summary>
+        public bool IgnoreSpace;
+
+        public void OnSubmit(BaseEventData eventData)
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (IgnoreSpace && kb != null && kb.spaceKey.wasPressedThisFrame && !kb.enterKey.wasPressedThisFrame && !kb.numpadEnterKey.wasPressedThisFrame) return;
+            Press();
+        }
 
         void Press()
         {
