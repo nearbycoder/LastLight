@@ -70,6 +70,7 @@ namespace LastLight.Core
         public PadBindings pad = new PadBindings();    // the gamepad's buttons for focus and the horn
         public bool shake = true;
         public float textSpeed = 1f;             // multiplier
+        public bool plainRadio;                  // the radio's calls in the plain sans-serif rather than the typewriter
         public bool hints = true;
         public List<string> hintsSeen = new List<string>();   // each onboarding hint shows once per save
 
@@ -377,7 +378,7 @@ namespace LastLight.Core
             Application.targetFrameRate = Game.Arg("-llFps", FrameRate);
             brightness = Mathf.Clamp(brightness, -2, 2);
             Stage.SetBrightness(brightness);
-            if (Game.Instance != null && Game.Instance.Hud != null) Game.Instance.Hud.SetScale(hudScale);
+            if (Game.Instance != null && Game.Instance.Hud != null) { Game.Instance.Hud.SetScale(hudScale); Game.Instance.Hud.SetRadioLettering(); }
             // The pipeline asset is shared with the editor, so only the player changes it.
             if (!Application.isEditor && GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
                 urp.renderScale = Mathf.Clamp(renderScale, 0.5f, 1f);

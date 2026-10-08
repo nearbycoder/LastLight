@@ -657,6 +657,7 @@ namespace LastLight.UI
         {
             LogShown = 0;
             LogNewest = null;
+            UiKit.SetRadioLettering(logText, 21);
             if (log == null || log.Count == 0) { logPanel.gameObject.SetActive(false); return; }
             logPanel.gameObject.SetActive(true);
             string body = "";

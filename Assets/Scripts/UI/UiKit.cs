@@ -30,6 +30,19 @@ namespace LastLight.UI
         public static Font Italic => italic ??= Load("AlegreyaSans-Italic");
         public static Font Radio => radio ??= Load("SpecialElite-Regular");
 
+        /// <summary>The radio's lettering: the worn typewriter, or with Settings ▸ Radio lettering on
+        /// Plain the game's sans-serif, a size larger to match the typewriter's height.</summary>
+        public static Font RadioFont => Core.SaveData.Current.plainRadio ? BodyMedium : Radio;
+        public static int RadioSize(int typewriter) => Core.SaveData.Current.plainRadio ? Mathf.RoundToInt(typewriter * 1.08f) : typewriter;
+
+        /// <summary>Puts a radio text in the keeper's lettering.</summary>
+        public static void SetRadioLettering(Text text, int typewriterSize)
+        {
+            if (text == null) return;
+            text.font = RadioFont;
+            text.fontSize = RadioSize(typewriterSize);
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { title = heading = body = bodyBold = bodyMedium = italic = radio = null; }
 

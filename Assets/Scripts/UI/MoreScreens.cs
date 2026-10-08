@@ -18,6 +18,8 @@ namespace LastLight.UI
 
         /// <summary>The "new tonight" card's words as shown; for tours.</summary>
         public string NewThingShown => newText.text;
+        /// <summary>For tours: Ianto's speech, to measure briefings against its box.</summary>
+        public Text TourSpeech => speech;
         public string PromptShown => prompt.text;
         Image newIcon;
         RectTransform card, newCard;
@@ -155,6 +157,7 @@ namespace LastLight.UI
             full = def.briefing ?? "";
             typed = 0f;
             speech.text = "";
+            UiKit.SetRadioLettering(speech, 28);
             newThing = def.newThing;
             if (!string.IsNullOrEmpty(def.newThing) && NewThings.TryGetValue(def.newThing, out var n))
             {
@@ -368,6 +371,8 @@ namespace LastLight.UI
                 "Off: the game falls silent while its window is out of focus. A night pauses either way.");
             Row("Text speed", UiStepper.Create(panel, new[] { "Slow", "Normal", "Fast" }, save.textSpeed < 0.9f ? 0 : save.textSpeed > 1.1f ? 2 : 1, i => { save.textSpeed = i == 0 ? 0.7f : i == 2 ? 1.5f : 1f; }),
                 "How fast the radio's calls type out.");
+            Row("Radio lettering", UiStepper.Create(panel, new[] { "Typewriter", "Plain" }, save.plainRadio ? 1 : 0, i => { save.plainRadio = i == 1; save.Apply(display: false); }),
+                "Plain sets the radio's calls in clear, plain letters instead of the worn typewriter: on the HUD, in briefings and in the pause menu's log.");
             float[] hudScales = { 1f, 1.15f, 1.3f };
             int hudIndex = System.Array.FindIndex(hudScales, v => Mathf.Abs(v - save.hudScale) < 0.01f);
             Row("HUD text size", UiStepper.Create(panel, new[] { "100%", "115%", "130%" }, Mathf.Max(0, hudIndex), i => { save.hudScale = hudScales[i]; save.Apply(); }),

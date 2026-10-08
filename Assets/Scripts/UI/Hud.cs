@@ -94,6 +94,14 @@ namespace LastLight.UI
         }
 
         /// <summary>Settings: HUD text size. A smaller reference resolution draws everything bigger.</summary>
+        const int RadioTextSize = 23;
+
+        /// <summary>Settings ▸ Radio lettering: the typewriter or the plain face.</summary>
+        public void SetRadioLettering() => UiKit.SetRadioLettering(radioText, RadioTextSize);
+
+        /// <summary>For tours: the radio's text, to measure calls against its box.</summary>
+        public Text TourRadioText => radioText;
+
         public void SetScale(float scale)
         {
             var scaler = canvas.GetComponent<CanvasScaler>();
@@ -167,6 +175,7 @@ namespace LastLight.UI
             radioRole = UiKit.Text("Role", radioPanel, "", UiKit.Italic, 18, UiKit.Muted, TextAnchor.UpperRight);
             radioRole.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(150, -42), new Vector2(-22, -16));
             radioText = UiKit.Text("Text", radioPanel, "", UiKit.Radio, 23, UiKit.Paper, TextAnchor.UpperLeft);
+            UiKit.SetRadioLettering(radioText, RadioTextSize);
             radioText.rectTransform.Stretch(new Vector2(0, 0), new Vector2(1, 1), new Vector2(150, 12), new Vector2(-24, -50));
             radioText.lineSpacing = 1.12f;
         }
