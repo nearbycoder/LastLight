@@ -51,6 +51,7 @@ namespace LastLight.Core
         // Settings
         public float master = 0.9f, music = 0.75f, sfx = 1f, radio = 1f, ambience = 0.9f;
         public bool muteInBackground;            // silence the game while its window is out of focus
+        public bool mono;                        // everything in both ears alike (Settings ▸ Sound)
         public bool fullscreen = true;
         public int resWidth, resHeight;          // 0 = the desktop's own resolution
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
@@ -370,6 +371,7 @@ namespace LastLight.Core
             Sfx.SfxVolume = sfx;
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
+            MonoMix.On = mono;
             if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
             ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
             Application.targetFrameRate = Game.Arg("-llFps", FrameRate);

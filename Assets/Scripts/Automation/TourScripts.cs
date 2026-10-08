@@ -592,17 +592,17 @@ namespace LastLight.Automation
             var expected = new System.Collections.Generic.List<string>();
             foreach (var (name, about) in settings.AboutAll) expected.Add(name);
             int aboutWrong = 0;
-            for (int i = 0; i < 13; i++)
+            for (int i = 0; i < settings.LeftRows + 1; i++)
             {
-                yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the left since Sound in background
+                yield return PadPress(pad2, GamepadButton.DpadDown);   // the left column's rows, and into the right one
                 walked.Add(settings.AboutShown ?? "nothing");
             }
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
             yield return t.Shot("input_settings_about_pad");
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < settings.RightRows; i++)
             {
-                yield return PadPress(pad2, GamepadButton.DpadDown);   // twelve rows on the right since Pad buttons
+                yield return PadPress(pad2, GamepadButton.DpadDown);   // the rest of the right column, then Done
                 walked.Add(settings.AboutShown ?? "nothing");
             }
             string last = Selected();

@@ -293,6 +293,11 @@ namespace LastLight.UI
         public IEnumerable<(string name, string about)> AboutAll { get { foreach (var r in rows) yield return (r.name, r.about); } }
         public RectTransform RowLabel(string name) { foreach (var r in rows) if (r.name == name) return r.label; return null; }
         public RectTransform RowControl(string name) { foreach (var r in rows) if (r.name == name) return (RectTransform)r.control.transform; return null; }
+        /// <summary>How many rows each column has; for tours walking them with the pad.</summary>
+        public int LeftRows { get; private set; }
+        public int RightRows { get; private set; }
+        // Thirteen rows a column fit between the rule and the description at this spacing.
+        const float RowStep = 52f;
 
         /// <summary>"Native" first, then the desktop's modes from 1280x720 up, smallest first.</summary>
         static List<Vector2Int> Resolutions()
@@ -336,15 +341,17 @@ namespace LastLight.UI
             void Row(string label, Component control, string about)
             {
                 // Label and control share a centre line.
-                float y = -196 - row * 56;
+                float y = -196 - row * RowStep;
                 var l = Label(panel, label, UiKit.BodyMedium, 28, UiKit.Paper, TextAnchor.MiddleLeft, new Vector2(0.5f, 1), new Vector2(column - 170, y), new Vector2(380, 50));
                 l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 l.Shadowed();
                 ((RectTransform)control.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(column + 210, y), new Vector2(380, 46));
                 order.Add((Selectable)control);
                 rows.Add((label, l.rectTransform, (Selectable)control, about));
+                if (column < 0f) LeftRows++; else RightRows++;
                 row++;
             }
+            LeftRows = RightRows = 0;
             Row("Master volume", UiSlider.Create(panel, save.master, v => { save.master = v; save.Apply(); }),
                 "Everything the game plays, together.");
             Row("Music", UiSlider.Create(panel, save.music, v => { save.music = v; save.Apply(); }),
@@ -355,6 +362,8 @@ namespace LastLight.UI
                 "The captains' and the harbourmaster's voices. Their words always show as text.");
             Row("Sea and wind", UiSlider.Create(panel, save.ambience, v => { save.ambience = v; save.Apply(); }),
                 "The swell, the wind and the rain.");
+            Row("Sound", UiStepper.Create(panel, new[] { "Stereo", "Mono" }, save.mono ? 1 : 0, i => { save.mono = i == 1; save.Apply(display: false); }),
+                "Mono: every sound in both ears alike, for hearing on one side or a single speaker. Stereo places sounds where they are.");
             Row("Sound in background", UiStepper.Create(panel, new[] { "On", "Off" }, save.muteInBackground ? 1 : 0, i => save.muteInBackground = i == 1),
                 "Off: the game falls silent while its window is out of focus. A night pauses either way.");
             Row("Text speed", UiStepper.Create(panel, new[] { "Slow", "Normal", "Fast" }, save.textSpeed < 0.9f ? 0 : save.textSpeed > 1.1f ? 2 : 1, i => { save.textSpeed = i == 0 ? 0.7f : i == 2 ? 1.5f : 1f; }),
@@ -377,10 +386,6 @@ namespace LastLight.UI
             keysButton = UiButton.Create(panel, "Change", UiKit.BodyMedium, 26, ShowKeys, TextAnchor.MiddleCenter);
             Row("Keys and buttons", keysButton,
                 "Choose the keys for turning, focus and the foghorn, and the gamepad's buttons for focus and the foghorn.");
-            int[] caps = { 0, 60, 30 };
-            Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }),
-                "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");
-
             row = 0;
             column = 410f;
             Row("Difficulty", UiStepper.Create(panel, new[] { "Standard", "Hard" }, save.difficulty, i => save.difficulty = i),
@@ -404,6 +409,9 @@ namespace LastLight.UI
             var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
             Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }),
                 "The window's size, or the screen's when fullscreen. Native is the display's own.");
+            int[] caps = { 0, 60, 30 };
+            Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }),
+                "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");
             Row("Brightness", UiStepper.Create(panel, new[] { "−2", "−1", "Standard", "+1", "+2" }, Mathf.Clamp(save.brightness, -2, 2) + 2, i => { save.brightness = i - 2; save.Apply(display: false); }),
                 "The bay, from half a stop darker to a stop brighter. The menus and the HUD stay as they are.");
             Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }),
@@ -418,7 +426,7 @@ namespace LastLight.UI
             ((RectTransform)back.transform).Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(300, 60));
             order.Add(back);
             // What the chosen setting does, in the space under the right-hand column.
-            // Between the last rows (both columns end at -812) and Done (from -904): two lines across the panel.
+            // Between the last rows (13 rows end at -820, their boxes at -845) and Done (from -904): two lines across the panel.
             about = Label(panel, "", UiKit.Italic, 23, new Color(0.78f, 0.8f, 0.83f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -873), new Vector2(1440, 56));
             about.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             about.lineSpacing = 1f;

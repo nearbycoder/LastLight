@@ -50,6 +50,7 @@ namespace LastLight.Core
             data.requiresColorTexture = false;
             data.dithering = true;   // no banding in the long dark gradients and the dawn sky
             go.AddComponent<AudioListener>();
+            go.AddComponent<LastLight.Audio.MonoMix>();
             var rig = go.AddComponent<CameraRig>();
             rig.Snap(CameraRig.PlayPose);
             return rig;
