@@ -702,6 +702,7 @@ namespace LastLight.Core
         void Update()
         {
             ShaderGlobals.PushMood();
+            Stage.MenuOpen = pause != null && (pause.Visible || settings.Visible || notes.Visible || logbook.Visible || results.Visible || chart.Visible);
             InputMode.Update();
             // The pointer means nothing to a pad player: hide it until the mouse moves again.
             if (Cursor.visible == InputMode.Pad) Cursor.visible = !InputMode.Pad;

@@ -104,7 +104,7 @@ namespace LastLight.Core
             // of field: the released game never showed them, only the editor did. They stay off so
             // the editor shows what the build does, except bloom and depth of field, which
             // Assets/Settings/LL_PostVariants.asset now keeps in the build: bloom for Graphics
-            // fidelity Ultra, and depth of field for Ultra's title.
+            // fidelity Ultra, and depth of field behind menus and in Ultra's title.
             Bloom.active = false;
 
             var tm = profile.Add<Tonemapping>(true);
@@ -204,13 +204,38 @@ namespace LastLight.Core
         // The lantern the title's and the ending's close-ups look at.
         static readonly Vector3 Lantern = new Vector3(0f, 17f, 30f);
 
-        /// <summary>Depth of field, each frame from the camera rig: on Ultra, when the camera is
-        /// down at the lighthouse (the title and the ending), the far sea and the sky soften behind
-        /// the tower while the tower, the cliffs and the beam's pool stay sharp; it fades out as the
-        /// camera rises to the play view. Otherwise off.</summary>
+        /// <summary>A menu is over the bay (pause, Settings, the keeper's notes, the logbook, dawn
+        /// or the chart): the bay behind it softens. Set each frame by the game.</summary>
+        public static bool MenuOpen;
+        /// <summary>For tours: hold the bay sharp behind a menu, to compare.</summary>
+        public static bool MenuBlurOff;
+        /// <summary>How far the menu's softening has eased in, 0..1.</summary>
+        public static float MenuBlur { get; private set; }
+
+        /// <summary>Depth of field, each frame from the camera rig. Behind a menu the whole bay
+        /// softens, easing in and out over a quarter of a second (not on Low, which keeps only the
+        /// menus' own dimming). Otherwise, on Ultra, when the camera is down at the lighthouse (the
+        /// title and the ending), the far sea and the sky soften behind the tower while the tower,
+        /// the cliffs and the beam's pool stay sharp; it fades out as the camera rises to the play
+        /// view. Otherwise off.</summary>
         public static void UpdateFocus(Vector3 camera)
         {
             if (Focus == null) return;
+            bool soften = MenuOpen && !MenuBlurOff && Fidelity.Level > Fidelity.Low;
+            MenuBlur = Mathf.MoveTowards(MenuBlur, soften ? 1f : 0f, Unscaled.Delta * 4f);
+            if (MenuBlur > 0.001f)
+            {
+                // Focused a hand's breadth from the lens, everything beyond is out of focus by the
+                // most the blur allows; the focal length eases the circle of confusion up from nothing.
+                float k = MenuBlur * MenuBlur * (3f - 2f * MenuBlur);
+                Focus.mode.Override(DepthOfFieldMode.Bokeh);
+                Focus.focusDistance.Override(0.3f);
+                Focus.focalLength.Override(Mathf.Lerp(1f, 150f, k * k));
+                Focus.aperture.Override(1.4f);
+                Focus.bladeCount.Override(6);
+                Focus.bladeCurvature.Override(1f);
+                return;
+            }
             float close = 1f - Mathf.Clamp01((camera.y - 14f) / 26f);
             if (Fidelity.Level != Fidelity.Ultra || close <= 0.02f)
             {

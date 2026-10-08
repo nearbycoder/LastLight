@@ -162,6 +162,10 @@ namespace LastLight.Automation
             g.TourPause();
             yield return Tour.Wait(1.2f);
             yield return t.Shot("06_pause");
+            // The bay behind the pause card softens (not on Low, which only dims it).
+            var blurOk = new bool[1];
+            yield return MenuBlurCheck.Measure(t, "06a_pause", blurOk);
+            if (!blurOk[0]) Debug.LogError("[Tour] the bay behind the pause card didn't soften");
             g.TourResume();
             g.Runner.TimeScale = 5f;
             float waited = 0f;
