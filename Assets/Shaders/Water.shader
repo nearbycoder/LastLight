@@ -35,6 +35,11 @@ Shader "LL/Water"
             #pragma fragment frag
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            // Graphics fidelity: Low drops the finest detail, Ultra adds a finer sea; High is neither.
+            #pragma multi_compile _ LL_FIDELITY_LOW LL_FIDELITY_ULTRA
+            // The moon's shadows across its glitter (Ultra).
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -125,6 +130,22 @@ Shader "LL/Water"
                 }
                 float n = LLNoise2(xz * 0.35 + t * 0.15) - 0.5;
                 slope += float2(n, -n) * 0.25;
+                #if defined(LL_FIDELITY_ULTRA)
+                // A finer cat's-paw octave: short, quick ripples that break the glints up further.
+                const float4 f[4] =
+                {
+                    float4(0.8, -0.6, 0.43, 3.4), float4(-0.45, -0.9, 0.31, -3.9),
+                    float4(0.25, 0.97, 0.23, 4.4), float4(-0.99, 0.15, 0.17, -5.1),
+                };
+                [unroll] for (int j = 0; j < 4; j++)
+                {
+                    float2 d = normalize(f[j].xy);
+                    float k = 6.2831853 / f[j].z;
+                    slope += d * cos(k * dot(d, xz) + t * f[j].w) * 0.045;
+                }
+                float n2 = LLNoise2(xz * 1.3 - t * 0.35) - 0.5;
+                slope += float2(-n2, n2) * 0.1;
+                #endif
                 return normalize(float3(-slope.x * strength, 1.0, -slope.y * strength));
             }
 
@@ -144,8 +165,8 @@ Shader "LL/Water"
                 float ndv = saturate(dot(N, V));
                 float fresnel = 0.025 + 0.975 * pow(1.0 - ndv, 5.0);
 
-                Light moon = GetMainLight();
-                float moonB = _LLAmbient.w;
+                Light moon = GetMainLight(TransformWorldToShadowCoord(pos));
+                float moonB = _LLAmbient.w * moon.shadowAttenuation;
                 float3 R = reflect(-V, N);
                 float3 sky = lerp(_SkyHorizon.rgb, _SkyZenith.rgb, saturate(R.y * 2.0));
                 sky = lerp(sky, float3(0.95, 0.55, 0.35), _LLDawn * saturate(1.0 - R.y * 3.0));
@@ -158,7 +179,11 @@ Shader "LL/Water"
                 float path = pow(saturate(dot(Rflat, moon.direction)), 10.0);
                 float3 Hm = normalize(moon.direction + V);
                 float nhm = saturate(dot(N, Hm));
+                #if defined(LL_FIDELITY_LOW)
+                float sparkleNoise = 0.35;
+                #else
                 float sparkleNoise = LLSmooth(0.7, 0.92, LLNoise2(pos.xz * 2.6 + float2(t * 0.9, -t * 0.6)));
+                #endif
                 float sparkle = pow(nhm, 600.0) * 7.0 * sparkleNoise;
                 float3 moonGlint = moon.color * moonB * (path * (0.1 + wind * 0.12) + sparkle * (0.025 + path * 1.9));
 

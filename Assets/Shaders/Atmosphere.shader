@@ -36,6 +36,8 @@ Shader "LL/Atmosphere"
             #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment frag
+            // Graphics fidelity Ultra: a finer octave in the fog banks.
+            #pragma multi_compile _ LL_FIDELITY_ULTRA
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -45,13 +47,18 @@ Shader "LL/Atmosphere"
 
             float _Steps, _HazeDensity, _HazeHeight, _FogDensity, _ScatterGain, _Extinction, _FogExtinction, _LanternGlow, _BeamScatter, _HazeNoise;
             float4 _AmbientScatter;
-            float _LLAtmoSteps;
+            float _LLAtmoSteps, _LLFrameIndex;
 
             // The haze wisp noise doubles as the fog's coarse octave; only the fine one is extra.
             float FogNoise(float3 p, float wisp)
             {
                 float3 q = p * float3(0.103, 0.207, 0.103) + float3(_Time.y * 0.08, 0, _Time.y * 0.046) + 5.1;
                 float n = wisp * 0.62 + LLNoise3(q) * 0.38;
+                #if defined(LL_FIDELITY_ULTRA)
+                // Curling detail at a few metres, drifting faster than the bank it's in.
+                float3 q2 = q * 2.7 + float3(-_Time.y * 0.11, 0.0, _Time.y * 0.07) + 11.3;
+                n = n * 0.86 + (LLNoise3(q2) - 0.5) * 0.24 + 0.07;
+                #endif
                 return saturate(n * 1.8 - 0.3);
             }
 
@@ -90,7 +97,11 @@ Shader "LL/Atmosphere"
 
                 int steps = (int)(_LLAtmoSteps > 0 ? _LLAtmoSteps : _Steps);
                 float dt = (t1 - t0) / steps;
+                #if defined(LL_FIDELITY_ULTRA)
+                float jitter = LLIGN(input.positionCS.xy + _LLFrameIndex * 5.588238);
+                #else
                 float jitter = LLIGN(input.positionCS.xy + frac(_Time.y * 7.0) * 64.0);
+                #endif
                 float transmittance = 1.0;
                 float3 scatter = 0;
                 Light moon = GetMainLight();

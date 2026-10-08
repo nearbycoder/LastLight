@@ -41,7 +41,7 @@ namespace LastLight.View
             WaterMaterial = MaterialLibrary.Water;
             r.sharedMaterial = WaterMaterial;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            r.receiveShadows = false;
+            r.receiveShadows = true;   // the moon's shadows across its glitter (Ultra)
         }
 
         void BuildCoast()

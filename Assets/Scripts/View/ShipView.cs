@@ -275,7 +275,7 @@ namespace LastLight.View
             {
                 var em = wake.emission;
                 float sp = Ship.Resolved ? (Ship.State == ShipState.Arrived ? Ship.Stats.Speed * 0.5f * fade : 0f) : Ship.Speed;
-                em.rateOverTime = sp * 4.5f;
+                em.rateOverTime = sp * 4.5f * Fidelity.Particles;
             }
             if (smoke != null && Ship.State == ShipState.Wrecked) { var em = smoke.emission; em.rateOverTime = 0f; }
         }
@@ -378,7 +378,7 @@ namespace LastLight.View
             fireLight.enabled = fire > 0.01f;
             if (fireSmoke == null) return;
             var em = fireSmoke.emission;
-            em.rateOverTime = sinkT < 1.9f ? 10f : 0f;
+            em.rateOverTime = sinkT < 1.9f ? 10f * Fidelity.Particles : 0f;
         }
 
         void AnimateResolved(float dt)

@@ -55,7 +55,7 @@ namespace LastLight.Core
         public bool fullscreen = true;
         public int resWidth, resHeight;          // 0 = the desktop's own resolution
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
-        public int quality = 2;                  // 0 low, 1 medium, 2 high
+        public int quality = 2;                  // Graphics fidelity: 0 Low, 1 Medium, 2 High, 3 Ultra (see Fidelity; once Fog and haze quality, Low to High)
         public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
         public int frameCap;                     // frames per second: 0 = the display's rate (at least 60), or 60 or 30
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
@@ -373,7 +373,10 @@ namespace LastLight.Core
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
             MonoMix.On = mono;
-            if (Game.Arg("-llSteps", -1) <= 0) ShaderGlobals.Steps = quality switch { 0 => 10, 1 => 16, _ => 24 };
+            quality = Mathf.Clamp(quality, Fidelity.Low, Fidelity.Ultra);
+            Fidelity.Set(quality, steps: Game.Arg("-llSteps", -1) <= 0);
+            Stage.ApplyFidelity();
+            if (Game.Instance != null) Game.Instance.OnFidelity();
             ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
             Application.targetFrameRate = Game.Arg("-llFps", FrameRate);
             brightness = Mathf.Clamp(brightness, -2, 2);

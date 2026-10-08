@@ -46,7 +46,7 @@ namespace LastLight.View
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.playOnAwake = false;
-            main.maxParticles = max;
+            main.maxParticles = Fidelity.Level == Fidelity.Ultra ? Mathf.CeilToInt(max * Fidelity.Particles) : max;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.scalingMode = ParticleSystemScalingMode.Hierarchy;
             var em = ps.emission;
@@ -107,7 +107,7 @@ namespace LastLight.View
             main.startColor = new Color(0.28f, 0.27f, 0.27f, 1f);
             main.gravityModifier = -0.02f;
             var em = ps.emission;
-            em.rateOverTime = rate;
+            em.rateOverTime = rate * Fidelity.Particles;
             var shape = ps.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Cone;
@@ -133,15 +133,12 @@ namespace LastLight.View
         /// <summary>Rain over the bay (follows nothing; covers the play area).</summary>
         public static ParticleSystem RainSheet(float intensity)
         {
-            var ps = System("Rain", null, Rain, 6000);
+            var ps = System("Rain", null, Rain, 10000);
             ps.transform.position = new Vector3(0, 60, 40);
             var main = ps.main;
             main.startLifetime = 1.2f;
             main.startSpeed = 0f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.55f);
-            main.startColor = new Color(0.8f, 0.86f, 0.95f, 0.55f);
-            var em = ps.emission;
-            em.rateOverTime = 3500f * intensity;
+            SetRain(ps, intensity);
             var shape = ps.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Box;
@@ -160,11 +157,24 @@ namespace LastLight.View
             return ps;
         }
 
+        /// <summary>The rain's strength (0..1) at the current Graphics fidelity. Ultra's rain is
+        /// denser and finer, so the sheet reads about as heavy as High's; Low's is sparser.</summary>
+        public static void SetRain(ParticleSystem ps, float amount)
+        {
+            var main = ps.main;
+            bool ultra = Fidelity.Level == Fidelity.Ultra;
+            float size = ultra ? 0.82f : 1f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.35f * size, 0.55f * size);
+            main.startColor = new Color(0.8f, 0.86f, 0.95f, ultra ? 0.5f : 0.55f);
+            var em = ps.emission;
+            em.rateOverTime = 3500f * amount * Fidelity.Particles;
+        }
+
         // ---------------------------------------------------------------- bursts
 
         static void Burst(ParticleSystem ps, int count, float destroyAfter)
         {
-            ps.Emit(count);
+            ps.Emit(Fidelity.Count(count));
             Object.Destroy(ps.gameObject, destroyAfter);
         }
 

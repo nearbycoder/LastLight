@@ -8,7 +8,7 @@ namespace LastLight.Automation
     /// <summary>
     /// The perf tour (-llScript perf, with -llFresh -llPerfNote -llFps 30): the dawn card's word
     /// after a slow night. Night I is played four times by the AutoKeeper. Held to 30 fps while
-    /// Frame rate is on Display, dawn names Render scale 70% and Fog and haze quality Medium; the
+    /// Frame rate is on Display, dawn names Graphics fidelity Medium and Render scale 70%; the
     /// same again says nothing more this session; with Frame rate 30 chosen (and the two lowered)
     /// 30 fps is what was asked for, so nothing is said; and at the display's own rate nothing is
     /// said either, if the machine keeps up (the load average is logged with the frame rate).
@@ -60,13 +60,13 @@ namespace LastLight.Automation
             var save = SaveData.Current;
             yield return Tour.Wait(4f);
             Check(t, save.frameCap == 0 && save.renderScale > 0.99f && save.quality == 2 && Application.targetFrameRate == 30,
-                $"a fresh save: Frame rate Display, render scale {save.renderScale * 100:0}%, fog quality {save.quality}, held to {Application.targetFrameRate} fps by -llFps");
+                $"a fresh save: Frame rate Display, render scale {save.renderScale * 100:0}%, graphics fidelity {save.quality}, held to {Application.targetFrameRate} fps by -llFps");
 
             string note = null;
             yield return Night(t, "held to 30 fps", n => note = n);
             var said = System.Text.RegularExpressions.Regex.Match(note, @"about (\d+) frames a second");
             int about = said.Success ? int.Parse(said.Groups[1].Value) : 0;
-            Check(t, about >= 25 && about <= 31 && Mathf.Abs(about - g.LastNightFps) < 1f && note.Contains("Settings ▸ Render scale 70% or Fog and haze quality Medium"),
+            Check(t, about >= 25 && about <= 31 && Mathf.Abs(about - g.LastNightFps) < 1f && note.Contains("Settings ▸ Graphics fidelity Medium or Render scale 70%"),
                 $"a night held to 30 fps on Display says so and names the next steps down: \"{note}\"");
             yield return t.Shot("perf_dawn_note");
 

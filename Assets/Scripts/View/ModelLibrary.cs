@@ -57,8 +57,9 @@ namespace LastLight.View
                 for (int i = 0; i < mats.Length; i++)
                     if (mats[i] != null) mats[i] = MaterialLibrary.FromBlenderName(mats[i].name);
                 r.sharedMaterials = mats;
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
+                // They cast and take the moon's shadows; the moon casts none below Graphics fidelity Ultra.
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                r.receiveShadows = true;
             }
         }
 

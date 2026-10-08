@@ -4,6 +4,7 @@ using LastLight.Audio;
 using LastLight.Core;
 using LastLight.Sim;
 using UnityEngine;
+using LastLight.View;
 using UnityEngine.UI;
 
 namespace LastLight.UI
@@ -420,8 +421,15 @@ namespace LastLight.UI
                 "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");
             Row("Brightness", UiStepper.Create(panel, new[] { "−2", "−1", "Standard", "+1", "+2" }, Mathf.Clamp(save.brightness, -2, 2) + 2, i => { save.brightness = i - 2; save.Apply(display: false); }),
                 "The bay, from half a stop darker to a stop brighter. The menus and the HUD stay as they are.");
-            Row("Fog and haze quality", UiStepper.Create(panel, new[] { "Low", "Medium", "High" }, save.quality, i => { save.quality = i; save.Apply(); }),
-                "Detail in the fog and the beam's haze. Lower runs faster on fog nights.");
+            int fidelityRow = rows.Count;
+            Row("Graphics fidelity", UiStepper.Create(panel, Fidelity.Names, Mathf.Clamp(save.quality, 0, Fidelity.Ultra), i =>
+                {
+                    save.quality = i;
+                    save.Apply(display: false);
+                    var r = rows[fidelityRow];
+                    rows[fidelityRow] = (r.name, r.label, r.control, Fidelity.About(i));
+                }),
+                Fidelity.About(save.quality));
             float[] scales = { 1f, 0.85f, 0.7f, 0.5f };
             int scaleIndex = System.Array.FindIndex(scales, v => Mathf.Abs(v - save.renderScale) < 0.01f);
             Row("Render scale", UiStepper.Create(panel, new[] { "100%", "85%", "70%", "50%" }, Mathf.Max(0, scaleIndex), i => { save.renderScale = scales[i]; save.Apply(); }),

@@ -111,6 +111,7 @@ namespace LastLight.View
                 p.Fov *= 1f - 0.2f * k;
             }
             Apply(p, Unscaled.Time);
+            Core.Stage.UpdateFocus(transform.position);
         }
 
         void Apply(Pose p, float time)

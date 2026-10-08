@@ -133,11 +133,16 @@ namespace LastLight.EditorTools
             Set("m_SupportsHDR", 1);
             Set("m_HDRColorBufferPrecision", 1);   // 64-bit: no banding in the dark gradients
             Set("m_MSAA", 1);
-            Set("m_ShadowDistance", 120);
-            Set("m_MainLightShadowsSupported", 0);
+            // The moon's shadows are drawn only on Graphics fidelity Ultra (the light's own setting,
+            // see Stage.ApplyFidelity); below that the moon casts none and nothing is rendered.
+            bool pc = path.Contains("PC_");
+            Set("m_ShadowDistance", pc ? 520 : 120);
+            if (pc) Set("m_ShadowCascadeCount", 4);
+            if (pc) Set("m_MainLightShadowmapResolution", 4096);
+            Set("m_MainLightShadowsSupported", pc ? 1 : 0);
             Set("m_AdditionalLightShadowsSupported", 0);
             Set("m_AdditionalLightsPerObjectLimit", 8);
-            Set("m_SoftShadowsSupported", 0);
+            Set("m_SoftShadowsSupported", pc ? 1 : 0);
             so.ApplyModifiedProperties();
             EditorUtility.SetDirty(asset);
         }

@@ -39,6 +39,9 @@ Shader "LL/Lit"
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_instancing
+            // The moon's shadows (Graphics fidelity Ultra; off, nothing changes).
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
@@ -84,10 +87,12 @@ Shader "LL/Lit"
                 // Wet, darker rock and hull near the waterline.
                 albedo *= lerp(1.0, 0.55, _Wet * (1.0 - saturate(i.positionWS.y / 1.5)));
 
-                Light moon = GetMainLight();
+                Light moon = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
                 float ndl = dot(N, moon.direction);
                 float wrap = saturate((ndl + _Wrap) / (1.0 + _Wrap));
-                float3 light = moon.color * wrap;
+                // A face turned from the moon keeps its wrapped light: only lit faces take shadow.
+                float shadow = lerp(1.0, moon.shadowAttenuation, saturate(ndl * 4.0 + 0.4));
+                float3 light = moon.color * wrap * shadow;
 
                 float3 hemi = lerp(_LLAmbient.rgb * 0.45, _LLAmbient.rgb * 1.25, N.y * 0.5 + 0.5);
                 light += hemi;
@@ -109,7 +114,7 @@ Shader "LL/Lit"
                 #endif
 
                 float3 H = normalize(moon.direction + V);
-                float spec = pow(saturate(dot(N, H)), 40.0) * _Specular;
+                float spec = pow(saturate(dot(N, H)), 40.0) * _Specular * shadow;
                 float3 col = albedo * light + spec * (moon.color + beam * 0.5) + _EmissionColor.rgb;
                 return half4(col, 1);
             }
@@ -178,13 +183,24 @@ Shader "LL/Lit"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
-            struct Attributes { float4 positionOS : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            float3 _LightDirection;
+            struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct Varyings { float4 positionCS : SV_POSITION; };
             Varyings vert(Attributes v)
             {
                 Varyings o;
                 UNITY_SETUP_INSTANCE_ID(v);
-                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                // Pushed along the normal and the light, as URP's own casters are, against acne.
+                float3 ws = TransformObjectToWorld(v.positionOS.xyz);
+                float3 n = TransformObjectToWorldNormal(v.normalOS);
+                float4 cs = TransformWorldToHClip(ApplyShadowBias(ws, n, _LightDirection));
+                #if UNITY_REVERSED_Z
+                cs.z = min(cs.z, UNITY_NEAR_CLIP_VALUE);
+                #else
+                cs.z = max(cs.z, UNITY_NEAR_CLIP_VALUE);
+                #endif
+                o.positionCS = cs;
                 return o;
             }
             half4 frag(Varyings i) : SV_Target { return 0; }

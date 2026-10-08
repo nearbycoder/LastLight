@@ -24,6 +24,7 @@ namespace LastLight.View
         static readonly int Haze = Shader.PropertyToID("_LLHaze");
         static readonly int Dawn = Shader.PropertyToID("_LLDawn");
         static readonly int AtmoSteps = Shader.PropertyToID("_LLAtmoSteps");
+        static readonly int FrameIndex = Shader.PropertyToID("_LLFrameIndex");
 
         static readonly Vector4[] occ = new Vector4[8];
         static readonly Vector4[] fog = new Vector4[8];
@@ -100,6 +101,9 @@ namespace LastLight.View
             Shader.SetGlobalFloat(Haze, HazeAmount);
             Shader.SetGlobalFloat(Dawn, DawnAmount);
             Shader.SetGlobalFloat(AtmoSteps, Steps);
+            // Ultra's dither moves on every frame, even with the night paused, so its temporal
+            // anti-aliasing averages it away.
+            Shader.SetGlobalFloat(FrameIndex, Time.frameCount % 64);
         }
 
         /// <summary>Clears world-dependent state (title screen, no night running).</summary>

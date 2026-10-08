@@ -380,6 +380,7 @@ namespace LastLight.Core
             Stage.Moon.intensity = stormy ? Stage.MoonIntensity * 0.45f : Stage.MoonIntensity;
             ShaderGlobals.MoonBrightness = stormy ? 0.35f : 1f;
             if (rainFx != null) Destroy(rainFx.gameObject);
+            rainAmount = stormy ? def.storm.rain : 0f;
             if (stormy && def.storm.rain > 0f) rainFx = FX.RainSheet(def.storm.rain);
             // Squalls (the Night Watch): the weather follows the sim's storm strength, frame by frame.
             squally = !stormy && def.squalls != null && def.squalls.Length > 0;
@@ -400,9 +401,17 @@ namespace LastLight.Core
 
         void SetRain(float amount)
         {
+            rainAmount = amount;
             if (rainFx == null) return;
-            var em = rainFx.emission;
-            em.rateOverTime = 3500f * amount;
+            FX.SetRain(rainFx, amount);
+        }
+
+        float rainAmount;
+
+        /// <summary>Settings ▸ Graphics fidelity changed: the rain already falling follows it.</summary>
+        public void OnFidelity()
+        {
+            if (rainFx != null) FX.SetRain(rainFx, rainAmount);
         }
 
         /// <summary>A squall blowing through: rain, wind, swell and moonlight follow its strength.</summary>
@@ -551,15 +560,16 @@ namespace LastLight.Core
 
         /// <summary>What to say after a night that ran at <paramref name="fps"/> while aiming for
         /// <paramref name="target"/>: nothing unless it was well short (below 45 and below 85% of
-        /// the aim), otherwise the next steps down that aren't in use yet, at most two: Render
-        /// scale, then Fog and haze quality, then a 30 fps cap. Nothing if there's nothing to lower.</summary>
+        /// the aim), otherwise the next steps down that aren't in use yet, at most two: Graphics
+        /// fidelity, then Render scale, then a 30 fps cap. Nothing if there's nothing to lower.</summary>
         public static string PerfNote(float fps, int target, SaveData save)
         {
             if (fps <= 0f || fps >= 45f || fps >= 0.85f * target) return null;
             var steps = new List<string>();
+            int fidelity = Mathf.Clamp(save.quality, Fidelity.Low, Fidelity.Ultra);
+            if (fidelity > Fidelity.Low) steps.Add("Graphics fidelity " + Fidelity.Names[fidelity - 1]);
             if (save.renderScale > 0.75f) steps.Add("Render scale 70%");
             else if (save.renderScale > 0.55f) steps.Add("Render scale 50%");
-            if (save.quality >= 1) steps.Add("Fog and haze quality " + (save.quality >= 2 ? "Medium" : "Low"));
             if (steps.Count < 2 && save.frameCap != 30 && fps >= 25f) steps.Add("Frame rate 30, for a steadier pace");
             if (steps.Count == 0) return null;
             string which = steps.Count == 1 ? steps[0] : $"{steps[0]} or {steps[1]}";
