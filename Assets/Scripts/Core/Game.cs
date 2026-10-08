@@ -52,6 +52,8 @@ namespace LastLight.Core
         int failNight, failStreak;   // the same night failed this many times running
         int watchRank;
         Ending ending;
+        float nextCheckpoint;         // the watch's time at which where it stands is next written down
+        string watchKeptNotice;       // a watch cut short last time was kept: said once, on the title
         ParticleSystem rainFx;
         MissionDef watchDef;
 
@@ -171,8 +173,8 @@ namespace LastLight.Core
             pause.OnEndWatch = EndWatch;
             pause.OnSettings = () => { pause.Hide(); ShowSettings(State.Paused); };
             pause.OnNotes = () => { pause.Hide(); ShowNotes(State.Paused); };
-            pause.OnLogbook = () => { pause.Hide(); Time.timeScale = 1f; ShowLogbook(State.Title); };
-            pause.OnTitle = () => { Time.timeScale = 1f; pause.Hide(); ShowTitle(); };
+            pause.OnLogbook = () => { DropWatch(); pause.Hide(); Time.timeScale = 1f; ShowLogbook(State.Title); };
+            pause.OnTitle = () => { DropWatch(); Time.timeScale = 1f; pause.Hide(); ShowTitle(); };
             settings.OnFocusMode = title.RefreshFooter;
             settings.OnBack = () =>
             {
@@ -215,6 +217,7 @@ namespace LastLight.Core
 
         void Start()
         {
+            KeepCutShortWatch();
             int night = Arg("-llNight", 0);
             if (night > 0)
             {
@@ -243,7 +246,9 @@ namespace LastLight.Core
             var save = SaveData.Current;
             title.SetBeginLabel(save.unlocked > 1 || save.lamps[0] > 0 ? $"Continue: night {UiKit.Roman(save.unlocked)}" : "Begin the watch");
             title.SetWatchUnlocked(save.WatchUnlocked);
-            title.SetNotice(SaveData.Trouble);
+            string trouble = SaveData.Trouble;
+            if (trouble != null) title.SetNotice(watchKeptNotice != null ? trouble + "\n" + watchKeptNotice : trouble);
+            else title.SetNotice(watchKeptNotice, kept: true);
             title.RefreshFooter();   // the keys, Focus or Pad buttons may have changed
             title.Show();
             Music.PlayTrack("music_title", 3f);
@@ -302,6 +307,7 @@ namespace LastLight.Core
         void ShowBriefing(int night)
         {
             title.Hide();
+            watchKeptNotice = null;   // said; a night is under way now
             Night = night == NightWatch.Number ? night : Mathf.Clamp(night, 1, MissionLibrary.All.Count);
             var def = DefFor(Night, true);
             float bearing = Runner != null ? Runner.Bearing : 0f;
@@ -333,6 +339,7 @@ namespace LastLight.Core
             feedback = new Feedback(Runner, Hud, Radio);
             outcomeTimer = -1f;
             recorded = false;
+            nextCheckpoint = CheckpointEvery;
             ApplyMood(def);
         }
 
@@ -441,6 +448,7 @@ namespace LastLight.Core
             if (Current != State.Playing) return;
             Current = State.Paused;
             Time.timeScale = 0f;
+            CheckpointWatch();   // a keeper who pauses may be about to leave the machine
             pause.SetWatch(Watching);
             pause.Show();
             pause.SetRadioLog(Radio.Log);
@@ -578,6 +586,52 @@ namespace LastLight.Core
             return true;
         }
 
+        // ---------------------------------------------------------------- a watch that outlives a crash
+
+        /// <summary>How often, in seconds of the watch, where it stands is written to the save.</summary>
+        public const float CheckpointEvery = 20f;
+
+        /// <summary>A watch the keeper is playing and that hasn't been recorded yet.</summary>
+        bool WatchUnderway => Watching && Runner != null && !Runner.Attract && !recorded && !HasArg("-llAuto")
+                              && Runner.World.Outcome == MissionOutcome.Running;
+
+        /// <summary>Writes where the watch under way stands into the save, so a crash, a power cut or
+        /// a killed process can't take it all: the next start keeps it (see KeepCutShortWatch).</summary>
+        void CheckpointWatch()
+        {
+            if (!WatchUnderway) return;
+            var w = Runner.World;
+            var names = new List<string>();
+            foreach (var s in w.Ships) if (s.State == ShipState.Arrived) names.Add(s.Name);
+            SaveData.Current.CheckpointWatch(w.Score, w.Arrivals, w.Time, names, SpeedPercent);
+            SaveData.Current.Save();
+            nextCheckpoint = (Mathf.Floor(w.Time / CheckpointEvery) + 1f) * CheckpointEvery;
+            Debug.Log($"[Game] watch checkpoint: score={w.Score} ships={w.Arrivals} seconds={Mathf.RoundToInt(w.Time)}");
+        }
+
+        /// <summary>The keeper threw the watch away (Leave anyway, or the logbook): forget it.</summary>
+        void DropWatch()
+        {
+            if (!Watching || recorded || !SaveData.Current.watchUnderway.active) return;
+            SaveData.Current.DropWatchUnderway();
+            SaveData.Current.Save();
+        }
+
+        /// <summary>At startup: a watch still under way in the save was cut short last time. It's
+        /// kept as it stood at its last checkpoint, and the title says so.</summary>
+        void KeepCutShortWatch()
+        {
+            if (HasArg("-llFresh")) return;
+            var save = SaveData.Current;
+            var kept = save.RecoverWatch(out int rank);
+            if (kept == null) return;
+            save.Save();
+            string home = kept.ships == 0 ? "no ships home" : kept.ships == 1 ? "one ship home" : $"{kept.ships} ships home";
+            string place = rank == 1 ? "your best watch yet" : rank > 1 ? $"your {ResultsScreen.Ordinal(rank)} best watch" : "short of your five best";
+            watchKeptNotice = $"Your last Night Watch was cut short before the game could close properly. It was kept as it stood at {UiKit.Clock(kept.seconds)}: {kept.score:N0} points, {home}, {place}.";
+            Debug.Log($"[Game] a watch cut short was kept: {kept.score} points, {kept.ships} ships, {kept.seconds} s, rank {rank}");
+        }
+
         void Quit()
         {
             SaveData.Current.Save();
@@ -624,6 +678,7 @@ namespace LastLight.Core
             if (Current == State.Playing && Runner != null)
             {
                 var o = Runner.World.Outcome;
+                if (o == MissionOutcome.Running && Runner.World.Time >= nextCheckpoint) CheckpointWatch();
                 if (o != MissionOutcome.Running && outcomeTimer < 0f)
                 {
                     outcomeTimer = o == MissionOutcome.Won ? 3.5f : 3f;

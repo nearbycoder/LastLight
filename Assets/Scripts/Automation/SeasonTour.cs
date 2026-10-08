@@ -120,7 +120,21 @@ namespace LastLight.Automation
                 t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");
                 yield break;
             }
-            if (run == "quitwatch" || run == "termwatch" || run == "quitnight")
+            if (run == "recovered")
+            {
+                // The second start after killwatch: the watch the player was killed in is kept.
+                string notice = title.NoticeShown;
+                var onDisk = new SaveData();
+                SaveStore.TryParse(SaveStore.ReadFile(data, SaveStore.FileName), onDisk, out _);
+                Check(t, save.watches.Count == 4 && onDisk.watches.Count == 4, $"the watch cut short is in the table ({save.watches.Count} watches; {onDisk.watches.Count} in {SaveStore.FileName})");
+                Check(t, !onDisk.watchUnderway.active, "and no longer under way in the save");
+                Check(t, notice.Contains("cut short") && notice.Contains("kept"), $"the title says so: \"{notice}\"");
+                foreach (var r in save.watches) t.Log($"table: {r.score} points, {r.ships} ships, {r.seconds} s");
+                yield return t.Shot("watch_kept_notice");
+                t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures); Tools/season_tour.sh compares the table with the last checkpoint");
+                yield break;
+            }
+            if (run == "quitwatch" || run == "termwatch" || run == "quitnight" || run == "killwatch" || run == "closewatch")
             {
                 // A watch (or night III) under way when the game is closed. The tour logs what the
                 // watch stood at and closes the game; Tools/season_tour.sh then reads save.json.
@@ -141,11 +155,18 @@ namespace LastLight.Automation
                 var onDisk = new SaveData();
                 SaveStore.TryParse(SaveStore.ReadFile(data, SaveStore.FileName), onDisk, out _);
                 Check(t, onDisk.watches.Count == 3, $"no watch has been recorded yet ({onDisk.watches.Count} in {SaveStore.FileName}, as seeded)");
+                var u = onDisk.watchUnderway;
+                if (watch)
+                    Check(t, u.active && u.seconds >= 100 && u.seconds <= Mathf.RoundToInt(w.Time) && u.score <= w.Score,
+                        $"the save holds the watch under way as of its last checkpoint ({u.score} points, {u.ships} ships, {u.seconds} s; the watch is at {w.Score}, {w.Arrivals}, {w.Time:0} s)");
+                else
+                    Check(t, !u.active, "a night of the twelve writes no checkpoint");
                 t.Log($"QUIT-AT score={w.Score} ships={w.Arrivals} seconds={Mathf.RoundToInt(w.Time)}");
                 t.Log($"season {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures); the save is checked by Tools/season_tour.sh after the game closes");
-                if (run == "termwatch")
+                if (run == "termwatch" || run == "killwatch" || run == "closewatch")
                 {
-                    // Tools/season_tour.sh sends this player SIGTERM, as a logout or shutdown does.
+                    // Tools/season_tour.sh closes this player: SIGTERM, as a logout or shutdown does;
+                    // SIGKILL, as a crash would leave it; or the compositor's close request.
                     t.Log("waiting to be closed");
                     for (float held = 0f; held < 60f; held += Time.unscaledDeltaTime) yield return null;
                     Check(t, false, "the player was closed within a minute");

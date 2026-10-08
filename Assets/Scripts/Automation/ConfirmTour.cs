@@ -133,6 +133,7 @@ namespace LastLight.Automation
             yield return StartNight(g, 13);
             g.TourPause();
             yield return Tour.Wait(0.6f);
+            Check(t, save.watchUnderway.active, $"pausing a watch notes where it stands ({save.watchUnderway.score} points, {save.watchUnderway.seconds} s; with -llFresh nothing is written)");
             g.TourPauseChoose(5);
             yield return Tour.Wait(0.6f);
             Check(t, g.TourPauseConfirmHeading == "Leave without keeping the watch?" && g.TourPauseConfirmLabel(1) == "End the watch" && g.TourPauseConfirmLabel(2) == "Leave anyway",
@@ -151,6 +152,7 @@ namespace LastLight.Automation
             g.TourPauseConfirm(2);
             yield return Tour.Wait(1.5f);
             Check(t, g.TourShowingTitle && save.watches.Count == kept, $"Leave anyway goes to the title without keeping the watch (title {g.TourShowingTitle}, watches {kept} -> {save.watches.Count})");
+            Check(t, !save.watchUnderway.active, "and forgets the watch under way, so the next start doesn't keep it either");
             t.Log($"confirm {(failures == 0 ? "PASS" : "FAIL")} ({failures} failures)");
         }
     }

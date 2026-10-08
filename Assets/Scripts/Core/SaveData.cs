@@ -18,6 +18,19 @@ namespace LastLight.Core
         public int speed;                        // game speed in percent when below full; 0 = full speed
     }
 
+    /// <summary>A Night Watch still under way, as it stood at its last checkpoint. It's written
+    /// every so often during a watch, so a watch cut short by a crash or a power cut can be kept
+    /// the next time the game starts.</summary>
+    [Serializable]
+    public sealed class WatchUnderway
+    {
+        public bool active;
+        public int score, ships, seconds;
+        public bool hard;
+        public int speed;                        // as in WatchRecord: percent when below full, 0 = full speed
+        public List<string> names = new List<string>();   // the ships home so far
+    }
+
     /// <summary>Progress and preferences, stored as JSON in save.json (see <see cref="SaveStore"/>).</summary>
     [Serializable]
     public sealed class SaveData
@@ -33,6 +46,7 @@ namespace LastLight.Core
         public int watchBest, watchShips, watchSeconds;   // Night Watch records
         public List<WatchRecord> watches = new List<WatchRecord>();   // the five best watches, best first
         public const int WatchTable = 5;
+        public WatchUnderway watchUnderway = new WatchUnderway();     // a watch being played (see CheckpointWatch)
 
         // Settings
         public float master = 0.9f, music = 0.75f, sfx = 1f, radio = 1f, ambience = 0.9f;
@@ -168,6 +182,8 @@ namespace LastLight.Core
             data.homeNames ??= new List<string>();
             data.hintsSeen ??= new List<string>();
             data.watches ??= new List<WatchRecord>();
+            data.watchUnderway ??= new WatchUnderway();
+            data.watchUnderway.names ??= new List<string>();
             data.keys ??= new KeyBindings();
             data.keys.Validate();
             // Saves from before the table: the one best watch becomes its first entry.
@@ -226,6 +242,7 @@ namespace LastLight.Core
             tutorialSeen = false;
             watchBest = watchShips = watchSeconds = 0;
             watches = new List<WatchRecord>();
+            watchUnderway = new WatchUnderway();
             hintsSeen = new List<string>();
         }
 
@@ -261,11 +278,20 @@ namespace LastLight.Core
         /// <summary>The Night Watch opens once the last night has been kept.</summary>
         public bool WatchUnlocked => endingSeen || lamps[11] > 0;
 
-        /// <summary>Records a finished watch; returns its place in the table of best watches (1 = best),
-        /// or 0 if it didn't make the table.</summary>
+        /// <summary>Records a finished watch and saves; returns its place in the table of best
+        /// watches (1 = best), or 0 if it didn't make the table.</summary>
         public int RecordWatch(int score, int ships, float seconds, IEnumerable<string> names, int speed = 100)
         {
-            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds), hard = difficulty == 1, speed = speed < 100 ? speed : 0 };
+            int rank = AddWatch(score, ships, seconds, names, difficulty == 1, speed);
+            Save();
+            return rank;
+        }
+
+        /// <summary>Puts a finished watch in the table (without saving) and clears the watch under
+        /// way; returns its place, 1 = best, or 0 if it didn't make the table.</summary>
+        public int AddWatch(int score, int ships, float seconds, IEnumerable<string> names, bool hard, int speed = 100)
+        {
+            var record = new WatchRecord { score = score, ships = ships, seconds = Mathf.RoundToInt(seconds), hard = hard, speed = speed > 0 && speed < 100 ? speed : 0 };
             watches.Add(record);
             watches.Sort((a, b) => b.score != a.score ? b.score.CompareTo(a.score) : b.seconds.CompareTo(a.seconds));
             int rank = watches.IndexOf(record) + 1;
@@ -279,8 +305,35 @@ namespace LastLight.Core
                 shipsHome++;
                 if (!homeNames.Contains(n)) homeNames.Add(n);
             }
-            Save();
+            watchUnderway = new WatchUnderway();
             return rank;
+        }
+
+        /// <summary>Notes where a watch under way stands (without saving), so it can be kept if the
+        /// game never gets to close properly.</summary>
+        public void CheckpointWatch(int score, int ships, float seconds, IEnumerable<string> names, int speed = 100)
+        {
+            watchUnderway = new WatchUnderway
+            {
+                active = true, score = score, ships = ships, seconds = Mathf.RoundToInt(seconds),
+                hard = difficulty == 1, speed = speed < 100 ? speed : 0, names = new List<string>(names),
+            };
+        }
+
+        /// <summary>Forgets the watch under way (it was thrown away); doesn't save.</summary>
+        public void DropWatchUnderway() => watchUnderway = new WatchUnderway();
+
+        /// <summary>A watch still under way in the save when the game starts was cut short (a crash,
+        /// a power cut, a killed process): it's put in the table as it stood at its last checkpoint,
+        /// once. Returns the record and its place (0 if it missed the table), or null if there was
+        /// none. Doesn't save.</summary>
+        public WatchRecord RecoverWatch(out int rank)
+        {
+            rank = 0;
+            var u = watchUnderway;
+            if (u == null || !u.active) return null;
+            rank = AddWatch(u.score, u.ships, u.seconds, u.names ?? new List<string>(), u.hard, u.speed > 0 ? u.speed : 100);
+            return new WatchRecord { score = u.score, ships = u.ships, seconds = u.seconds, hard = u.hard, speed = u.speed };
         }
 
         /// <summary>The frame rate to aim for: the display's refresh rate (at least 60), or the cap.</summary>

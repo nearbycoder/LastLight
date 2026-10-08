@@ -766,7 +766,7 @@ namespace LastLight.UI
             Relayout();
         }
 
-        static string Ordinal(int n) => n switch { 2 => "second", 3 => "third", 4 => "fourth", 5 => "fifth", _ => n.ToString() };
+        public static string Ordinal(int n) => n switch { 2 => "second", 3 => "third", 4 => "fourth", 5 => "fifth", _ => n.ToString() };
 
         const int MaxDebrief = 4;
         const float DebriefLine = 30f;

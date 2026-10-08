@@ -147,7 +147,8 @@ namespace LastLight.UI
             bg.rectTransform.Fill();
             var edge = UiKit.Image("Edge", notice, SpriteFactory.Bar, new Color(1f, 0.55f, 0.42f, 0.8f));
             edge.rectTransform.Stretch(new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 12), new Vector2(4, -12));
-            var head = UiKit.Text("Heading", notice, UiKit.Spaced("THE SAVE"), UiKit.BodyBold, 18, new Color(1f, 0.62f, 0.52f), TextAnchor.UpperLeft);
+            noticeEdge = edge;
+            var head = noticeHead = UiKit.Text("Heading", notice, UiKit.Spaced("THE SAVE"), UiKit.BodyBold, 18, new Color(1f, 0.62f, 0.52f), TextAnchor.UpperLeft);
             head.rectTransform.Stretch(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -42), new Vector2(-24, -16));
             noticeText = UiKit.Text("Text", notice, "", UiKit.BodyMedium, 22, UiKit.Paper, TextAnchor.UpperLeft);
             noticeText.rectTransform.Stretch(Vector2.zero, Vector2.one, new Vector2(30, 18), new Vector2(-24, -50));
@@ -156,13 +157,20 @@ namespace LastLight.UI
         }
 
         const float NoticeWidth = 860f;
+        Image noticeEdge;
+        Text noticeHead;
 
-        /// <summary>Shows what's wrong with the save (or hides the notice when nothing is).</summary>
-        public void SetNotice(string text)
+        /// <summary>Shows what's wrong with the save (or hides the notice when nothing is). With
+        /// <paramref name="kept"/> it's news rather than trouble (a watch cut short was kept), in
+        /// brass under its own heading.</summary>
+        public void SetNotice(string text, bool kept = false)
         {
             bool on = !string.IsNullOrEmpty(text);
             notice.gameObject.SetActive(on);
             if (!on) { Frames.Remove(notice); return; }
+            noticeHead.text = UiKit.Spaced(kept ? "THE NIGHT WATCH" : "THE SAVE");
+            noticeHead.color = kept ? UiKit.Brass : new Color(1f, 0.62f, 0.52f);
+            noticeEdge.color = kept ? new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.8f) : new Color(1f, 0.55f, 0.42f, 0.8f);
             noticeText.text = text;
             float h = noticeText.preferredHeight;
             notice.sizeDelta = new Vector2(NoticeWidth, Mathf.Max(110f, h + 70f));
