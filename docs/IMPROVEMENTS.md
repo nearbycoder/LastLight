@@ -1224,3 +1224,76 @@ real-gamepad pass (now including Auto's guess for Sony and Nintendo pads), a lis
 playtests (now including the replay's pace and the settings descriptions), fullscreen and
 real-hardware checks of other screen shapes, non-US keyboard layouts, the save on macOS and
 Windows, a full disk, Windows (module install) and macOS signing (Developer ID).
+
+## Round 10 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records, the
+replay's pace, the offer of help). These items come from round 9's open ends and from what a
+keeper on ordinary hardware would run into. A Night Watch can run half an hour, and it's only
+written when the game closes cleanly, so a crash, a power cut or a killed process throws it away.
+The replay is there to learn from a wreck, but finding the moment means dragging a small timeline,
+nothing on the chart says which keys step it, and Space, the key most players reach for, does
+nothing. And a keeper whose machine can't hold the frame rate on a fog night has no way of
+knowing that Render scale or Fog quality would help. None of the items changes the simulation, so
+the pinned Standard scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `chart`, `confirm`,
+`watchend` and `screens` tours at 0 errors. Captures go to `docs/media/improvements/round10/`. Tour
+output and logs stay under `Builds/round10/`. My own save folder is checksummed before and after
+(`Builds/round10/save_before.txt`). Every test window runs in the private nested KWin
+(`Tools/nested.sh`).
+
+### 1. A Night Watch outlives a crash
+- While a watch is under way, the game writes where it stands (score, ships home, time, the ships'
+  names) into `save.json` every 20 seconds of the watch, and when the night pauses. The watch's
+  normal ends (the last wreck, End the watch, closing the game) record it and clear that entry, and
+  so does throwing it away (Leave anyway, or the logbook from the pause menu).
+- If the game starts and finds a watch still under way in the save, it was cut short: it's kept
+  and ranked as it stood at the last entry, as if it had been stood down then, and the title says
+  so once ("Your last Night Watch was cut short… It was kept as it stood at 12:40: 3,450 points,
+  21 ships home, your fourth best watch.").
+- The twelve nights are unchanged: nothing is written mid-night.
+- **Verify:** EditMode tests (under `Temp/`): a checkpoint round-trips through the save file; a
+  save holding a watch under way is recovered into the table once, with its rank, and the entry
+  cleared; a normal record clears it; a save from before this round loads with none. A
+  `killwatch` run of `Tools/season_tour.sh` plays a watch, kills the player with SIGKILL, checks
+  `save.json` holds the last checkpoint the player logged, then starts the player again and checks
+  the title's notice, the table and that the entry is gone. A `closewatch` run asks the nested KWin
+  to close the game's window (the request the compositor's close button sends) and checks the
+  watch was kept; it refuses to run outside a nested KWin. `quitwatch`, `termwatch` and
+  `quitnight` still pass.
+
+### 2. The replay's moments, and its keys
+- The chart's timeline marks each time a ship lost its way or was lured, as well as each wreck.
+  **Q / E** (or Page Up / Page Down) and the pad's shoulder buttons jump to a few seconds before
+  the previous or next moment, and a line under the clock names it ("1:47 · the Dunlin struck
+  Widow's Ledge"). **Space** plays and pauses without pressing whichever button is chosen.
+- A line under the timeline names the replay's keys (or the pad's buttons, with the pad style's
+  names), so they no longer have to be guessed.
+- **Verify:** an EditMode test of the moments drawn from a played night's log (each wreck, lost
+  and lured stretch once, in order). The `chart` tour jumps forward and back with the keys and the
+  simulated pad and checks it lands before each moment and names it, checks Space plays and pauses
+  with the Back button chosen and doesn't go back, and reads the controls line for keys and pad.
+  `screens` checks the chart still fits. Screenshots read by me.
+
+### 3. A slow night says how to run smoother
+- The game measures the frame rate while a night is played. If it averaged well under the rate it
+  aims for (below 45 fps and below 85% of the target), the dawn card says so and names the next
+  step down that isn't in use yet: Render scale, then Fog and haze quality, then a 30 fps cap
+  ("This night ran at about 34 frames a second. For a smoother night, try Settings ▸ Render scale
+  70% or Fog and haze quality Medium."). It's said once per session for the same settings, and not
+  when there's nothing left to lower or the save note needs the space.
+- **Verify:** a `perf` tour plays night I held to 30 fps (`-llFps 30`, with Frame rate on
+  Display) and checks the note and its suggestions, then lowers the settings it names and plays
+  again with a 30 cap chosen in Settings and checks no note shows. A run at the full rate checks
+  nothing is said (the load average is recorded, since a busy GPU could slow it). Tours other than
+  `perf` never show the note.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp, slowed records, the replay's pace and the offer of
+  help**: the owner's call.
+- **Gamepad remapping, a real pad (and Auto's guess for it), fullscreen at other shapes, a Steam
+  Deck, non-US layouts, the save on macOS and Windows, a full disk**: no hardware or platforms here
+  to check them on.
+- **Re-cutting the trailer**: the owner's call.
