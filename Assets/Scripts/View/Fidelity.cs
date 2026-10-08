@@ -29,13 +29,12 @@ namespace LastLight.View
         /// <summary>What a step changes, for the line under Settings.</summary>
         public static string About(int level) => level switch
         {
-            Low => "Low: for a weaker GPU. The lightest fog and haze, FXAA, plainer glints on the sea and half the particles.",
+            Low => "Low: for a weaker GPU. The lightest fog and haze, FXAA and half the particles.",
             Medium => "Medium: lighter fog and haze, SMAA and three quarters of the particles.",
             Ultra => "Ultra: moon shadows, bloom, the finest fog, temporal anti-aliasing, a finer sea, denser rain and spray, and depth of field.",
             _ => "High: the game as released. Detailed fog and haze and SMAA.",
         };
 
-        static readonly GlobalKeyword LowKeyword = GlobalKeyword.Create("LL_FIDELITY_LOW");
         static readonly GlobalKeyword UltraKeyword = GlobalKeyword.Create("LL_FIDELITY_ULTRA");
 
         /// <summary>Sets the level and the shaders' keywords. The step count goes through
@@ -44,7 +43,6 @@ namespace LastLight.View
         {
             Level = Mathf.Clamp(level, Low, Ultra);
             if (steps) ShaderGlobals.Steps = Steps;
-            Shader.SetKeyword(LowKeyword, Level == Low);
             Shader.SetKeyword(UltraKeyword, Level == Ultra);
         }
     }

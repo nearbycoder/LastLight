@@ -104,7 +104,7 @@ namespace LastLight.Automation
             var cam = Stage.CameraData;
             string aa = cam.antialiasing == AntialiasingMode.SubpixelMorphologicalAntiAliasing ? $"SMAA {cam.antialiasingQuality}" : cam.antialiasing.ToString();
             return $"{Fidelity.Names[Fidelity.Level]}: {ShaderGlobals.Steps} steps, {aa}, bloom {(Stage.Bloom.active ? "on" : "off")}, moon shadows {Stage.Moon.shadows}, particles ×{Fidelity.Particles:0.##}, " +
-                   $"keywords {(Shader.IsKeywordEnabled("LL_FIDELITY_LOW") ? "LOW" : "")}{(Shader.IsKeywordEnabled("LL_FIDELITY_ULTRA") ? "ULTRA" : "")}";
+                   $"Ultra keyword {(Shader.IsKeywordEnabled("LL_FIDELITY_ULTRA") ? "on" : "off")}";
         }
 
         static bool Matches(int level)
@@ -121,7 +121,6 @@ namespace LastLight.Automation
                 && ShaderGlobals.Steps == Fidelity.StepsFor(level)
                 && (Stage.Moon.shadows != LightShadows.None) == (level == Fidelity.Ultra)
                 && Stage.Bloom.active == (level == Fidelity.Ultra)
-                && Shader.IsKeywordEnabled("LL_FIDELITY_LOW") == (level == Fidelity.Low)
                 && Shader.IsKeywordEnabled("LL_FIDELITY_ULTRA") == (level == Fidelity.Ultra);
         }
 

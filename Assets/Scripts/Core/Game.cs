@@ -573,7 +573,7 @@ namespace LastLight.Core
             if (steps.Count < 2 && save.frameCap != 30 && fps >= 25f) steps.Add("Frame rate 30, for a steadier pace");
             if (steps.Count == 0) return null;
             string which = steps.Count == 1 ? steps[0] : $"{steps[0]} or {steps[1]}";
-            return $"This night ran at about {Mathf.RoundToInt(fps)} frames a second. For a smoother night, try Settings ▸ {which}.";
+            return $"This night ran at about {Mathf.RoundToInt(fps)} frames a second.\nFor a smoother night, try Settings ▸ {which}.";
         }
 
         /// <summary>The slowest game speed this night was played at, in percent.</summary>

@@ -35,8 +35,8 @@ Shader "LL/Water"
             #pragma fragment frag
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
-            // Graphics fidelity: Low drops the finest detail, Ultra adds a finer sea; High is neither.
-            #pragma multi_compile _ LL_FIDELITY_LOW LL_FIDELITY_ULTRA
+            // Graphics fidelity Ultra adds a finer sea.
+            #pragma multi_compile _ LL_FIDELITY_ULTRA
             // The moon's shadows across its glitter (Ultra).
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
@@ -179,11 +179,7 @@ Shader "LL/Water"
                 float path = pow(saturate(dot(Rflat, moon.direction)), 10.0);
                 float3 Hm = normalize(moon.direction + V);
                 float nhm = saturate(dot(N, Hm));
-                #if defined(LL_FIDELITY_LOW)
-                float sparkleNoise = 0.35;
-                #else
                 float sparkleNoise = LLSmooth(0.7, 0.92, LLNoise2(pos.xz * 2.6 + float2(t * 0.9, -t * 0.6)));
-                #endif
                 float sparkle = pow(nhm, 600.0) * 7.0 * sparkleNoise;
                 float3 moonGlint = moon.color * moonB * (path * (0.1 + wind * 0.12) + sparkle * (0.025 + path * 1.9));
 
