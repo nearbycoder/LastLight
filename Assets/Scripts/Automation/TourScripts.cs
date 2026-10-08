@@ -596,10 +596,24 @@ namespace LastLight.Automation
             var expected = new System.Collections.Generic.List<string>();
             foreach (var (name, about) in settings.AboutAll) expected.Add(name);
             int aboutWrong = 0;
+            // The band behind the chosen row follows too, and sits on it once it has glided there.
+            int bandWrong = 0;
+            var bandMisses = new System.Collections.Generic.List<string>();
+            System.Collections.IEnumerator BandCheck()
+            {
+                yield return Tour.Wait(0.25f);
+                string want = settings.AboutShown == "Done" ? null : settings.AboutShown;
+                var label = want != null ? settings.RowLabel(want) : null;
+                bool placed = want == null ? settings.BandShown < 0.05f
+                    : settings.BandShown > 0.95f && Mathf.Abs(settings.Band.anchoredPosition.y - label.anchoredPosition.y) < 1f
+                      && settings.Band.rect.xMin + settings.Band.anchoredPosition.x <= label.anchoredPosition.x - label.sizeDelta.x / 2f;
+                if (settings.BandRow != want || !placed) { bandWrong++; bandMisses.Add($"{want ?? "Done"}: band on {settings.BandRow ?? "none"}"); }
+            }
             for (int i = 0; i < settings.LeftRows + 1; i++)
             {
                 yield return PadPress(pad2, GamepadButton.DpadDown);   // the left column's rows, and into the right one
                 walked.Add(settings.AboutShown ?? "nothing");
+                yield return BandCheck();
             }
             var sel = es.currentSelectedGameObject;
             bool rightColumn = sel != null && ((RectTransform)sel.transform).anchoredPosition.x > 0f;
@@ -608,7 +622,9 @@ namespace LastLight.Automation
             {
                 yield return PadPress(pad2, GamepadButton.DpadDown);   // the rest of the right column, then Done
                 walked.Add(settings.AboutShown ?? "nothing");
+                yield return BandCheck();
             }
+            t.Log($"{(bandWrong == 0 ? "PASS" : "FAIL")} the band behind the chosen row follows the d-pad through every row and leaves for Done ({walked.Count} steps{(bandWrong > 0 ? ": " + string.Join("; ", bandMisses) : "")})");
             string last = Selected();
             bool settingsNav = rightColumn && last == "Button Done";
             t.Log($"{(settingsNav ? "PASS" : "FAIL")} the d-pad walks both settings columns to Done (right column reached: {rightColumn}, ended on {last})");
@@ -625,12 +641,17 @@ namespace LastLight.Automation
             yield return null;
             yield return null;
             string overLabel = settings.AboutShown;
+            yield return Tour.Wait(0.3f);
+            string bandOverLabel = settings.BandRow;
             yield return t.Shot("input_settings_about_mouse");
             TourScripts.MouseTo(RectTransformUtility.WorldToScreenPoint(null, settings.RowControl("Game speed").position) + new Vector2(5, 3));   // over its stepper
             yield return null;
             yield return null;
             yield return null;
             string overControl = settings.AboutShown;
+            yield return Tour.Wait(0.3f);
+            string bandOverControl = settings.BandRow;
+            t.Log($"{(bandOverLabel == "Render scale" && bandOverControl == "Game speed" ? "PASS" : "FAIL")} the band follows the pointer: over Render scale's label it's on {bandOverLabel}, over Game speed's stepper on {bandOverControl}");
             bool hoverOk = overLabel == "Render scale" && overControl == "Game speed";
             t.Log($"{(hoverOk ? "PASS" : "FAIL")} the mouse over Render scale's label shows {overLabel}'s description, over Game speed's stepper {overControl}'s");
             // Every description fits its box, at most three lines.

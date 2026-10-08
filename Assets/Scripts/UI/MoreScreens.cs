@@ -284,11 +284,61 @@ namespace LastLight.UI
         {
             if (about == null || !panel.gameObject.activeSelf) return;
             int i = AboutRow();
+            UpdateBand(i);
             AboutShown = i >= 0 ? rows[i].name : null;
             // Named, so it can't be read as the row just above it.
             string text = i >= 0 ? $"<color=#E2C27F><b>{(rows[i].label != null ? rows[i].name : "Done")}</b></color>  ·  {rows[i].about}" : "";
             if (about.text != text) about.text = text;
         }
+
+        // A soft brass band behind the chosen row (under the pointer, or selected by keys or a
+        // pad), from its name to its control, with a lit tick at its left end; it glides between
+        // rows and the row's name brightens with its value.
+        RectTransform band;
+        Image bandFill, bandTick;
+        int bandRow = -1;
+        float bandAlpha;
+
+        void UpdateBand(int i)
+        {
+            if (band == null) return;
+            bool on = i >= 0 && rows[i].label != null && panel.gameObject.activeSelf;
+            if (on && bandRow != i)
+            {
+                var target = BandPosition(i);
+                // From nothing it appears in place; between rows it glides.
+                if (bandAlpha < 0.05f || bandRow < 0) band.anchoredPosition = target;
+                bandRow = i;
+            }
+            if (!on) bandRow = -1;
+            if (bandRow >= 0) band.anchoredPosition = Vector2.Lerp(band.anchoredPosition, BandPosition(bandRow), 1f - Mathf.Exp(-Unscaled.Delta * 22f));
+            bandAlpha = Mathf.MoveTowards(bandAlpha, on ? 1f : 0f, Unscaled.Delta * 8f);
+            bandFill.color = new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.055f * bandAlpha);
+            bandTick.color = new Color(UiKit.BrassBright.r, UiKit.BrassBright.g, UiKit.BrassBright.b, 0.85f * bandAlpha);
+            for (int r = 0; r < rows.Count; r++)
+            {
+                if (rows[r].label == null) continue;
+                var text = rows[r].label.GetComponent<Text>();
+                var want = r == bandRow ? RowLit : UiKit.Paper;
+                if (text.color != want) text.color = Color.Lerp(text.color, want, 1f - Mathf.Exp(-Unscaled.Delta * 14f));
+            }
+        }
+
+        static readonly Color RowLit = new Color(1f, 0.96f, 0.88f);
+
+        // From the row's name to the far end of its control, a little wider each side.
+        Vector2 BandPosition(int i)
+        {
+            var label = rows[i].label;
+            var control = (RectTransform)rows[i].control.transform;
+            float left = label.anchoredPosition.x - label.sizeDelta.x / 2f - 22f, right = control.anchoredPosition.x + control.sizeDelta.x / 2f + 10f;
+            return new Vector2((left + right) / 2f, label.anchoredPosition.y);
+        }
+
+        /// <summary>For tours: the row the band is on (null when it's on none), and the band itself.</summary>
+        public string BandRow => bandRow >= 0 ? rows[bandRow].name : null;
+        public RectTransform Band => band;
+        public float BandShown => bandAlpha;
 
         /// <summary>For tours: which row the description is about, its words, and every row's.</summary>
         public string AboutShown { get; private set; }
@@ -335,6 +385,13 @@ namespace LastLight.UI
             Label(panel, "Settings", UiKit.Title, 80, UiKit.Paper, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(800, 100)).Shadowed();
             var rule = UiKit.Image("Rule", panel, SpriteFactory.Bar, new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.6f));
             rule.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -146), new Vector2(620, 3));
+            band = UiKit.Rect("RowBand", panel).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(-410f, -196f), new Vector2(792, 48));
+            bandFill = UiKit.Image("Fill", band, SpriteFactory.Rounded, new Color(0, 0, 0, 0), true);
+            bandFill.rectTransform.Fill();
+            bandFill.raycastTarget = false;
+            bandTick = UiKit.Image("Tick", band, SpriteFactory.Bar, new Color(0, 0, 0, 0));
+            bandTick.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(3, 26));
+            bandTick.raycastTarget = false;
             var save = SaveData.Current;
             // Two columns: sound and text on the left, play and display on the right. Pads move
             // down the left column, then down the right, then to Done (left and right change values).
