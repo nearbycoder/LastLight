@@ -1522,3 +1522,84 @@ including mono), human playtests (now including whether Plain lettering reads be
 desktop's own fullscreen (not seen on Wayland), fullscreen and real-hardware checks of other
 screen shapes, non-US keyboard layouts, the save on macOS and Windows, a full disk, a real crash or
 power cut during a watch, Windows (module install) and macOS signing (Developer ID).
+
+## Round 12 scope
+
+This round's focus is polish: the look, the menus and the feel of a finished release, without
+changing the game's style, its balance or its story. The game already has one quality preset, Fog
+and haze quality (Low, Medium, High: the raymarch's step count), and nothing else about the picture
+can be chosen; a strong GPU gets the same frame as a weak one. The volumetric beam shows a fine
+crosshatch from its dither, no light casts a shadow, and on a weak GPU there's nothing but the step
+count to lower. In the menus, the pause card's items sit straight on the bright beam and the
+lighthouse (in `06_pause.png` of the baseline `ui` tour, "Keeper's logbook" is written across the
+lantern), and Settings shows which row is chosen only by brightening its value. The typewriter's
+Board letter on night I still runs into the radio panel's bottom margin (round 11). None of the
+items changes the simulation, so the pinned Standard scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `keys`, `confirm`, `notes`,
+`lettering`, `perf` and `screens` tours at 0 errors. Captures go to
+`docs/media/improvements/round12/`. Tour output and logs stay under `Builds/round12/`. My own save
+folder is checksummed before and after (`Builds/round12/save_before.txt`). Every test window runs
+in the private nested KWin (`Tools/nested.sh`), and the load average is noted with every
+measurement (and must be under 24).
+
+### 1. Graphics fidelity: Low, Medium, High, Ultra
+- Settings ▸ Fog and haze quality becomes **Graphics fidelity**, with four steps. It's saved as the
+  old setting was (an older save's Low, Medium or High stays where it was; a new save starts on
+  High) and works with the mouse, the keys and the pad like every stepper.
+- **High** is the game as it is today, frame for frame. **Medium** and **Low** lower everything
+  that costs: the raymarch's steps (16 and 10, as before), anti-aliasing (SMAA Medium, then FXAA),
+  bloom (half resolution without the high-quality filter, then a quarter), film grain (off on
+  Low), the sea's detail (Low drops the ripple sparkle and the foam lace) and particle counts
+  (rain, spray, smoke and wakes: 75% and 50%).
+- **Ultra** goes past today's look (item 2).
+- The advice after a slow night names **Graphics fidelity** (the next step down) instead of Fog
+  and haze quality, and the keeper's notes and the description line under Settings say what
+  each step changes.
+- **Verify:** EditMode tests: the save's old values map onto the new steps, and the advice names
+  the next step down. A new `fidelity` tour freezes night V (fog, the costly night) and night XII
+  (storm and rain) and the title at one moment and shoots the same frame at every step, then lets
+  each night run and measures the average frame time and the slowest 1% at every step (load
+  noted). It also walks the stepper with the keys, the simulated pad and clicks, and checks the
+  save. `perf` checks the new advice. The results give a table of the steps, what each changes
+  and its frame time.
+
+### 2. Ultra: moon shadows, smoother shafts, a finer sea
+- On Ultra, the moon casts soft shadows (the lighthouse, the headland, the harbour, the sea
+  stacks and the ships, on each other and on the sea's moon glitter); the raymarch takes 40 steps
+  with a finer octave of fog; temporal anti-aliasing smooths the light shafts' dither and the
+  edges (if it smears the swinging beam badly, 4× MSAA instead); the sea gains two short swells
+  and finer ripples; particles are denser (150%); the title gets a shallow depth of field on the
+  lighthouse.
+- **Verify:** the `fidelity` tour's same-frame shots, read by me at full size, side by side with
+  High; the frame times in item 1's table; a crop of the light shaft during a swing at High and
+  Ultra for smearing.
+
+### 3. Menus soften the night behind them
+- When the pause card, Settings, the keeper's notes, the logbook or the dawn card are over a
+  night, the bay behind them blurs and dims, easing in and out over a quarter of a second (the
+  title's live scene keeps its focus). Low keeps the dim without the blur.
+- **Verify:** the `ui` tour measures the spread of brightness behind the pause card's items before
+  and after (it must fall by at least half) and shoots pause and Settings over a night;
+  `confirm`, `notes` and `screens` still pass.
+
+### 4. Settings show the chosen row
+- The chosen row in Settings (by the pointer, the keys or the pad) gets a soft brass band behind
+  its name and its control, and the name brightens with the value, so the eye finds it at once.
+- **Verify:** the `input` tour checks the band follows the selection as it walks all the rows with
+  the simulated pad and the keys, and follows the pointer; screenshots read by me.
+
+### 5. Every radio call fits its panel
+- A call too long for the radio panel grows the panel upward to fit (it eases taller and back),
+  so night I's Board letter in the typewriter no longer runs into the bottom margin.
+- **Verify:** the `lettering` tour measures every scripted call against the panel as it's shown,
+  in both letterings at 100% and 130% HUD text, and checks none runs into the margin; `screens`
+  checks the HUD's blocks still don't overlap.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp, slowed records, the replay's pace, the offer of
+  help and the frame-rate advice's threshold**: the owner's call.
+- **A real pad, rumble, fullscreen at other shapes, a Steam Deck, a weak laptop, non-US layouts,
+  the save on macOS and Windows, a full disk, a real crash**: no hardware or platforms here.
+- **Re-cutting the trailer**: the owner's call. Captures for the README stay as they are; the
+  round's captures show the new look.
