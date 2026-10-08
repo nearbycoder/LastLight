@@ -99,8 +99,17 @@ namespace LastLight.Core
             Bloom.highQualityFiltering.Override(true);
             Bloom.tint.Override(new UnityEngine.Color(1f, 0.93f, 0.85f));
 
+            // URP builds keep only the post effects some profile asset in the project uses, and
+            // until round 12 none used bloom, tonemapping, film grain, chromatic aberration or depth
+            // of field: the released game never showed them, only the editor did. They stay off so
+            // the editor shows what the build does, except bloom and depth of field, which
+            // Assets/Settings/LL_PostVariants.asset now keeps in the build: bloom for Graphics
+            // fidelity Ultra, and depth of field for Ultra's title.
+            Bloom.active = false;
+
             var tm = profile.Add<Tonemapping>(true);
             tm.mode.Override(TonemappingMode.ACES);
+            tm.active = false;
 
             Color = profile.Add<ColorAdjustments>(true);
             Color.postExposure.Override(Exposure(SaveData.Current.brightness));
@@ -124,9 +133,11 @@ namespace LastLight.Core
             grain.type.Override(FilmGrainLookup.Medium1);
             grain.intensity.Override(0.2f);
             grain.response.Override(0.8f);
+            grain.active = false;
 
             Chroma = profile.Add<ChromaticAberration>(true);
             Chroma.intensity.Override(0.07f);
+            Chroma.active = false;
 
             Lens = profile.Add<LensDistortion>(true);
             Lens.intensity.Override(0f);
@@ -142,8 +153,8 @@ namespace LastLight.Core
         // Ultra's moon shadows: four cascades over the whole bay as the play camera sees it.
         const float ShadowReach = 520f;
 
-        /// <summary>Settings ▸ Graphics fidelity: anti-aliasing, bloom, grain, the moon's shadows
-        /// and the title's depth of field. High is the game as first graded.</summary>
+        /// <summary>Settings ▸ Graphics fidelity: anti-aliasing, bloom, the moon's shadows
+        /// and the title's depth of field. High is the game as released.</summary>
         public static void ApplyFidelity()
         {
             int level = Fidelity.Level;
@@ -174,13 +185,8 @@ namespace LastLight.Core
                 CameraData.resetHistory = true;
                 if (cam != null) cam.allowMSAA = false;
             }
-            if (Bloom != null)
-            {
-                Bloom.highQualityFiltering.Override(level >= Fidelity.High);
-                Bloom.downscale.Override(level == Fidelity.Low ? BloomDownscaleMode.Quarter : BloomDownscaleMode.Half);
-                Bloom.maxIterations.Override(level == Fidelity.Ultra ? 8 : level == Fidelity.Low ? 5 : 6);
-            }
-            if (Grain != null) Grain.active = level > Fidelity.Low;
+            // Bloom never reached a build before Ultra (see BuildPost): below it, the look as released.
+            if (Bloom != null) Bloom.active = level == Fidelity.Ultra;
             if (Moon != null)
             {
                 Moon.shadows = level == Fidelity.Ultra ? LightShadows.Soft : LightShadows.None;

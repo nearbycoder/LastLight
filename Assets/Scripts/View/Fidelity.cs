@@ -5,7 +5,7 @@ namespace LastLight.View
 {
     /// <summary>
     /// Settings ▸ Graphics fidelity: one choice from Low to Ultra for everything about the picture
-    /// that costs. High is the game as it was first graded. The camera, post-processing and moon
+    /// that costs. High is the game as released. The camera, post-processing and moon
     /// follow it in <see cref="Core.Stage.ApplyFidelity"/>; the shaders read its keywords and step
     /// count, and the particle effects its density.
     /// </summary>
@@ -29,10 +29,10 @@ namespace LastLight.View
         /// <summary>What a step changes, for the line under Settings.</summary>
         public static string About(int level) => level switch
         {
-            Low => "Low: the cheapest fog and haze, FXAA, a quarter-size bloom, plainer glints on the sea, half the particles and no grain.",
-            Medium => "Medium: lighter fog and haze, SMAA, half-size bloom and three quarters of the particles.",
-            Ultra => "Ultra: moon shadows, the finest fog, temporal anti-aliasing, a finer sea, denser rain and spray, and depth of field.",
-            _ => "High: the game as graded. Detailed fog and haze, SMAA and full bloom.",
+            Low => "Low: for a weaker GPU. The lightest fog and haze, FXAA, plainer glints on the sea and half the particles.",
+            Medium => "Medium: lighter fog and haze, SMAA and three quarters of the particles.",
+            Ultra => "Ultra: moon shadows, bloom, the finest fog, temporal anti-aliasing, a finer sea, denser rain and spray, and depth of field.",
+            _ => "High: the game as released. Detailed fog and haze and SMAA.",
         };
 
         static readonly GlobalKeyword LowKeyword = GlobalKeyword.Create("LL_FIDELITY_LOW");

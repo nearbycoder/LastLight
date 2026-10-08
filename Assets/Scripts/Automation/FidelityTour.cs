@@ -15,7 +15,7 @@ namespace LastLight.Automation
 {
     /// <summary>
     /// The fidelity tour (-llScript fidelity, with -llFresh, and -llFps 1000 so frames aren't held
-    /// to the display): Settings ▸ Graphics fidelity. A fresh save is on High, the game as graded.
+    /// to the display): Settings ▸ Graphics fidelity. A fresh save is on High, the game as released.
     /// The stepper is walked with the keys, the simulated pad and clicks, and each step's camera,
     /// post-processing and moon are checked. Then the title, night V (fog, the costly night) and
     /// night XII (storm and rain) are each held still at one moment and shot at every step, the
@@ -103,8 +103,7 @@ namespace LastLight.Automation
         {
             var cam = Stage.CameraData;
             string aa = cam.antialiasing == AntialiasingMode.SubpixelMorphologicalAntiAliasing ? $"SMAA {cam.antialiasingQuality}" : cam.antialiasing.ToString();
-            return $"{Fidelity.Names[Fidelity.Level]}: {ShaderGlobals.Steps} steps, {aa}, bloom {Stage.Bloom.downscale.value}{(Stage.Bloom.highQualityFiltering.value ? " HQ" : "")} ×{Stage.Bloom.maxIterations.value}, " +
-                   $"grain {(Stage.Grain.active ? "on" : "off")}, moon shadows {Stage.Moon.shadows}, particles ×{Fidelity.Particles:0.##}, " +
+            return $"{Fidelity.Names[Fidelity.Level]}: {ShaderGlobals.Steps} steps, {aa}, bloom {(Stage.Bloom.active ? "on" : "off")}, moon shadows {Stage.Moon.shadows}, particles ×{Fidelity.Particles:0.##}, " +
                    $"keywords {(Shader.IsKeywordEnabled("LL_FIDELITY_LOW") ? "LOW" : "")}{(Shader.IsKeywordEnabled("LL_FIDELITY_ULTRA") ? "ULTRA" : "")}";
         }
 
@@ -121,7 +120,7 @@ namespace LastLight.Automation
             return Fidelity.Level == level && SaveData.Current.quality == level && aa
                 && ShaderGlobals.Steps == Fidelity.StepsFor(level)
                 && (Stage.Moon.shadows != LightShadows.None) == (level == Fidelity.Ultra)
-                && Stage.Grain.active == (level != Fidelity.Low)
+                && Stage.Bloom.active == (level == Fidelity.Ultra)
                 && Shader.IsKeywordEnabled("LL_FIDELITY_LOW") == (level == Fidelity.Low)
                 && Shader.IsKeywordEnabled("LL_FIDELITY_ULTRA") == (level == Fidelity.Ultra);
         }
@@ -206,7 +205,7 @@ namespace LastLight.Automation
             var save = SaveData.Current;
             yield return Tour.Wait(4f);
             t.Log($"screen {Screen.width}x{Screen.height}, render scale {save.renderScale * 100:0}%, frame rate held to {Application.targetFrameRate} (vSync {QualitySettings.vSyncCount}), {SystemInfo.graphicsDeviceName}, {SystemInfo.graphicsDeviceVersion}; {Load()}");
-            Check(t, save.quality == Fidelity.High && Matches(Fidelity.High), $"a fresh save is on High, the game as graded ({Describe()})");
+            Check(t, save.quality == Fidelity.High && Matches(Fidelity.High), $"a fresh save is on High, the game as released ({Describe()})");
 
             // Settings ▸ Graphics fidelity with the keys, the pad and the mouse.
             g.TourShowSettings();
@@ -219,7 +218,7 @@ namespace LastLight.Automation
             yield return Press(Key.RightArrow);
             yield return Tour.Wait(0.3f);
             Check(t, Matches(Fidelity.Ultra), $"→ chooses Ultra ({Describe()})");
-            Check(t, s.AboutShown == "Graphics fidelity" && s.AboutText.Contains("Ultra: moon shadows"), $"the line under Settings says what Ultra does: \"{s.AboutText}\"");
+            Check(t, s.AboutShown == "Graphics fidelity" && s.AboutText.Contains("Ultra: moon shadows, bloom"), $"the line under Settings says what Ultra does: \"{s.AboutText}\"");
             yield return t.Shot("settings_ultra");
             var pad = InputSystem.AddDevice<Gamepad>("TourPadFidelity");
             yield return null;
