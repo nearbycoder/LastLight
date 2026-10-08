@@ -25,6 +25,19 @@ chmod +x "$NEST/session.sh"
 XDG_CONFIG_HOME="$NEST/config" XDG_DATA_HOME="$NEST/data" XDG_CACHE_HOME="$NEST/cache" XDG_STATE_HOME="$NEST/state" \
   dbus-run-session -- kwin_wayland --virtual --no-lockscreen --socket "$SOCK" --width "$W" --height "$H" \
   --exit-with-session "$NEST/session.sh" > "$NEST/kwin.log" 2>&1 || true
+# Helpers the session started through D-Bus (ksecretd, PipeWire and the like) can outlive it. They
+# carry this run's own config folder in their environment, so exactly those are stopped.
+stop_helpers() {
+  local sig="$1" pids="" p
+  for p in $(pgrep -u "$(id -u)" . 2>/dev/null); do
+    [ "$p" = "$$" ] && continue
+    { tr '\0' '\n' < "/proc/$p/environ"; } 2>/dev/null | grep -qxF "XDG_CONFIG_HOME=$NEST/config" && pids="$pids $p"
+  done
+  [ -n "$pids" ] || return 1
+  echo "$(date +%T) $sig$pids $(for p in $pids; do { tr '\0' ' ' < /proc/$p/cmdline; } 2>/dev/null | cut -c1-60 | tr -d '\n'; echo -n '; '; done)" >> "$ROOT/Builds/nested/helpers.log"
+  kill "-$sig" $pids 2>/dev/null || true
+}
+if stop_helpers TERM; then sleep 2; stop_helpers KILL || true; fi
 status="$(cat "$NEST/status" 2>/dev/null || echo 1)"
 cat "$NEST/out" 2>/dev/null || true
 [ "$status" = 0 ] && rm -rf "$NEST" || echo "nested: exit $status, KWin log in $NEST/kwin.log" >&2
