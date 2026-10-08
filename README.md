@@ -78,14 +78,26 @@ or a single speaker), text speed, **radio lettering** (the radio's calls in plai
 the worn typewriter, on the HUD, in briefings and in the pause menu's log), hints, screen shake, **focus** (hold the button, or toggle: press once to
 focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
 **frame rate** (the display's refresh rate, or a cap of 60 or 30 to save power and heat on a
-laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
+laptop or handheld), **graphics fidelity** (Low, Medium, High or Ultra; see below), **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
 **brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
 a tenth of its strength), HUD text size, difficulty, **game speed**, the **keys and buttons** and
 the **pad buttons**' names. A line under the settings says what the one chosen (or under the
 pointer) does. After a night that ran well short of the frame rate it aims for (below 45 frames a
-second), the dawn card says so and names the next settings to lower (Render scale, then Fog and
-haze quality, then a 30 fps cap), once a session for the same settings.
+second), the dawn card says so and names the next settings to lower (Graphics fidelity, then
+Render scale, then a 30 fps cap), once a session for the same settings.
+
+**Graphics fidelity** sets everything about the picture that costs, in one place. **High**, the
+default, is the game as released. **Medium** and **Low** lighten the fog and haze (16 and 10
+raymarch steps instead of 24), use cheaper anti-aliasing (SMAA Medium, then FXAA) and fewer
+particles (75% and 50% of the rain, spray, smoke and wakes). **Ultra** goes further than the release: the moon casts soft shadows (the tower down the
+headland, the sea stacks and rocks across the water, the harbour), the light shafts are smoothed by
+temporal anti-aliasing over a 40-step raymarch with a finer octave of fog, the sea gains finer
+ripples, the rain and spray are denser, the lantern and the lamps bloom, and on the title the far
+bay and the sky soften behind the tower. A line under Settings says what each step changes.
+Behind the pause card, Settings, the keeper's notes, the logbook, dawn and the chart, the bay
+softens so the words read clearly (on Low it's only dimmed), and in Settings a soft band marks the
+row you're on, whether you got there with the mouse, the keys or a pad.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 With **Sound in background** off, the game also falls silent while its window is out of focus.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
@@ -338,7 +350,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (122 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (124 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -376,7 +388,9 @@ contains a copy of it.
   way once, in order), and three the advice after a slow night. Seven cover the pad's buttons for
   focus and the foghorn: the defaults, moving a button, the exchange when an action would lose its
   last button, Start and View refused, reset and repair, the save format (an older save gets the
-  defaults), and the keeper's notes in the bound buttons' names.
+  defaults), and the keeper's notes in the bound buttons' names. Two check Graphics fidelity: an
+  older save's Fog and haze quality reads as the same step, and the steps below Ultra keep their
+  raymarch.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -393,19 +407,21 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf|padkeys|mono|lettering|fullscreen> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf|padkeys|mono|lettering|fullscreen|fidelity> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
   and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
   so Unity's window settings don't land in your `~/.config/unity3d` either.
   The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
-  staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
+  staged wreck, and ends on two staged dawn debriefs; with the pause card up it also hides every
+  canvas for a frame and measures how much fine detail the bay keeps behind the card with the
+  softening held off and on. The `input` tour drives the real mouse and
   keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
   pad pauses the night, and that the d-pad walks both settings columns, and that choosing Resume
 with the pad's A doesn't also sound the foghorn. It switches Focus to Toggle
 and checks each control both ways, checks the pointer hides for pad play, and logs the input
 devices Unity sees. It walks Settings with the pad and the mouse and checks the line that says
-what each setting does, and sets Pad buttons to each style and checks the title strip, hints,
+what each setting does and that the band behind the chosen row follows it, and sets Pad buttons to each style and checks the title strip, hints,
 briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
   at whatever window size the player starts with (`LL_W` and `LL_H`), that every menu panel is on
   screen, that the HUD's blocks don't overlap (night 11, the longest top bar), and that the harbour and
@@ -444,7 +460,13 @@ briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to
   names RB and LB (and R1 and L1 with PlayStation names). `mono` plays the foghorn panned hard to
   each side and measures the left and right channels of the game's output with Sound on Stereo and
   on Mono. `lettering` measures every scripted call and briefing against its box in both radio
-  letterings and shows the longest call at 100% and 130% HUD text. `fullscreen` (only inside
+  letterings (a call too long for the radio's usual box against the box the panel grows to give
+  it) and shows the longest call at 100% and 130% HUD text. `fidelity` (with `-llFps 1000`, so
+  frames aren't held to the display) walks Settings ▸ Graphics fidelity with the keys, the
+  simulated pad and clicks, checks what each step sets, then holds the title, night V and night XII
+  still and shoots the same frame at every step, and measures each step's frame time on that still
+  frame and while the night plays, three rounds through the steps with the median kept, logging the
+  load and the GPU's busy share with each. `fullscreen` (only inside
   `Tools/nested.sh`) presses F11 and Alt+Enter and checks the window's mode, Settings ▸ Display and
   the save each time, and that Alt+Enter doesn't also choose the menu item; a KWin script that
   resizes the window only if KWin doesn't hold it fullscreen confirms each switch from KWin's side.
@@ -528,7 +550,7 @@ docs/                  BRIEF.md (the original brief), PLAN.md (the design and te
   the water is the same function the ships respond to.
 - **Volumetric night.** A full-screen raymarch (`Atmosphere.shader`) computes single scattering
   from the beam analytically per sample, together with moonlit haze and drifting fog banks. The
-  fog quality setting is the step count. Water uses Gerstner waves, a moon glitter path, and a foam
+  Graphics fidelity setting sets the step count. Water uses Gerstner waves, a moon glitter path, and a foam
   texture the simulation writes for charted reefs and wakes.
 - **One source of truth for the coast.** `merrow_bay.json` drives the simulation and Blender's
   generators for the cliffs, rocks and buoys, so geometry and gameplay can't drift apart. The
@@ -589,10 +611,21 @@ Linux. Here's what is still unproven or rough:
   scores on all twelve nights. If that's the
   case, tighten them with deliberate levers (drain rates, schedules, the Night Watch's ramp)
   rather than steering faults.
-- Fog nights on the High quality setting can drop below 60 fps on weaker GPUs. Medium, or a
-  render scale of 70%, is the safer choice there. On the development machine's Radeon 8060S at
-  1600×900, night 5 averaged about 50 fps at 100% and about 74 fps at 70%. Those runs were made
-  while the machine was heavily loaded by other work, so treat the numbers as rough.
+- **Graphics fidelity was measured on one machine, with its GPU shared.** On the development
+  machine's Radeon 8060S at 1600×900, with the frame rate uncapped and the load average at 5 to 9,
+  night V (fog, the costly night) took a median 6.7 ms a frame on Low, 8.0 on Medium, 9.3 on High
+  and 14.3 on Ultra while it played (about 150, 125, 107 and 70 fps); the full table is in
+  `docs/IMPROVEMENTS.md` (Round 12 results). Each step was measured three times in turn and the
+  median kept, because other work shares the GPU. Whether Low is smooth on a genuinely weak GPU, and
+  how Ultra runs on a discrete card, hasn't been tried. Ultra's temporal anti-aliasing was checked
+  for smearing in still captures of a playing night, not by a person watching the beam swing.
+- **Post-processing that never reached a build.** Until round 12, the bloom, ACES tonemapping,
+  film grain, chromatic aberration and depth of field set up in code showed only in the editor:
+  URP leaves out of a build every post effect that no profile asset in the project uses, and the
+  game builds its profile in code. Every release and capture so far had none of them. High keeps
+  that look; Ultra now has bloom, and depth of field softens the bay behind menus (and the far bay
+  on Ultra's title). Tonemapping, grain and chromatic aberration stay off, in the editor too, so
+  the two match; whether the game should have them is an art call.
 - On the development machine, the X11/XWayland window path hung at startup. Use `LastLight.sh`
   under Wayland.
 - **Screen shapes were checked in windows, on one machine.** The `screens` tour passes at
@@ -673,7 +706,7 @@ Linux. Here's what is still unproven or rough:
   halves the level of a sound that was wholly on one side, as a mono mix does. Whether Plain is
   easier to read for the players it's meant for, and whether its size (8% larger than the
   typewriter, to match its height) is right, needs a playtest. In the typewriter, the Board's
-  letter on night I takes four lines and its last line sits in the radio panel's bottom margin;
-  in Plain it takes three.
+  letter on night I takes four lines; since round 12 the radio panel grows 13 units taller for it
+  (and a few units for two calls in Plain), so it no longer runs into the panel's bottom margin.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.

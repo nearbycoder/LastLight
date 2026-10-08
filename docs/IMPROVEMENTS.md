@@ -1603,3 +1603,100 @@ measurement (and must be under 24).
   the save on macOS and Windows, a full disk, a real crash**: no hardware or platforms here.
 - **Re-cutting the trailer**: the owner's call. Captures for the README stay as they are; the
   round's captures show the new look.
+
+## Round 12 results (2026-10-08)
+
+All five items landed on `improvements-12`, with two follow-up commits that came out of reading
+the captures. Verification was on the built Linux player from `2793e18`, the last code commit (the
+commit after it changes only the README, this file and the captures): 124/124 EditMode tests (122
+before, plus two for Graphics fidelity; `Logs/test-results.xml`, `Builds/round12/test_final.log`),
+and a final pass of 39 runs, every one in the private nested KWin (`Builds/round12/final.log`, run
+by `Builds/round12/final.sh`): round 11's 38 (`input`, `ui`, `status`, `radiolog`, `ending`,
+`endingskip`, `offscreen`, `brightness`, `keys`, `names`, `notes`, `chart`, `lamps`, `watchend`,
+`confirm`, `speed`, `best`, `screens` at four window sizes with 130% HUD text, `framerate`, `help`,
+`perf`, `padkeys`, `mono`, `lettering`, `fullscreen`, and the `season` tour ten ways) and the new
+`fidelity`. The log has 489 PASS lines and no FAIL or exception; every tour that ends on its own
+ended with 0 errors. The pass waited for the load average to fall below 24 before each run and ran
+at 6.9 to 19.8. A first full pass on `0a958d7`, before the follow-ups, also had 489 PASS and no
+FAIL (`Builds/round12/pass1/final_0a958d7.log`). Captures are in `docs/media/improvements/round12/`.
+
+No simulation code changed, so the pinned Standard scores pass and balance is unchanged on both
+difficulties; the validation report wasn't re-run.
+
+1. **Graphics fidelity: Low, Medium, High, Ultra** (`ea6c8b2`, `b481270`, `2793e18`). Settings ▸
+   Fog and haze quality became Graphics fidelity, with the same saved value (an older save's Low,
+   Medium and High read as before; a new save is on High) and a line under Settings saying what
+   each step does. The `fidelity` tour chose Ultra with →, Medium with the simulated pad's d-pad,
+   Low and back to High with clicks, checking each step's camera, post-processing, moon and shader
+   keyword, and that the save keeps Ultra. The slow-night advice now names it first ("This night
+   ran at about 30 frames a second. For a smoother night, try Settings ▸ Graphics fidelity Medium or
+   Render scale 70%.", `perf_dawn_note_fidelity.jpg`; `perf` passes). The table below is from the
+   `fidelity` tour: each scene held still and shot at every step (`fidelity_title.jpg`,
+   `fidelity_night05.jpg`, `fidelity_night12.jpg`, the same frame each time), and each step's frame
+   time measured on that still frame and while the night played, three rounds through the steps
+   with the median kept, at 1600×900 with the frame rate uncapped (`-llFps 1000`) and render scale
+   100%, load average 5.5 to 9.4. The GPU read 99–100% busy throughout, but with the frame rate
+   uncapped the game fills it itself, so that figure doesn't show other sessions' share.
+
+   | Step | What it changes | Title, still | Night V, still | Night V, playing | Night XII, still | Night XII, playing |
+   |---|---|---|---|---|---|---|
+   | Low | Raymarch 10 steps, FXAA, particles ×0.5 | 3.8 ms (267 fps) | 6.5 ms | 6.7 ms (149 fps) | 4.7 ms | 4.7 ms (214 fps) |
+   | Medium | Raymarch 16 steps, SMAA Medium, particles ×0.75 | 4.6 ms | 8.1 ms | 8.0 ms (125 fps) | 5.9 ms | 5.3 ms (188 fps) |
+   | High (default) | As released: 24 steps, SMAA High, particles ×1 | 5.3 ms | 10.1 ms | 9.3 ms (107 fps) | 6.1 ms | 5.8 ms (173 fps) |
+   | Ultra | Soft moon shadows (4 cascades, 4096, to 520 units), bloom, TAA over a per-frame dither, 40 steps with a finer fog octave, finer ripples, particles ×1.6, far-only depth of field on the title | 7.0 ms | 14.7 ms | 14.3 ms (70 fps) | 8.0 ms | 7.9 ms (126 fps) |
+
+   The slowest 1% of frames on night V while it played: 11.8, 13.5, 15.3 and 19.6 ms. Ultra costs
+   about half as much again as High on the fog night. **Changed from the plan:** Medium and Low
+   were to lower bloom and film grain, and Low the sea's glints. Reading the build log showed that
+   bloom, ACES tonemapping, film grain, chromatic aberration and depth of field had never reached a
+   build: URP strips every post effect that no profile asset in the project uses, and the game makes
+   its profile in code. So High, the look as released, has none of them; `LL_PostVariants.asset`
+   now keeps bloom and depth of field in the build, Ultra gets the bloom, and the others are off in
+   the editor too, so it shows what the build does. Low's plainer sea was dropped too: without the
+   noise that gathers the glints into patches they turned into blotches (`2793e18`).
+2. **Ultra: moon shadows, smoother shafts, a finer sea** (in the same commits). The models had
+   been set to cast and take no shadows; they now do both, and the moon casts only on Ultra. In
+   the same-frame shots the big rock throws a long shadow across the sea and the tower one down the
+   headland (`ultra_moon_shadow_rock.jpg`, `ultra_moon_shadow_headland.jpg`), and the crosshatch
+   of the light shafts' dither is gone (`ultra_light_shaft.jpg`): on Ultra the dither moves every
+   frame, so temporal anti-aliasing averages it, even with the night paused. TAA was kept, not
+   swapped for MSAA: the Ultra captures of a playing night show no smear behind the beam or the
+   ships (`ultra_night05_playing.jpg`), though no person has watched it swing. The title's depth of
+   field was first a Bokeh focus on the tower, which turned the beam's pool into a glare; it's now a
+   Gaussian blur of only the far sea and the sky.
+3. **Menus soften the night behind them** (`3b8ba7b`). As planned, on Medium and up; Low keeps
+   only the dim. The `ui` tour hid every canvas for a frame with the pause card up and measured the
+   scene's fine detail (the mean difference between neighbouring pixels): behind the items it fell
+   from 17.98 to 4.81 (73% less), over the whole frame from 15.85 to 3.40, with the mean
+   brightness 0.172 and 0.178 (`pause_softened.jpg`, `dawn_softened.jpg`). It uses URP's Bokeh
+   depth of field focused a hand's breadth from the lens, eased in by its focal length.
+   `confirm`, `notes` and `screens` pass.
+4. **Settings show the chosen row** (`7469469`). As planned; the band is faint brass with a lit
+   tick, and the row's name turns warm white rather than brass, which read poorly on the band in
+   the first build (`settings_row_band.jpg`). The `input` tour checked the band on every one of the
+   27 rows as the simulated pad walked them, gone on Done, and under the pointer on a label and on a
+   stepper.
+5. **Every radio call fits its panel** (`0a958d7`). As planned. The `lettering` tour measured all
+   144 calls against the box the panel gives them, with no allowance for the margin: in the
+   typewriter one call (night I's Board letter, 98 units) grows the panel to 163, and in Plain two
+   grow it by a few units; everything fits (`radio_board_letter_fits.jpg`). `screens` finds the
+   HUD's blocks apart at all four shapes.
+
+**Process notes.** Items 1 and 2 share every file and were committed together; the post-effects
+fix and the two follow-ups are separate commits. Items 4 and 5 were built and toured together and
+committed one after the other (they share no file). Single tours early in the session ran at
+loads of 25 to 55 with the GPU fully busy from other sessions; one `input` run there missed an aim
+check by 6°, and passed in both final passes. My own save folder held the editor's `prefs` (same
+checksum before and after) and the test runner's `TestResults.xml` (rewritten by each test run),
+and no `save.json`, as in rounds 7 to 11. `Tools/nested.sh` logged no helpers left behind.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), the offer of help's wording and threshold (owner), the replay's pace (owner),
+whether the game should have tonemapping, film grain or chromatic aberration (an art call: they
+were in the code but never in a build), Low on a genuinely weak GPU and Ultra on a discrete one,
+whether 45 fps is the right line for the frame-rate advice, a real-gamepad pass, rumble, a
+listening pass, human playtests, the desktop's own fullscreen (not seen on Wayland), fullscreen and
+real-hardware checks of other screen shapes, non-US keyboard layouts, the save on macOS and
+Windows, a full disk, a real crash or power cut during a watch, Windows (module install), macOS
+signing (Developer ID), and re-cutting the trailer (README captures still show the release's
+look, which is High's).
