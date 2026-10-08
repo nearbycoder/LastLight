@@ -15,13 +15,14 @@
   <img alt="Platform: Linux" src="https://img.shields.io/badge/platform-Linux%20x86__64-c9a35a?logo=linux&logoColor=white">
   <img alt="Input: mouse, keyboard, gamepad" src="https://img.shields.io/badge/input-mouse%20%C2%B7%20keyboard%20%C2%B7%20gamepad-5b6b7a">
   <img alt="Art: Blender 4.5" src="https://img.shields.io/badge/art-Blender%204.5-e87d0d?logo=blender&logoColor=white">
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-e9dfc7">
+  <img alt="Latest release: v0.1.0" src="https://img.shields.io/badge/release-v0.1.0-e9dfc7">
 </p>
 
 <p align="center">
-  <a href="https://github.com/nearbycoder/LastLight/releases/latest"><b>Download for Linux</b></a> ·
   <a href="docs/media/LastLight_trailer.mp4"><b>Watch the trailer</b></a> ·
+  <a href="#play-it"><b>Play it</b></a> ·
   <a href="#how-to-play">How to play</a> ·
+  <a href="#settings-and-accessibility">Settings</a> ·
   <a href="#build-from-source">Build from source</a>
 </p>
 
@@ -29,8 +30,9 @@
 
 [![Last Light trailer: click to play (1:50, 1080p, with sound)](docs/media/trailer_poster.jpg)](docs/media/LastLight_trailer.mp4)
 
-<sub>1 minute 50 seconds, 1920×1080, with the game's own music and sound. Every shot is the game
-running, recorded from scripted nights (see <a href="#the-trailer">how the trailer is made</a>).</sub>
+<sub>1 minute 50 seconds, 1920×1080, with the game's own music and sound and no narration. Every
+shot is the game running on Graphics fidelity Ultra, recorded from scripted nights (see
+<a href="#the-trailer">how the trailer is made</a>).</sub>
 
 ## About
 
@@ -50,6 +52,29 @@ season and an endless **Night Watch** opens.
 Every model was built by script in Blender, and every sound, radio voice and note of music was
 synthesized in Python. The game uses no stock or sampled assets.
 
+## Play it
+
+1. Download `LastLight-v0.1.0-linux-x86_64.zip` from the
+   [latest release](https://github.com/nearbycoder/LastLight/releases/latest).
+2. Unzip it and run `./LastLight.sh`, or run `./LastLight.x86_64` directly.
+
+> **The download is older than this page.** v0.1.0 was published on 4 October 2026. Twelve rounds
+> of improvements have landed on `main` since (the dawn debrief and chart, breakers warnings, Hard
+> difficulty, Graphics fidelity with Ultra, names on the water, the keeper's notes, rebindable keys
+> and pad buttons, mono sound and much more; see [`docs/IMPROVEMENTS.md`](docs/IMPROVEMENTS.md)),
+> and no release has been cut from them yet. This README, its screenshots and the trailer show
+> `main`. To play that version, [build it from source](#build-from-source).
+
+**System requirements.** 64-bit Linux and a GPU with OpenGL 4.5. The game was developed on CachyOS
+(Arch) with an AMD Radeon 8060S integrated GPU under KDE Wayland, where night V (fog, the costly
+night) ran at about 150 fps on Low and 70 fps on Ultra at 1600×900 (see
+[Graphics fidelity](#graphics-fidelity)). On Wayland, `LastLight.sh` starts Unity's native Wayland
+backend, because the X11/XWayland path hung at startup on the development machine. There's no
+published Windows or macOS build (see [Status and known issues](#status-and-known-issues)).
+
+Progress and settings are saved in `save.json` in the game's data folder (on Linux
+`~/.config/unity3d/Gannet Head/Last Light/`).
+
 ## How to play
 
 Point the light. That's the whole interface. The rest is deciding where to point it.
@@ -61,6 +86,7 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Sound the foghorn (14 s cooldown) | **Space** or the **right mouse button** | **A** |
 | Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) |
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
+| Switch between a window and fullscreen | **F11** or **Alt+Enter** | |
 
 The keyboard keys for turning, focus and the foghorn, and the gamepad's buttons for focus and the
 foghorn, can be changed in **Settings ▸ Keys and buttons** (three keys each, two buttons each; Esc,
@@ -69,78 +95,14 @@ can put the foghorn on a shoulder button, so the thumb stays on the aim. The mou
 theirs, either stick turns the light, and every prompt names the keys and buttons you've chosen.
 The pad's buttons are named as an Xbox pad's above; **Settings ▸ Pad buttons** gives every prompt
 PlayStation names (Cross, Circle, R2, Options) or Nintendo's (B, A, ZR, +, by position, so the
-bottom button is B), and on *Auto* the game guesses from the pad's name.
+bottom button is B), and on *Auto* the game guesses from the pad's name. There's no touch input.
 
-The game starts fullscreen; **F11** or **Alt+Enter** switches between a window and fullscreen at
-any time, and Settings ▸ Display and the next start follow. Settings has volumes for master, music,
-effects, radio and ambience, **mono sound** (every sound in both ears alike, for hearing on one side
-or a single speaker), text speed, **radio lettering** (the radio's calls in plain letters instead of
-the worn typewriter, on the HUD, in briefings and in the pause menu's log), hints, screen shake, **focus** (hold the button, or toggle: press once to
-focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
-**frame rate** (the display's refresh rate, or a cap of 60 or 30 to save power and heat on a
-laptop or handheld), **graphics fidelity** (Low, Medium, High or Ultra; see below), **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
-**brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
-menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
-a tenth of its strength), HUD text size, difficulty, **game speed**, the **keys and buttons** and
-the **pad buttons**' names. A line under the settings says what the one chosen (or under the
-pointer) does. After a night that ran well short of the frame rate it aims for (below 45 frames a
-second), the dawn card says so and names the next settings to lower (Graphics fidelity, then
-Render scale, then a 30 fps cap), once a session for the same settings.
-
-**Graphics fidelity** sets everything about the picture that costs, in one place. **High**, the
-default, is the game as released. **Medium** and **Low** lighten the fog and haze (16 and 10
-raymarch steps instead of 24), use cheaper anti-aliasing (SMAA Medium, then FXAA) and fewer
-particles (75% and 50% of the rain, spray, smoke and wakes). **Ultra** goes further than the release: the moon casts soft shadows (the tower down the
-headland, the sea stacks and rocks across the water, the harbour), the light shafts are smoothed by
-temporal anti-aliasing over a 40-step raymarch with a finer octave of fog, the sea gains finer
-ripples, the rain and spray are denser, the lantern and the lamps bloom, and on the title the far
-bay and the sky soften behind the tower. A line under Settings says what each step changes.
-Behind the pause card, Settings, the keeper's notes, the logbook, dawn and the chart, the bay
-softens so the words read clearly (on Low it's only dimmed), and in Settings a soft band marks the
-row you're on, whether you got there with the mouse, the keys or a pad.
-A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
-With **Sound in background** off, the game also falls silent while its window is out of focus.
-The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
-the controls for the device you're using. **Keeper's notes**, on the title menu and in the pause
-menu (the night waits), keep the rules in short entries: the light, lost ships, the lamps and the
-wreck allowance, then each night's new idea as the season reaches it, so nothing is given away
-early. From the pause menu the book opens on tonight's idea, and the entries name the keys and
-buttons you use. Restarting, leaving or opening the logbook from it asks
-first, with **Stay** selected, because they throw the night away; in a Night Watch the question
-offers **End the watch**, which keeps it. The mouse pointer hides while you play with a gamepad.
-Menus and the HUD fit screens of other shapes (checked at 16:10, 5:4 and 21:9 as well as 16:9),
-and on screens narrower than 16:9 the camera widens its view so the whole bay stays in sight.
-
-**Game speed** (100, 85 or 70%) is an assist that slows the whole night together: ships, the
-lens, fog, storms and wreckers. Only you gain time. Music, the radio's typing and the menus keep
-their pace. The dawn card and the table of best watches say when a night or watch was slowed.
-
-Press Esc, Start or B during the ending and a second press skips to the title (the ending still
-counts as seen), which helps when replaying night XII.
-
-**HUD text size** (100, 115 or 130%) enlarges everything drawn during a night: the radio, hints,
-manifest, score, foghorn and markers. The menus keep their size.
-
-**Difficulty** is Standard (the game as tuned) or **Hard**. On Hard, ships lose heart about 30%
-faster, a chart fades after 15 seconds instead of 22, a lit buoy burns 20 seconds instead of 28,
-the crew give no breakers warning, and Night Watch ships come about 15% closer together. The
-change takes effect from the next night. Records are shared, and the dawn card, the HUD and the
-table of best watches say when it was Hard.
-
-**Names on the water.** When a ship is on the radio, or a call names one ("before the Auk gets
-there"), its name shows under its hull for the length of the call. A call that names a place you
-can see (a buoy such as the Hen Bell, a wreckers' cliff, a sea stack or Porthkell harbour) labels
-it on the water for a few seconds, and a reef group or sandbank gets its name the first time it's
-charted each night, so the debrief's "struck the Hen's Chicks" is a place you've seen named. A
-hidden hazard is never pointed at before it's charted. Names out of frame stay at the screen's
-edge with a chevron, and a name whose spot is taken (by another name, or a lost or lured ship's
-mark) steps a line up or down rather than covering it.
-
-Each onboarding hint shows once per save (**Settings ▸ Show hints again** brings them back).
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
-They also follow the Focus setting, so in Toggle they say "press" or "click" rather than "hold",
-and name the keys and buttons you've chosen in Settings ▸ Keys and buttons.
+Each hint shows once per save (**Settings ▸ Show hints again** brings them back). The pause menu
+shows the controls for the device you're using, and **Keeper's notes**, on the title menu and in
+the pause menu (the night waits), keep the rules in short entries that open as the season reaches
+each idea.
 
 ### The rules in brief
 
@@ -158,12 +120,13 @@ and name the keys and buttons you've chosen in Settings ▸ Keys and buttons.
   it and the captain may call out. If you chart the rock too close for the captain to turn, they
   ring for **full astern**, with three short blasts, and the ship slows hard while it swings
   clear. A chart in the last moment can still be a near miss.
-- A night ends when every scheduled ship has made port or been lost, and fails at once if the wrecks
-  exceed that night's allowance: one wreck on most nights, two on nights 8, 10, 11 and 12. The
-  briefing says how many, and hulls under the night's title count them down, ending on "next
-  wreck ends the night". You earn a lamp for keeping the light through the night, a second
-  for losing no ship, and a third for a **steady hand**: no ship ever Lost or Lured. The three
-  lamps under the score go out as they're lost, so you can see what's still in play.
+- **Wrecks end nights.** A night ends when every scheduled ship has made port or been lost, and
+  fails at once if the wrecks exceed that night's allowance: one wreck on most nights, two on
+  nights 8, 10, 11 and 12. The briefing says how many, and hulls under the night's title count
+  them down, ending on "next wreck ends the night".
+- **Three lamps.** You earn a lamp for keeping the light through the night, a second for losing
+  no ship, and a third for a **steady hand**: no ship ever Lost or Lured. The three lamps under the
+  score go out as they're lost, with a note naming the ship, so you can see what's still in play.
 
 ## Features
 
@@ -173,6 +136,14 @@ and name the keys and buttons you've chosen in Settings ▸ Keys and buttons.
 The lens is a heavy mass on a damped spring. It builds up speed, overshoots slightly and settles,
 and the shaft cuts through moonlit haze, lighting the swell. **Hold to focus** for a narrow, long
 beam that reaches the far lanes and pierces fog, at the cost of a slower, smaller sweep.
+
+**Names on the water.** When a ship is on the radio, or a call names one ("before the Auk gets
+there"), its name shows under its hull for the length of the call. A call that names a place you
+can see (a buoy such as the Hen Bell, a wreckers' cliff, a sea stack or Porthkell harbour) labels
+it on the water for a few seconds, and a reef group or sandbank gets its name the first time it's
+charted each night. A hidden hazard is never pointed at before it's charted. Names out of frame
+stay at the screen's edge with a chevron, and names step aside rather than cover each other or a
+ship's mark.
 
 ### Chart the hidden reefs
 <img src="docs/media/chart.jpg" width="100%" alt="Night II, The Teeth: the beam passes over a reef cluster and white water breaks over the rocks it has charted">
@@ -212,48 +183,92 @@ screen the same way.
 Miss a reef and the hull strikes, burns and sinks, and the crew's lifeboat drifts clear. The
 captains talk you through it all on the radio. Ianto the harbourmaster, cheeky Maren on the
 *Little Auk*, gruff Captain Pryce on the *SS Calloway* and Dot on the ferry *Evening Star* all
-grumble, joke, panic and thank you in typed text over synthesized gibberish voices.
+grumble, joke, panic and thank you in typed text over synthesized gibberish voices. The pause
+menu keeps the night's latest calls, so one you missed can be read again.
 
-### Twelve nights, three lamps each, and the Night Watch
-<img src="docs/media/results.jpg" width="49%" alt="Dawn results for night II: three lamps lit, five ships home, none wrecked"> <img src="docs/media/logbook.jpg" width="49%" alt="The keeper's logbook: nights kept with their lamps, later nights still sealed with wax">
+### Dawn: the debrief, the chart and the replay
+<img src="docs/media/results.jpg" width="49%" alt="Dawn results for night II: three lamps lit, five ships home, none wrecked"> <img src="docs/media/dawn_chart.jpg" width="49%" alt="The night's chart at dawn for night II: every ship's track across Merrow Bay, and a cross where the Little Auk struck the uncharted Merrow Teeth">
 
-Dawn tallies every night with up to three lamps and a short debrief of every ship that had a bad
-night: which reef it struck and whether that reef was uncharted or charted too late, who was lured
-and by which false light, and who lost their way. **Chart** on the dawn card opens the night's
+Dawn tallies every night with up to three lamps, says where the score came from ("6 ships home 750
+· 6 steady hands +300"; a ship that ran dark counts double), and gives a short debrief of every
+ship that had a bad night: which reef it struck and whether that reef was uncharted or charted too
+late, who was lured and by which false light, and who lost their way. **Chart** opens the night's
 chart, Merrow Bay drawn on paper with every ship's track: solid while the captain was on course,
 dotted red with a **?** where they lost their way, dashed amber with a lantern where a false light
-had them, and a cross at each wreck, with the reefs, sandbanks and false lights you saw that night.
-The chart's names are set clear of each other and of the crosses, most important first.
-**Replay the night** plays it back on the chart: each ship afloat at its place with its name,
-a "?" or a lantern while it's lost or lured, your light's sweep (wide or focused), the false
-lights while they burned, and each wreck's cross as it happens. A timeline marks the wrecks and
-each time a ship lost its way or was lured; click or drag it to jump, step it with ← and → (the
-d-pad), play or pause with **Space** (the pad's X), and jump to a few seconds before the next or
-previous moment with **E** and **Q** (or Page Down and Page Up; the pad's shoulder buttons). A line
-under the clock names the moment ahead ("Next at 1:47: the Dunlin struck Widow's Ledge"), and
-another names the replay's keys, or the pad's buttons. Under
-the score, the dawn card says where it came from ("6 ships home 750 · 6 steady hands +300"; a
-ship that ran dark counts double). If the same night fails twice running, the card points to
-Settings ▸ Game speed (or Difficulty, on Hard); it changes nothing by itself.
-During a night, three small lamps under the score show what's still in play: the third goes out
-the moment a ship first loses its way or is lured, the second at the first wreck, with a note
-naming the ship. On a night you've kept before, and in a Night Watch, "BEST 880" sits under the
-score, and turns to "PAST YOUR BEST" (or "NEW BEST" in a watch) the moment you pass it. The
-keeper's logbook keeps your best for each night so you can go back for a
-cleaner watch, and a kept night's briefing says which lamp is still to earn. **Start a new season**
-in the logbook clears the nights, lamps, scores and watch records (it asks first, and keeps your
-settings and keys). Finish the season and the **Night Watch** opens: an
-endless score attack with every reef, sandbank and buoy out and no end to the ships. Each watch
-brings its own weather: one to three fog banks in different places, squalls that blow through
-every few minutes with current, rain and lightning (stronger as the night wears on), and wreckers
-lighting up at their own times, with the mimic light late in a long watch. Ianto gives the forecast
-in the briefing, and the game keeps your five best watches. The briefing shows the top three, and
-the dawn card tells you where a watch ranks. To stop, choose **End the watch** in the pause menu:
-dawn comes at once, and the watch is kept and ranked as if the last wreck had ended it. Closing
-the game during a watch (the window's close button, Alt+F4, logging out) keeps it the same way.
-A watch also writes where it stands every 20 seconds and whenever it's paused, so if the game is
-cut off without closing (a crash, a power cut), the next start keeps the watch as it stood then
-and the title says so.
+had them, and a cross at each wreck. **Replay the night** plays it back on the chart, with your
+light's sweep, the false lights while they burned and each wreck as it happens. Drag the timeline,
+step it with ← and →, play or pause with **Space**, and jump to just before each moment that went
+wrong with **E** and **Q** (the pad's d-pad, X and shoulder buttons do the same).
+
+On a night you've kept before, "BEST 880" sits under the score during the night, and turns to
+"PAST YOUR BEST" the moment you pass it. If the same night fails twice running, the dawn card
+points to Settings ▸ Game speed (or Difficulty, on Hard); it changes nothing by itself.
+
+### Twelve nights, and the Night Watch
+<img src="docs/media/logbook.jpg" width="49%" alt="The keeper's logbook: nights kept with their lamps, later nights still sealed with wax"> <img src="docs/media/night_watch.jpg" width="49%" alt="The Night Watch, with its tally, clock and wreck allowance">
+
+The keeper's logbook keeps your best for each night so you can go back for a cleaner watch, and a
+kept night's briefing says which lamp is still to earn. **Start a new season** in the logbook
+clears the nights, lamps, scores and watch records (it asks first, and keeps your settings and
+keys). Finish the season and the **Night Watch** opens: an endless score attack with every reef,
+sandbank and buoy out and no end to the ships. Each watch brings its own weather: one to three fog
+banks in different places, squalls that blow through every few minutes with current, rain and
+lightning (stronger as the night wears on), and wreckers lighting up at their own times, with the
+mimic light late in a long watch. Ianto gives the forecast in the briefing, the third wreck ends
+the watch, and the game keeps your five best. To stop, choose **End the watch** in the pause menu:
+the watch is kept and ranked. Closing the game during a watch keeps it the same way, and if the
+game is cut off without closing (a crash, a power cut), the next start keeps the watch as it stood
+at its last checkpoint, taken every 20 seconds.
+
+## Settings and accessibility
+
+<img src="docs/media/settings.jpg" width="100%" alt="Settings over the title: two columns of choices, a soft brass band on Graphics fidelity (Ultra), and a line under them saying what it does">
+
+A line under Settings says what the chosen row does, and a soft brass band marks the row you're
+on, whether you got there with the mouse, the keys or a pad. Behind Settings, the pause card, the
+keeper's notes, the logbook, dawn and the chart, the bay softens so the words read clearly (on Low
+it's only dimmed).
+
+| Group | Settings |
+|---|---|
+| Sound | Volumes for master, music, effects, radio voices, and sea and wind; **Sound**: Stereo or **Mono** (every sound in both ears alike, for hearing on one side or a single speaker); **Sound in background** (off: silent while the window is out of focus) |
+| Reading | **Text speed**; **Radio lettering**: the worn typewriter or **Plain** letters, on the HUD, in briefings and in the pause menu's log; **HUD text size** 100, 115 or 130% (the radio, hints, manifest, score, foghorn and markers; menus keep their size); hints on or off, and show hints again |
+| Controls | **Keys and buttons** (see [How to play](#how-to-play)); **Focus**: hold or toggle; **Lens turn speed** for the keys; **Pad buttons**: Auto, Xbox, PlayStation or Nintendo names |
+| Challenge | **Difficulty**: Standard or Hard; **Game speed** 100, 85 or 70%; **Screen shake** |
+| Display | Windowed or fullscreen; resolution; **Frame rate**: the display's rate, or a cap of 60 or 30 to save power and heat; **Brightness**: five steps for the 3D scene, from half a stop darker to a stop brighter (menus and HUD unchanged); **Graphics fidelity** (below); **Render scale** 100, 85, 70 or 50% while the text stays sharp; **Reduce flashing**: the storm's lightning lights the bay at about a tenth of its strength |
+
+**Game speed** is an assist that slows the whole night together: ships, the lens, fog, storms and
+wreckers. Only you gain time. Music, the radio's typing and the menus keep their pace, and the dawn
+card and the table of best watches say when a night or watch was slowed.
+
+**Hard** makes ships lose heart about 30% faster, a chart fades after 15 seconds instead of 22, a
+lit buoy burns 20 seconds instead of 28, the crew give no breakers warning, and Night Watch ships
+come about 15% closer together. It takes effect from the next night; records are shared, and the
+dawn card, the HUD and the table of best watches say when it was Hard.
+
+A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
+Restarting, leaving or opening the logbook from the pause menu asks first, with **Stay** selected.
+Menus and the HUD fit screens of other shapes (checked at 16:10, 5:4 and 21:9 as well as 16:9), and
+on screens narrower than 16:9 the camera widens its view so the whole bay stays in sight. Press
+Esc, Start or B during the ending and a second press skips to the title.
+
+### Graphics fidelity
+
+One setting covers everything about the picture that costs. **High** is the default and the game
+as released. After a night that ran well short of the frame rate it aims for (below 45 frames a
+second), the dawn card says so and names the next settings to lower (Graphics fidelity, then
+Render scale, then a 30 fps cap).
+
+| Step | What it does | Night V while playing* |
+|---|---|---|
+| **Low** | For a weaker GPU: fog and haze raymarched in 10 steps, FXAA, half the particles (rain, spray, smoke, wakes); menus dim the bay rather than blur it | 6.7 ms (about 150 fps) |
+| **Medium** | 16 raymarch steps, SMAA Medium, three quarters of the particles | 8.0 ms (about 125 fps) |
+| **High** (default) | As released: 24 raymarch steps, SMAA High, all the particles | 9.3 ms (about 107 fps) |
+| **Ultra** | Soft moon shadows (the tower down the headland, the sea stacks and rocks across the water, the harbour); light shafts smoothed by temporal anti-aliasing over a 40-step raymarch with a finer octave of fog; finer ripples on the sea; 1.6× the rain and spray; bloom on the lantern and the lamps; and on the title the far bay and the sky soften behind the tower | 14.3 ms (about 70 fps) |
+
+<sub>*Median frame time on the development machine's Radeon 8060S at 1600×900, frame rate uncapped,
+render scale 100%, three rounds through the steps (the full table, with the title and night XII,
+is in <a href="docs/IMPROVEMENTS.md#round-12-results-2026-10-08">docs/IMPROVEMENTS.md</a>).</sub>
 
 ## Content overview
 
@@ -283,34 +298,24 @@ night 9, and the later nights combine them:
 | Passenger ferry | Rows of lit windows, and worth the most |
 
 Around the nights you'll find a live title scene, briefing cards, the radio, pause and settings
-menus, dawn results, an ending, and credits that name every ship you brought home. Progress and
-settings are saved locally, in `save.json` in the game's data folder (on Linux
-`~/.config/unity3d/Gannet Head/Last Light/`). If the save can't be read, the title says so and
-where the damaged copy was kept (`save.unreadable.json`); if it can't be written (a full disk, a
-read-only folder), the dawn card and the title say progress isn't being kept, and where the save
-should be. A save that's there but can't be opened is never written over.
+menus, the keeper's notes, dawn results with the night's chart, an ending, and credits that name
+every ship you brought home. If the save can't be read, the title says so and where the damaged
+copy was kept (`save.unreadable.json`); if it can't be written (a full disk, a read-only folder),
+the dawn card and the title say progress isn't being kept. A save that's there but can't be
+opened is never written over.
 
 ## Screenshots
 
+All taken from the game on Graphics fidelity Ultra at 1920×1080.
+
 | | |
 |---|---|
-| ![The title screen: the lighthouse at night, its beam sweeping overhead](docs/media/title.jpg) | ![Night II: charting the Teeth ahead of a trawler](docs/media/chart.jpg) |
-| ![Night V: the foghorn's shockwave through the sea fret](docs/media/foghorn.jpg) | ![Night IX: a ship lured by the wreckers' lantern](docs/media/false_light.jpg) |
-| ![Night XII: lightning over the finale](docs/media/storm.jpg) | ![The Night Watch, with its tally, clock and wreck allowance](docs/media/night_watch.jpg) |
-| ![A wreck on an uncharted reef](docs/media/wreck.jpg) | ![Night III: a lit buoy holding the channel](docs/media/play.jpg) |
-| ![Dawn results: three lamps](docs/media/results.jpg) | ![The keeper's logbook](docs/media/logbook.jpg) |
-
-## Play it
-
-1. Download `LastLight-v0.1.0-linux-x86_64.zip` from the
-   [latest release](https://github.com/nearbycoder/LastLight/releases/latest).
-2. Unzip it and run `./LastLight.sh`, or run `./LastLight.x86_64` directly.
-
-You'll need 64-bit Linux and a GPU with OpenGL 4.5. The game was developed on CachyOS (Arch) with
-an AMD Radeon integrated GPU under Wayland. On Wayland, `LastLight.sh` starts Unity's native
-Wayland backend, because the X11/XWayland path hung at startup on the development machine.
-There's no published Windows or macOS build yet. A macOS build can be made from source (see below),
-but it's unsigned and hasn't been run on a Mac.
+| ![The title screen: the lighthouse at night, its beam sweeping overhead](docs/media/title.jpg) | ![Night III: a lit buoy holding the channel](docs/media/play.jpg) |
+| ![Night II: charting the Teeth ahead of a trawler](docs/media/chart.jpg) | ![Night V: the foghorn's shockwave through the sea fret](docs/media/foghorn.jpg) |
+| ![Night IX: a ship lured by the wreckers' lantern](docs/media/false_light.jpg) | ![Night XII: lightning over the finale](docs/media/storm.jpg) |
+| ![A wreck on an uncharted reef](docs/media/wreck.jpg) | ![The Night Watch, with its tally, clock and wreck allowance](docs/media/night_watch.jpg) |
+| ![Dawn results: three lamps](docs/media/results.jpg) | ![The night's chart at dawn, replaying a wreck](docs/media/dawn_chart.jpg) |
+| ![The keeper's logbook](docs/media/logbook.jpg) | ![Settings, with Graphics fidelity on Ultra](docs/media/settings.jpg) |
 
 ## Build from source
 
@@ -350,168 +355,65 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (124 of them). They check that every mission
-  references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
-  that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
-  bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
-  Watch for at least ten minutes, and that the dawn debrief accounts for every wreck when the
-  bot is made to neglect each ship in turn. Two more stage a steamer at Widow's Ledge. One checks
-  that the crew warn of breakers a few seconds before an uncharted strike. The other charts the
-  reef at distances from 2 to 44 units, with and without full astern, and checks that full astern
-  turns some late charts into near misses and never causes a wreck. Others check that ten Night
-  Watch seeds give ten different nights and that a squall eases in and out. On difficulty, they
-  check that the AutoKeeper wins all twelve nights on Hard, that its Standard scores match the
-  tuned game exactly, and that Hard really is harder: shorter charts and buoys, no warning, closer
-  watch ships. Two check the pause menu's radio log: calls kept in order, capped, and cleared each
-  night. One checks that only a Night Watch can be stood down, and that its score stands. Six cover the
-  rebindable keys: the defaults, moving a key between actions, clearing, Esc and P staying as
-  pause, reset, repairing a damaged save, and the save format (none of them touch the real save).
-  Four check what a radio call points at for names on the water (whole words, the longest name
-  first, and no hidden reef or sandbank before it's charted), and three check that the keeper's
-  notes open with the season and name the device, keys and difficulty in play. Five check the
-  night's log behind the dawn chart: every track ends where its ship ended, every time a ship lost
-  its way or was lured is on its track, the log doesn't change the night, and a long watch's log
-  thins itself and keeps every change of state. Three check starting a new season (what's cleared
-  and what's kept), that a damaged save is reported rather than read, and that the save file is
-  replaced whole; they write only under the project's `Temp/` folder. Four more, also under
-  `Temp/`, check what the keeper is told about the save: a good save loads quietly, a damaged one
-  is kept aside and said, one that can't be opened is never written over, and a failed write is
-  reported and clears once a write works. Five check the label placer behind names on the water
-  and the chart, three that the dawn card's score parts add up to the score on all twelve nights
-  (kept and shaky) and a watch, and two the offer of help after repeated failures. Two play
-  nights II and IX and check the dawn chart's replay against the night as it happened (the light
-  within 1.5°, every ship within a unit, wrecks when they struck, false lights while they burned),
-  and eleven check the pad buttons' names and the guess Auto makes from a pad's name. Four, under
-  `Temp/`, check a Night Watch under way: its checkpoint survives the save file, a watch cut short
-  is kept once at its place in the table, ending or throwing a watch away clears it, and an older
-  save has none. Two check the replay's moments on nights II and IX (each wreck, lure and lost
-  way once, in order), and three the advice after a slow night. Seven cover the pad's buttons for
-  focus and the foghorn: the defaults, moving a button, the exchange when an action would lose its
-  last button, Start and View refused, reset and repair, the save format (an older save gets the
-  defaults), and the keeper's notes in the bound buttons' names. Two check Graphics fidelity: an
-  older save's Fog and haze quality reads as the same step, and the steps below Ultra keep their
-  raymarch.
+- `Tools/unity.sh test` runs the EditMode tests (124 of them). They prove the content (every
+  mission references valid map data, every reef, buoy and wrecker lantern is reachable by the
+  beam, every route is safe for every hull once its hazards are charted), and that the
+  **AutoKeeper** bot wins all twelve nights in the pure simulation on Standard and on Hard, keeps
+  a generated Night Watch for at least ten minutes, and scores exactly the tuned Standard scores.
+  Others cover breakers warnings and full astern, the dawn debrief and the score's parts, Night
+  Watch variety and squalls, the radio log, standing a watch down, key and pad-button bindings and
+  their save format, pad button names, names on the water and the label placer, the keeper's
+  notes, the night's log and the dawn chart's replay (the light within 1.5°, every ship within a
+  unit), the save file (new season, damaged, unopenable or unwritable saves, a watch cut short),
+  the frame-rate advice and Graphics fidelity. Tests that touch a save write only under the
+  project's `Temp/` folder.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
-  The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
-  hand and doesn't know where the reefs are.
-- The latest report, from the current build: the AutoKeeper wins all twelve nights with three lamps
-  each. The novice wins every night in three runs each, with lamps of 9, 9, 8, 8, 8, 7, 6, 9, 7,
-  9, 6 and 7 out of 9 (93 of 108) and no wrecks. The bot keeps every generated Night Watch for the
-  full 30 minutes the report runs, with no wrecks, and so does the novice, with 1 or 2 wrecks,
-  even with the squalls. On **Hard** the AutoKeeper still wins all twelve nights (two lamps on night
-  6, three on the rest), and the novice drops to 74 of 108 lamps with 7 wrecks, close to v0.1.0's
-  78 and 9. On Hard the bot keeps two of three watches for 30 minutes, and the novice's watches end
-  after 24 to 28 minutes. For comparison, v0.1.0 gave the AutoKeeper
-  one lamp on night 9, gave the novice 78 of 108 lamps (3/9 on nights 7 and 8) with 9 wrecks, and
-  the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
-  reefs that had already been charted, and full astern now prevents those (see Status and known
-  issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf|padkeys|mono|lettering|fullscreen|fidelity> <dir> -llFresh` plays the built
-  game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
-  and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
-  so Unity's window settings don't land in your `~/.config/unity3d` either.
-  The `ui` tour shoots a briefing's wreck allowance, checks the HUD's allowance row after each
-  staged wreck, and ends on two staged dawn debriefs; with the pause card up it also hides every
-  canvas for a frame and measures how much fine detail the bay keeps behind the card with the
-  softening held off and on. The `input` tour drives the real mouse and
-  keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
-  prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
-  pad pauses the night, and that the d-pad walks both settings columns, and that choosing Resume
-with the pad's A doesn't also sound the foghorn. It switches Focus to Toggle
-and checks each control both ways, checks the pointer hides for pad play, and logs the input
-devices Unity sees. It walks Settings with the pad and the mouse and checks the line that says
-what each setting does and that the band behind the chosen row follows it, and sets Pad buttons to each style and checks the title strip, hints,
-briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to read back the radio log. `screens` checks,
-  at whatever window size the player starts with (`LL_W` and `LL_H`), that every menu panel is on
-  screen, that the HUD's blocks don't overlap (night 11, the longest top bar), and that the harbour and
-  every hazard are in view (judged from the play view at rest; the live view, which leans toward
-  the beam, is logged beside it). `watchend` ends a Night Watch from the pause menu and checks it was kept.
-  `offscreen` waits for Corley Cove's and West Point's lanterns to burn (nights 9 and 10) and checks
-  their edge markers and a lured ship's mark stay on screen. `confirm` checks the pause menu's
-  questions with keys, the simulated pad and clicks. `brightness` measures the scene at each
-  Brightness step. `keys` rebinds keys through Settings with the simulated keyboard and plays a
-  night with them. `names` checks that Porthkell, a ship on the radio, the Hen Bell and the Teeth
-  are labelled where they are (and the Teeth not before they're charted). `notes` opens the
-  keeper's notes from the title with a new and a finished season, walks them with keys and a
-  pad, checks every entry fits, and opens them from the pause menu on night V. `framerate`
-  measures a night at each Frame rate choice (`-llFrameNight 1` plays a cheaper night). `chart`
-  stages a wreck on night II and lost and lured ships on night IX, opens the dawn chart with a
-  click, the arrows and the simulated pad, and checks each wreck's cross sits where the wreck lies.
-  `lamps` (with `-llSampleSave`) checks the HUD's lamps against the simulation every frame and
-  against the dawn card, and reads the briefing's record line. `names` also leaves the Little Auk
-  in the dark on night III and checks every frame that no name covers another or a ship's mark,
-  and `chart` that none of the chart's names covers another or a cross (`-llNamesOverlap` draws
-  names as before round 8, to show the checks catch it). `chart` also plays the replay with a
-  click, the arrows and the simulated pad, jumps it from the timeline, and checks at five moments of
-  each night that every ship's mark sits where the night's log puts it on screen. `best` stages bests of 880 on night III
-  and 600 for a watch and checks every frame that the line under the score matches the
-  simulation. `help` fails night II again and again from the dawn card and checks the offer of
-  help at each step.
-  `chart` also jumps between the night's moments with E, Q, Page Down, Page Up and the pad's
-  shoulders, checks the line naming each, and checks Space (and the pad's X) plays and pauses
-  with Back chosen without going back. `perf` (with `-llPerfNote -llFps 30`) plays night I held
-  to 30 fps and checks the dawn card's advice, that it isn't repeated, and that it stays quiet
-  with a 30 cap chosen and at the display's rate; it also ends a night with a long call on the
-  radio and checks dawn still comes within ten seconds. `padkeys`, with only the simulated pad,
-  binds the foghorn to RB and focus to LB in Settings ▸ Keys and buttons (B binds while a slot
-  waits, Start backs out, focus keeps its last button), then on night V checks RB sounds the horn
-  and A doesn't, LB focuses and the triggers don't, the stick aims meanwhile, and every prompt
-  names RB and LB (and R1 and L1 with PlayStation names). `mono` plays the foghorn panned hard to
-  each side and measures the left and right channels of the game's output with Sound on Stereo and
-  on Mono. `lettering` measures every scripted call and briefing against its box in both radio
-  letterings (a call too long for the radio's usual box against the box the panel grows to give
-  it) and shows the longest call at 100% and 130% HUD text. `fidelity` (with `-llFps 1000`, so
-  frames aren't held to the display) walks Settings ▸ Graphics fidelity with the keys, the
-  simulated pad and clicks, checks what each step sets, then holds the title, night V and night XII
-  still and shoots the same frame at every step, and measures each step's frame time on that still
-  frame and while the night plays, three rounds through the steps with the median kept, logging the
-  load and the GPU's busy share with each. `fullscreen` (only inside
-  `Tools/nested.sh`) presses F11 and Alt+Enter and checks the window's mode, Settings ▸ Display and
-  the save each time, and that Alt+Enter doesn't also choose the menu item; a KWin script that
-  resizes the window only if KWin doesn't hold it fullscreen confirms each switch from KWin's side.
-  `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
-  speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
-  brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
-  warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
-  `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
-  any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
-- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable|quitwatch|termwatch|quitnight|killwatch|closewatch> <dir>` runs the `season`
-  tour, which uses a real save, against a throwaway config directory under `<dir>` seeded with
-  one: a finished season cleared from the logbook, a damaged save, an older build's save carried
-  over, a save folder that can't be written (made read-only for the run), or something at
-  `save.json` that can't be opened. `quitwatch` and `termwatch` close the game during a Night
-  Watch (from the pause menu as the window's close button does, or with SIGTERM as a logout
-  does) and check `save.json` kept it; `quitnight` closes it mid-night and checks nothing was
-  written. `killwatch` kills the player with SIGKILL mid-watch, checks `save.json` holds the last
-  checkpoint, starts the game again and checks the watch was kept and the title says so.
-  `closewatch` (only inside `Tools/nested.sh`) asks the nested KWin, through a KWin script, to
-  close the game's window, the request its close button sends. It refuses to
-  run anywhere else, and checks your own save folder is unchanged.
-- `Tools/nested.sh <command>` runs a tour (or the game) inside a private, invisible KWin with
-  its own D-Bus session and config folders, so test windows never appear on the desktop you're
-  using: `Tools/nested.sh Tools/tour.sh chart "$PWD/Builds/out" -llFresh`. It needs `kwin_wayland`.
-- `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot crops
-  as seen with deuteranopia and protanopia (Machado 2009), for checking that states read without
-  colour. `Tools/tour.sh status` captures a lost ship and a lured ship for it, and checks that each
-  top-bar mark (lost, lured, wrecked, home) matches its ship.
+  It also plays every night with a **novice keeper**, which is slow to react, has a shaky hand and
+  doesn't know where the reefs are. The report was last run in round 2; the simulation's balance
+  hasn't changed since (a test pins the AutoKeeper's Standard scores). Then the AutoKeeper won all
+  twelve nights with three lamps each, and the novice won every night in three runs each with 93
+  of 108 lamps and no wrecks; both kept every generated Night Watch for the full 30 minutes the
+  report runs. On **Hard** the AutoKeeper still won all twelve nights, and the novice dropped to 74
+  of 108 lamps with 7 wrecks, close to v0.1.0's 78 and 9.
+- `Tools/tour.sh <script> <dir> -llFresh` plays the built game with scripted input, checks what it
+  sees and saves screenshots. Give `<dir>` as an absolute path. `-llFresh` keeps the tour away from
+  your save, and tours use a config directory of their own (`Builds/tour-config`, or
+  `LL_TOUR_CONFIG`). The scripts are `ui`, `nights`, `ending`, `input`, `watch`, `flash`,
+  `breakers`, `status`, `radiolog`, `screens`, `watchend`, `endingskip`, `speed`, `offscreen`,
+  `confirm`, `brightness`, `keys`, `names`, `notes`, `framerate`, `chart`, `lamps`, `best`, `help`,
+  `perf`, `padkeys`, `mono`, `lettering`, `fullscreen` and `fidelity`; what each checks is in
+  `Assets/Scripts/Automation/` and in [`docs/IMPROVEMENTS.md`](docs/IMPROVEMENTS.md).
+  `-llRenderScale 70`, `-llReduceFlashing`, `-llHard`, `-llHudScale 130` and `-llFidelity 0`–`3`
+  set those options for any tour.
+- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable|quitwatch|termwatch|quitnight|killwatch|closewatch> <dir>`
+  runs the `season` tour, which uses a real save, against a throwaway config directory under
+  `<dir>`.
+- `Tools/nested.sh <command>` runs a tour (or the game) inside a private, invisible KWin with its
+  own D-Bus session and config folders, so test windows never appear on the desktop you're using:
+  `Tools/nested.sh Tools/tour.sh chart "$PWD/Builds/out" -llFresh`. It needs `kwin_wayland`, and it
+  stops the helpers its session started when it ends.
+- `Tools/.venv/bin/python Tools/cvd_sim.py OUT.jpg "Label=shot.png:x,y,w,h" ...` shows screenshot
+  crops as seen with deuteranopia and protanopia, for checking that states read without colour.
 - `Tools/.venv/bin/python Tools/audio_check.py` measures every synthesized clip: clipping, true
   peak, EBU R128 loudness, DC offset, clicks, and the seams of looped clips.
 - `Tools/record.sh` records a four-minute gameplay reel with sound.
 
 ### The trailer
 
-`Tools/make_trailer.sh` rebuilds everything in `docs/media` from the built game. The `trailer`
-tour (`Assets/Scripts/Automation/Trailer.cs`) plays each shot as a scripted night. The AutoKeeper
-does the playing, with a little staging: a neglected trawler, a forced foghorn, a held focus. The
-simulation is deterministic, so a headless twin of each night runs first to find the frame where
-the moment happens. The real night is then fast-forwarded off camera and recorded at a fixed 30
-fps, with the game's audio mix and music muted. `Tools/make_trailer.py` cuts the clips to the bars
-of the title waltz, which it re-synthesizes from the game's own music generator. It also animates
-the captions in the game's fonts, ducks the music under the game's sound, normalizes to −16 LUFS
-and encodes the trailer, the poster and the teaser loop. `Tools/make_trailer.sh --edit` re-edits
-an existing shoot. The shoot turns off names on the water, the lamps at stake and the score to
-beat, which came after the released trailer, so a re-shoot matches it.
+`Tools/make_trailer.sh` rebuilds the trailer, its poster, the teaser loop and the screenshots in
+`docs/media` from the built game, shooting inside `Tools/nested.sh` when `kwin_wayland` is there.
+It shoots on Graphics fidelity Ultra (`LL_FIDELITY` picks another step) into `Captures/` (or
+`LL_CAPTURES`). The `trailer` tour (`Assets/Scripts/Automation/Trailer.cs`) plays each shot as a
+scripted night. The AutoKeeper does the playing, with a little staging: a neglected trawler, a
+forced foghorn, a held focus. The simulation is deterministic, so a headless twin of each night
+runs first to find the frame where the moment happens. The real night is then fast-forwarded off
+camera and recorded at a fixed 30 fps (each frame takes as long as it needs, so Ultra costs only
+time), with the game's audio mix and music muted. `Tools/make_trailer.py` cuts the clips to the
+bars of the title waltz, which it re-synthesizes from the game's own music generator. It also
+animates the captions in the game's fonts, ducks the music under the game's sound, normalizes to
+−16 LUFS and encodes the trailer, the poster and the teaser loop. `Tools/make_trailer.sh --edit`
+re-edits an existing shoot.
 
 ## Project structure
 
@@ -519,9 +421,9 @@ beat, which came after the released trailer, so a re-shoot matches it.
 Assets/
   Scripts/Sim/         Pure C# simulation: map, beam, ships, reefs, buoys, fog, wreckers, storm,
                        scoring, the Night Watch generator, the AutoKeeper bot, content validation
-  Scripts/View/        World, ship and effect views, camera rig, materials, model loading
-  Scripts/Core/        Game flow, mission runner, input, radio, save data, the ending
-  Scripts/UI/          HUD and menu screens, built in code
+  Scripts/View/        World, ship and effect views, camera rig, materials, model loading, fidelity
+  Scripts/Core/        Game flow, mission runner, input, radio, save data, the night's log, the ending
+  Scripts/UI/          HUD and menu screens, the dawn chart, built in code
   Scripts/Audio/       Pooled SFX buses and the layered music director
   Scripts/Automation/  Screenshot tours, the gameplay recorder and the trailer shoot
   Shaders/             Water, volumetric atmosphere, sky, lit props, glows, rings, reef foam
@@ -530,13 +432,14 @@ Assets/
   Resources/Audio/     Synthesized OGG effects, voices and music
   Resources/Fonts/     Cormorant Garamond, Alegreya Sans, Special Elite, with their licenses
   Editor/              Project setup, build script, import settings
-  Tests/EditMode/      Content proofs (see Tests and validation)
+  Tests/EditMode/      Content proofs and the rest (see Tests and validation)
 ArtSource/
   blender/             bpy model generators (build_assets.py is the entry point) and .blend scenes
   audio/               numpy/scipy synthesis of effects, voices and music
   map/                 merrow_bay.py and missions.py, which write the JSON data
 Tools/                 Editor, build, play, tour, validation, chart, audio-check and trailer scripts
-docs/                  BRIEF.md (the original brief), PLAN.md (the design and technical plan), media/
+docs/                  BRIEF.md (the original brief), PLAN.md (the design and technical plan),
+                       IMPROVEMENTS.md (twelve rounds of improvements since v0.1.0), media/
 ```
 
 ## Tech highlights
@@ -549,8 +452,9 @@ docs/                  BRIEF.md (the original brief), PLAN.md (the design and te
   extinction) is written once in C# and mirrored in HLSL (`LLCommon.hlsl`). The glow you see on
   the water is the same function the ships respond to.
 - **Volumetric night.** A full-screen raymarch (`Atmosphere.shader`) computes single scattering
-  from the beam analytically per sample, together with moonlit haze and drifting fog banks. The
-  Graphics fidelity setting sets the step count. Water uses Gerstner waves, a moon glitter path, and a foam
+  from the beam analytically per sample, together with moonlit haze and drifting fog banks.
+  Graphics fidelity sets the step count, and on Ultra a per-frame dither lets temporal
+  anti-aliasing smooth the shafts. Water uses Gerstner waves, a moon glitter path, and a foam
   texture the simulation writes for charted reefs and wakes.
 - **One source of truth for the coast.** `merrow_bay.json` drives the simulation and Blender's
   generators for the cliffs, rocks and buoys, so geometry and gameplay can't drift apart. The
@@ -564,8 +468,9 @@ docs/                  BRIEF.md (the original brief), PLAN.md (the design and te
 
 ## Credits and tooling
 
-Made by [nearbycoder](https://github.com/nearbycoder). The original brief and the full design
-plan are in [`docs/BRIEF.md`](docs/BRIEF.md) and [`docs/PLAN.md`](docs/PLAN.md).
+Made by [nearbycoder](https://github.com/nearbycoder). The original brief, the design plan and the
+improvement rounds are in [`docs/BRIEF.md`](docs/BRIEF.md), [`docs/PLAN.md`](docs/PLAN.md) and
+[`docs/IMPROVEMENTS.md`](docs/IMPROVEMENTS.md).
 
 - **Engine:** Unity 6000.6.2f1 with the Universal Render Pipeline and the Input System.
 - **Models:** generated with Blender 4.5's Python API (`ArtSource/blender`).
@@ -580,133 +485,75 @@ components and their licenses.
 
 ## Status and known issues
 
-Version 0.1.0 is the complete first version: twelve nights, the ending and the Night Watch, on
-Linux. Here's what is still unproven or rough:
+The game is complete: twelve nights, the ending and the Night Watch, on Linux. The published
+release is still v0.1.0 (4 October 2026); everything since is on `main` only (see
+[Play it](#play-it)). Here's what is still unproven or rough:
 
 - **Not yet playtested by a person.** Balance comes from the AutoKeeper and the novice model, and
-  feel was judged from screenshots, video and scripted input. Drain rates, ship schedules and the
-  Night Watch's ramp may need tuning once people play it.
-- **The audio has only been measured.** Every clip passes `Tools/audio_check.py`, but no one has
-  yet judged whether the music and gibberish voices are pleasant to listen to.
-- **Gamepad support is tested only with a simulated device.** Button layouts, stick dead zones and
-  rebound buttons on real controllers are unverified. An 8BitDo receiver is plugged into the development machine,
-  but Unity listed only the mouse, keyboard and touchscreen (the pad was presumably off), and no
-  one pressed its buttons.
+  feel was judged from screenshots, video and scripted input. The same goes for the later
+  additions: names on the water, the keeper's notes, the lamps at stake, the dawn chart and its
+  replay (6× a night's speed), the score to beat, the offer of help after two failures, Plain
+  lettering, and the descriptions in Settings.
+- **Standard may now be too forgiving.** After v0.1.0, captains learned to ring for full astern
+  when a charted reef is closer than they can turn away from, which removed most of the wrecks the
+  bot and the novice model suffered. Both now keep every Standard Night Watch for 30 minutes.
+  **Hard** (Settings ▸ Difficulty) gives roughly v0.1.0's challenge and leaves Standard exactly as
+  it was; whether Standard should be tightened is an open decision.
+- **The audio has only been measured.** Every clip passes `Tools/audio_check.py`, and Mono was
+  measured on the game's own output, but no one has yet judged whether the music and gibberish
+  voices are pleasant to listen to.
+- **Gamepads were tested only as simulated devices.** Button layouts, stick dead zones, rebound
+  buttons and Auto's guess at PlayStation and Nintendo pads (which names Unity reports for them on
+  Linux is unknown, and Steam Input usually presents every pad as an Xbox one) are unverified on
+  real controllers. There's no rumble. Key names come from the keyboard layout, but only a US
+  layout has been tried.
 - **Linux only, as published.** `Tools/unity.sh build-mac` makes a universal macOS app (Mono, macOS
   12 or later) and `Tools/package.sh <version> mac` zips it with instructions for opening an
-  unsigned app. The build succeeds on Linux, and both architectures of the executable carry
-  Unity's ad-hoc signature, but it isn't signed with a Developer ID or notarized, and **it has
-  never been run on a Mac**. Signing needs an Apple Developer account. `build-windows` is ready
-  but needs Unity's *Windows Build Support (Mono)* module, which isn't installed on the
-  development machine; without it the command stops with a clear message. There's no web build.
-- **Balance shifted after v0.1.0, and that shift hasn't been tested by people.** The wrecks that ended
-  the bot's Night Watches turned out not to be late charts. Steamers and ferries threading Widow's
-  Ledge struck reefs that had been charted well ahead, because their avoidance couldn't make the
-  turn. Captains now ring for full astern when a charted reef or sandbank is closer than they can
-  turn away from, so the wrecks left are uncharted rocks, lost ships and lured ships. The bot and
-  the novice model now rarely or never wreck (see the latest report under Tests and validation),
-  so the season and the Night Watch may now be too forgiving for strong players. The report shows
-  even the novice keeping a Night Watch for 30 minutes. **Hard** (Settings ▸ Difficulty) is the
-  tougher choice. It leaves Standard exactly as it was, and a test pins the AutoKeeper's Standard
-  scores on all twelve nights. If that's the
-  case, tighten them with deliberate levers (drain rates, schedules, the Night Watch's ramp)
-  rather than steering faults.
-- **Graphics fidelity was measured on one machine, with its GPU shared.** On the development
-  machine's Radeon 8060S at 1600×900, with the frame rate uncapped and the load average at 5 to 9,
-  night V (fog, the costly night) took a median 6.7 ms a frame on Low, 8.0 on Medium, 9.3 on High
-  and 14.3 on Ultra while it played (about 150, 125, 107 and 70 fps); the full table is in
-  `docs/IMPROVEMENTS.md` (Round 12 results). Each step was measured three times in turn and the
-  median kept, because other work shares the GPU. Whether Low is smooth on a genuinely weak GPU, and
-  how Ultra runs on a discrete card, hasn't been tried. Ultra's temporal anti-aliasing was checked
-  for smearing in still captures of a playing night, not by a person watching the beam swing.
-- **Post-processing that never reached a build.** Until round 12, the bloom, ACES tonemapping,
-  film grain, chromatic aberration and depth of field set up in code showed only in the editor:
-  URP leaves out of a build every post effect that no profile asset in the project uses, and the
-  game builds its profile in code. Every release and capture so far had none of them. High keeps
-  that look; Ultra now has bloom, and depth of field softens the bay behind menus (and the far bay
-  on Ultra's title). Tonemapping, grain and chromatic aberration stay off, in the editor too, so
-  the two match; whether the game should have them is an art call.
+  unsigned app, but it isn't signed with a Developer ID or notarized, and **it has never been run
+  on a Mac**. `build-windows` is ready but needs Unity's *Windows Build Support (Mono)* module,
+  which isn't installed on the development machine. There's no web build. The save's location and
+  its trouble notices were checked on Linux only.
+- **Graphics fidelity was measured on one machine, with its GPU shared.** Whether Low is smooth on
+  a genuinely weak GPU, and how Ultra runs on a discrete card, hasn't been tried. Ultra's temporal
+  anti-aliasing was checked for smearing in captures of a playing night, not by a person watching
+  the beam swing.
+- **Post-processing that never reached a build before round 12.** Bloom, ACES tonemapping, film
+  grain, chromatic aberration and depth of field were set up in code but showed only in the editor
+  (URP strips every post effect that no profile asset in the project uses). High keeps that look;
+  Ultra now has bloom, and depth of field softens the bay behind menus. Tonemapping, grain and
+  chromatic aberration stay off; whether the game should have them is an art call.
 - On the development machine, the X11/XWayland window path hung at startup. Use `LastLight.sh`
   under Wayland.
 - **Screen shapes were checked in windows, on one machine.** The `screens` tour passes at
-  1280×800, 1280×1024, 1600×900 and 2560×1080 windows on KDE Wayland. Fullscreen at those shapes, real
-  4:3 or 16:10 monitors, and a Steam Deck haven't been tried. West Point's false light and the rock it
-  lures ships onto sit just past the left edge of the frame at 16:9 and narrower (Corley Cove's
-  lantern just past the right), as released. The camera wasn't reframed, because that would change
-  every capture and the trailer; instead a marker at the edge points to a burning lantern there, and
-  a lured ship's mark stays on screen, though the ship itself still wrecks a little off screen.
-  Once, in round 4, the `ui` tour's switch from a 1280×1024 window to 1280×720 didn't take. It
-  didn't happen again in three runs in round 5 (the resize took effect within 0.01 s), so the cause
-  is unknown.
-- **Rebinding was checked with the simulated pad and keyboard only.** Focus and the foghorn can go
-  on any of the pad's face, shoulder, trigger, stick or d-pad buttons; the sticks always aim, Start
-  always pauses and View empties a slot, so those three can't be bound. No real pad has pressed a
-  rebound button. Key names come from the keyboard layout, so an AZERTY keyboard should show "Q"
-  for the default turn-left key, but only a US layout has been tried.
-- **Pad buttons' names were checked with simulated pads only.** Choosing PlayStation or Nintendo
-  in Settings renames every prompt, and that's tested. *Auto* guesses from the name Unity gives a
-  pad ("Wireless Controller", "DualSense", "Pro Controller" and the like), but which name Unity
-  reports for a real Sony or Nintendo pad on Linux is unknown, and Steam Input usually presents
-  every pad as an Xbox one. Without a match, Auto reads as Xbox, as before.
+  1280×800, 1280×1024, 1600×900 and 2560×1080 windows on KDE Wayland. Fullscreen at those shapes,
+  real 4:3 or 16:10 monitors, and a Steam Deck haven't been tried. West Point's false light and the
+  rock it lures ships onto sit just past the left edge of the frame at 16:9 and narrower (Corley
+  Cove's lantern just past the right); a marker at the edge points to a burning lantern there, but
+  a lured ship still wrecks a little off screen. The `ui` tour's switch from one window size to
+  another failed now and then in rounds 4 and 8 (the window was resized, then back), cause
+  unknown.
+- **Fullscreen from the desktop isn't noticed.** F11, Alt+Enter and Settings ▸ Display switch the
+  window and are kept. But when the desktop itself makes the window fullscreen (KWin's own shortcut
+  or window menu), Unity's Wayland backend goes on reporting a window, so Settings still says
+  Windowed and the next start goes back to a window. Only KDE's KWin on Wayland was tried.
 - **Game speed shares records.** A night kept at 70% counts in the logbook like any other, and only
-  the dawn card and the watch table mark it. Whether slowed scores should be kept apart is open.
-- **Names on the water and the keeper's notes are judged by tours, not people.** Whether the
-  labels help or clutter, and whether the notes say enough, needs a playtest. Only places a
-  call names, and reef groups the first time they're charted, get labels; a call that names
-  nothing on the map ("the Hen's side") points at nothing.
-- **Frame rate was measured in a window, at low settings, on one machine.** For much of round 6
-  the shared development machine's GPU was fully busy with other work and the game reached only
-  about 30 fps even at 640×360. When it freed up, night I at 1280×720 (50% render scale, low fog)
-  measured 120.0, 60.0 and 30.0 fps for Display (a 120 Hz screen), 60 and 30. Battery and heat
-  savings on a real laptop or handheld haven't been measured.
-- **The save moved in round 7.** The built Linux player turned out to keep its PlayerPrefs, and
-  so the whole save, in `~/.config/unity3d/unknown/unknown/prefs`, a file that every Unity player
-  with the same fault shares (on the development machine other games write to it too), where
-  another game could overwrite or clear it. The save is now `save.json` in the game's own data
-  folder (`~/.config/unity3d/Gannet Head/Last Light/` on Linux), written to a temporary file and
-  swapped in whole. The first launch of this build carries an older save over from PlayerPrefs
-  and leaves the old entry where it was. A save that can't be read is kept as
-  `save.unreadable.json`, and "Start a new season" keeps the season it clears as
-  `save.previous.json`; neither can be restored from inside the game, only by renaming the file.
-  This was checked on Linux only; macOS and Windows use Unity's usual data folder, untested.
-- **The dawn chart and the lamps at stake are judged by tours, not people.** Whether the chart
-  is worth opening, whether a busy night's tracks read, and whether the lamps under the score
-  help or distract need a playtest; so do round 9's replay (whether it plays at the right pace,
-  6× a night's speed, faster for a long watch, so none runs much over 45 seconds) and the
-  descriptions in Settings. The replay's light is sampled ten times a second and drawn between
-  samples, within about 1.5° of where it was. The same goes for round 8's score to beat, the score's parts
-  on the dawn card and the offer of help after two failures (its wording, and whether two is the
-  right number, are guesses).
-- **Save trouble was checked on Linux only.** The notices for a save that can't be read, opened
-  or written were checked with a read-only folder and an unopenable `save.json` in a throwaway
-  config. A full disk wasn't tried, and the wording of the reasons comes from the exception, so on
-  macOS and Windows it may read differently.
-- **A watch cut short keeps up to its last 20 seconds.** Closing during a Night Watch keeps it,
-  checked on Linux with the game's own quit, SIGTERM (a logout) and KWin's close request for the
-  window (sent by a KWin script in a private nested KWin; no pointer clicked the button itself).
-  If the game is cut off instead (SIGKILL in the test, standing in for a crash or a power cut),
-  the next start keeps the watch as it stood at its last checkpoint, taken every 20 seconds of the
-  watch and on every pause, so up to 20 seconds of play can be lost. A real crash and a power cut
-  weren't tried; a power cut during the save's write is covered by the save being swapped in
-  whole.
-- **The frame-rate advice is a guess at a threshold.** The dawn card speaks up below 45 fps (and
-  below 85% of the rate aimed for). That was checked by holding the game to 30 fps on this
-  machine, not on slow hardware, and whether 45 is the right line needs a playtest on a weak
-  laptop.
+  the dawn card and the watch table mark it.
+- **Frame rates were measured on one machine.** The caps measured 120, 60 and 30 fps on a 120 Hz
+  screen; battery and heat savings on a real laptop or handheld haven't been measured, and whether
+  45 fps is the right line for the dawn card's advice needs a playtest on a weak laptop.
+- **The save moved after v0.1.0.** The v0.1.0 Linux player kept its save in
+  `~/.config/unity3d/unknown/unknown/prefs`, a file every Unity player with the same fault shares.
+  The save is now `save.json` in the game's own data folder, written to a temporary file and
+  swapped in whole, and the first launch of a newer build carries an older save over. A save that
+  can't be read is kept as `save.unreadable.json`, and "Start a new season" keeps the season it
+  clears as `save.previous.json`; neither can be restored from inside the game, only by renaming
+  the file. A full disk wasn't tried.
+- **A watch cut short keeps up to its last 20 seconds.** Closing during a Night Watch keeps it
+  (checked with the game's own quit, SIGTERM and KWin's close request). If the game is killed
+  instead (SIGKILL in the test, standing in for a crash), the next start keeps the watch as it
+  stood at its last checkpoint. A real crash and a power cut weren't tried.
 - **Names step aside, but only a line or two.** On a crowded spot (two wrecks at the same rock on
   the chart) the names stack up beside each other; when no clear place is near, a name takes the
   least covered one.
-- **Fullscreen from the desktop isn't noticed.** F11, Alt+Enter and Settings ▸ Display switch the
-  window and are kept. But when the desktop itself makes the window fullscreen (KWin's own shortcut
-  or window menu, tried through a KWin script in the private nested KWin), Unity's Wayland backend
-  goes on reporting a window, so Settings still says Windowed and the next start goes back to a
-  window. Only KDE's KWin on Wayland was tried; X11, other desktops, macOS and Windows weren't.
-- **Mono sound and plain radio lettering are judged by measurement, not people.** Mono was
-  measured on the game's own output (a sound panned hard left reaches both channels equally); it
-  halves the level of a sound that was wholly on one side, as a mono mix does. Whether Plain is
-  easier to read for the players it's meant for, and whether its size (8% larger than the
-  typewriter, to match its height) is right, needs a playtest. In the typewriter, the Board's
-  letter on night I takes four lines; since round 12 the radio panel grows 13 units taller for it
-  (and a few units for two calls in Plain), so it no longer runs into the panel's bottom margin.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.
