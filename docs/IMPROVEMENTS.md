@@ -1297,3 +1297,79 @@ output and logs stay under `Builds/round10/`. My own save folder is checksummed 
   Deck, non-US layouts, the save on macOS and Windows, a full disk**: no hardware or platforms here
   to check them on.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 10 results (2026-10-07)
+
+All three items landed on `improvements-10`, one commit each, and two older bugs found on the
+way were fixed. Verification was on the built Linux player from the final code: 115/115
+EditMode tests (106 before, plus four for the watch under way, two for the replay's moments and
+three for the frame-rate advice; `Logs/test-results.xml`, `Builds/round10/test_final.log`), and a
+final pass of 36 runs, every one in the private nested KWin (`Builds/round10/final.log`, run by
+`Builds/round10/final.sh`): `input`, `ui`, `status`, `radiolog`, `ending`, `endingskip`,
+`offscreen`, `brightness`, `keys`, `names`, `notes`, `chart`, `lamps`, `watchend`, `confirm`,
+`speed`, `best`, `screens` at four window sizes with 130% HUD text, `framerate`, `help`, the new
+`perf`, and the `season` tour ten ways (two of them new). The log has 418 PASS lines and no FAIL
+or exception; every tour that ends on its own ended with 0 errors (`termwatch`, `killwatch` and
+`closewatch` end by closing the player, so their checks are the script's). The pass waited for
+the load average to fall below 24 before each run and ran at 12.6 to 23.4, with the shared GPU
+97–99% busy. Captures are in `docs/media/improvements/round10/`.
+
+No simulation code changed. The night's log gained `Moments()`, which only reads what it already
+kept, and the dawn fix is in the game's flow, not the simulation; the pinned Standard scores pass
+and balance is unchanged on both difficulties. The validation report wasn't re-run.
+
+1. **A Night Watch outlives a crash.** As planned. The save gains `watchUnderway`; the game writes
+   it every 20 s of the watch and on every pause, and recording, ending or throwing away the watch
+   clears it. `killwatch` killed the player with SIGKILL at 2:00 of a watch: `save.json` held the
+   last of six logged checkpoints (800 points, 5 ships, 120 s), and the next start put it fourth
+   in the table, cleared the entry and said so on the title ("Your last Night Watch was cut short
+   before the game could close properly. It was kept as it stood at 2:00: 800 points, 5 ships
+   home, your fourth best watch.", `watch_kept_notice.jpg`). `closewatch` loaded a KWin script in
+   the nested KWin that called `closeWindow()` on the window with the player's PID, the request
+   KWin's own close button sends; the player closed promptly (the tour's one-minute wait never
+   ran out), and the watch
+   (600 points, 4 ships, 120 s) was kept. No pointer clicked the button. `quitwatch`, `termwatch`
+   and `quitnight` still pass, and now also check nothing is left under way (or, mid-night, that
+   nothing was written). `confirm` checks a paused watch has a checkpoint and that Leave anyway
+   drops it. The keeper's notes on the Night Watch mention it (the longest entry still fits, 548 of
+   640).
+2. **The replay's moments and keys.** As planned. On night IX the jumps landed at 0:08, 0:25, 0:46
+   and 0:53, each 6 s before the moment the line named ("Next at 0:14: the Dunlin struck Widow's
+   Ledge"); Q and Page Up went back; the pad's RB and LB did the same, and X played and paused.
+   Space played and paused with "Back to dawn" chosen and the chart stayed open: buttons on the
+   chart now ignore Space as a submit. The arrows and the d-pad also step 5 s when the timeline
+   isn't chosen. The first build showed the line naming a moment just past rather than the one
+   jumped to; it now prefers the one jumped to. The legend's rows moved 4 units closer to make
+   room; `screens` finds the chart's panel on screen at all four shapes. **Found on the way:** the game reads the keeper's
+   input while a night is paused, so the A that chooses Resume on a pad also latched the foghorn,
+   which sounded as play resumed. A new `input` check failed on a build without the fix (cooldown
+   13.4 s just after resuming) and passes with it (0.0). The press that begins or resumes a night
+   no longer counts for the horn, and the horn doesn't latch outside play.
+3. **A slow night says how to run smoother.** As planned. Held to 30 fps with Frame rate on
+   Display, night I measured 30.0 fps and dawn said "This night ran at about 30 frames a second.
+   For a smoother night, try Settings ▸ Render scale 70% or Fog and haze quality Medium."
+   (`perf_dawn_note.jpg`); the same again said nothing; with Frame rate 30 chosen, nothing; at the
+   display's rate with the cheapest settings, 60.0 fps and nothing. In an earlier run at load 27
+   the cap delivered 27.9 fps, so the check accepts 25 to 31. **Found on the way, a hang from
+   v0.1.0:** in that earlier run one night never reached dawn. When the end-of-night timer ran
+   out while a radio call was still playing, the next frame re-armed the timer and queued the
+   night's last call again, so the radio never fell quiet; the six-second escape could never be
+   reached. The timer now starts once per night. `perf` ends a night with a long call on the radio
+   and checks dawn comes anyway (9.5 s, with the night's last call said no more than once).
+
+**Process notes.** Items 2 and 3 share no files and were built and toured together, then
+committed one after the other; the horn fix went into item 2's commit and the dawn fix into item
+3's, so neither commit was built on its own before the next. My own save folder held the editor's
+`prefs` (same checksum before and after; its timestamp moved during a batch build) and the test
+runner's `TestResults.xml` (rewritten by each test run), and no `save.json`, as in rounds 7 to 9.
+Some single tours early in the session ran at loads of 27 to 30 (the season quit runs, which
+check the watch's own time and the save, not input timing); everything was re-run in the final
+pass below 24.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), the offer of help's wording and threshold (owner), the replay's pace (owner),
+whether 45 fps is the right line for the frame-rate advice (a playtest on a weak laptop), a
+gamepad remap and a real-gamepad pass (including Auto's guess for Sony and Nintendo pads), a
+listening pass, human playtests, fullscreen and real-hardware checks of other screen shapes,
+non-US keyboard layouts, the save on macOS and Windows, a full disk, a real crash or power cut
+during a watch, Windows (module install) and macOS signing (Developer ID).

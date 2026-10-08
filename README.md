@@ -77,7 +77,9 @@ laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
 a tenth of its strength), HUD text size, difficulty, **game speed**, the keyboard **keys** and
 the **pad buttons**' names. A line under the settings says what the one chosen (or under the
-pointer) does.
+pointer) does. After a night that ran well short of the frame rate it aims for (below 45 frames a
+second), the dawn card says so and names the next settings to lower (Render scale, then Fog and
+haze quality, then a 30 fps cap), once a session for the same settings.
 A night pauses itself when the game window loses focus or the gamepad you're using is unplugged.
 With **Sound in background** off, the game also falls silent while its window is out of focus.
 The pause menu shows the night's latest radio calls, so a call you missed can be read again, and
@@ -206,8 +208,12 @@ had them, and a cross at each wreck, with the reefs, sandbanks and false lights 
 The chart's names are set clear of each other and of the crosses, most important first.
 **Replay the night** plays it back on the chart: each ship afloat at its place with its name,
 a "?" or a lantern while it's lost or lured, your light's sweep (wide or focused), the false
-lights while they burned, and each wreck's cross as it happens. A timeline marks the wrecks;
-click or drag it to jump, or step it with ← and → (the d-pad on a pad). Under
+lights while they burned, and each wreck's cross as it happens. A timeline marks the wrecks and
+each time a ship lost its way or was lured; click or drag it to jump, step it with ← and → (the
+d-pad), play or pause with **Space** (the pad's X), and jump to a few seconds before the next or
+previous moment with **E** and **Q** (or Page Down and Page Up; the pad's shoulder buttons). A line
+under the clock names the moment ahead ("Next at 1:47: the Dunlin struck Widow's Ledge"), and
+another names the replay's keys, or the pad's buttons. Under
 the score, the dawn card says where it came from ("6 ships home 750 · 6 steady hands +300"; a
 ship that ran dark counts double). If the same night fails twice running, the card points to
 Settings ▸ Game speed (or Difficulty, on Hard); it changes nothing by itself.
@@ -227,6 +233,9 @@ in the briefing, and the game keeps your five best watches. The briefing shows t
 the dawn card tells you where a watch ranks. To stop, choose **End the watch** in the pause menu:
 dawn comes at once, and the watch is kept and ranked as if the last wreck had ended it. Closing
 the game during a watch (the window's close button, Alt+F4, logging out) keeps it the same way.
+A watch also writes where it stands every 20 seconds and whenever it's paused, so if the game is
+cut off without closing (a crash, a power cut), the next start keeps the watch as it stood then
+and the title says so.
 
 ## Content overview
 
@@ -323,7 +332,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (106 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (115 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -354,7 +363,11 @@ contains a copy of it.
   (kept and shaky) and a watch, and two the offer of help after repeated failures. Two play
   nights II and IX and check the dawn chart's replay against the night as it happened (the light
   within 1.5°, every ship within a unit, wrecks when they struck, false lights while they burned),
-  and eleven check the pad buttons' names and the guess Auto makes from a pad's name.
+  and eleven check the pad buttons' names and the guess Auto makes from a pad's name. Four, under
+  `Temp/`, check a Night Watch under way: its checkpoint survives the save file, a watch cut short
+  is kept once at its place in the table, ending or throwing a watch away clears it, and an older
+  save has none. Two check the replay's moments on nights II and IX (each wreck, lure and lost
+  way once, in order), and three the advice after a slow night.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -371,7 +384,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
   and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
   so Unity's window settings don't land in your `~/.config/unity3d` either.
@@ -379,7 +392,8 @@ contains a copy of it.
   staged wreck, and ends on two staged dawn debriefs. The `input` tour drives the real mouse and
   keyboard path, then a simulated gamepad (menus, aim, focus, horn and pause). It also checks that
   prompts follow the device, that a hint seen once stays away, that losing focus or unplugging the
-  pad pauses the night, and that the d-pad walks both settings columns. It switches Focus to Toggle
+  pad pauses the night, and that the d-pad walks both settings columns, and that choosing Resume
+with the pad's A doesn't also sound the foghorn. It switches Focus to Toggle
 and checks each control both ways, checks the pointer hides for pad play, and logs the input
 devices Unity sees. It walks Settings with the pad and the mouse and checks the line that says
 what each setting does, and sets Pad buttons to each style and checks the title strip, hints,
@@ -409,20 +423,29 @@ briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to
   and 600 for a watch and checks every frame that the line under the score matches the
   simulation. `help` fails night II again and again from the dawn card and checks the offer of
   help at each step.
+  `chart` also jumps between the night's moments with E, Q, Page Down, Page Up and the pad's
+  shoulders, checks the line naming each, and checks Space (and the pad's X) plays and pauses
+  with Back chosen without going back. `perf` (with `-llPerfNote -llFps 30`) plays night I held
+  to 30 fps and checks the dawn card's advice, that it isn't repeated, and that it stays quiet
+  with a 30 cap chosen and at the display's rate; it also ends a night with a long call on the
+  radio and checks dawn still comes within ten seconds.
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
   warning and a full-astern call. `watch` (with `-llSeasonDone`) adds a squall at full blow.
   `-llRenderScale 70`, `-llReduceFlashing`, `-llHard` and `-llHudScale 130` set those options for
   any tour. Give `<dir>` as an absolute path, because the player doesn't resolve relative ones. No real gamepad has been tested, only Unity's simulated device.
-- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable|quitwatch|termwatch|quitnight> <dir>` runs the `season`
+- `Tools/season_tour.sh <reset|damaged|migrate|readonly|unopenable|quitwatch|termwatch|quitnight|killwatch|closewatch> <dir>` runs the `season`
   tour, which uses a real save, against a throwaway config directory under `<dir>` seeded with
   one: a finished season cleared from the logbook, a damaged save, an older build's save carried
   over, a save folder that can't be written (made read-only for the run), or something at
   `save.json` that can't be opened. `quitwatch` and `termwatch` close the game during a Night
   Watch (from the pause menu as the window's close button does, or with SIGTERM as a logout
   does) and check `save.json` kept it; `quitnight` closes it mid-night and checks nothing was
-  written. It refuses to
+  written. `killwatch` kills the player with SIGKILL mid-watch, checks `save.json` holds the last
+  checkpoint, starts the game again and checks the watch was kept and the title says so.
+  `closewatch` (only inside `Tools/nested.sh`) asks the nested KWin, through a KWin script, to
+  close the game's window, the request its close button sends. It refuses to
   run anywhere else, and checks your own save folder is unchanged.
 - `Tools/nested.sh <command>` runs a tour (or the game) inside a private, invisible KWin with
   its own D-Bus session and config folders, so test windows never appear on the desktop you're
@@ -604,10 +627,18 @@ Linux. Here's what is still unproven or rough:
   or written were checked with a read-only folder and an unopenable `save.json` in a throwaway
   config. A full disk wasn't tried, and the wording of the reasons comes from the exception, so on
   macOS and Windows it may read differently.
-- **Closing the game keeps a watch, but only a clean close.** Closing during a Night Watch keeps
-  it, checked on Linux with the game's own quit (the path a window's close button takes) and with
-  SIGTERM (a logout). The compositor's close button itself wasn't clicked in a test, and a crash,
-  a power cut or SIGKILL still loses the watch, since it's only written when the game closes.
+- **A watch cut short keeps up to its last 20 seconds.** Closing during a Night Watch keeps it,
+  checked on Linux with the game's own quit, SIGTERM (a logout) and KWin's close request for the
+  window (sent by a KWin script in a private nested KWin; no pointer clicked the button itself).
+  If the game is cut off instead (SIGKILL in the test, standing in for a crash or a power cut),
+  the next start keeps the watch as it stood at its last checkpoint, taken every 20 seconds of the
+  watch and on every pause, so up to 20 seconds of play can be lost. A real crash and a power cut
+  weren't tried; a power cut during the save's write is covered by the save being swapped in
+  whole.
+- **The frame-rate advice is a guess at a threshold.** The dawn card speaks up below 45 fps (and
+  below 85% of the rate aimed for). That was checked by holding the game to 30 fps on this
+  machine, not on slow hardware, and whether 45 is the right line needs a playtest on a weak
+  laptop.
 - **Names step aside, but only a line or two.** On a crowded spot (two wrecks at the same rock on
   the chart) the names stack up beside each other; when no clear place is near, a name takes the
   least covered one.
