@@ -407,8 +407,9 @@ namespace LastLight.UI
                 "How fast the keys turn the lens. The mouse and the sticks point it directly.");
             Row("Pad buttons", UiStepper.Create(panel, PadButtons.Choices, Mathf.Clamp(save.padStyle, 0, 3), i => { save.padStyle = i; OnFocusMode?.Invoke(); }),
                 "The names prompts give the gamepad's buttons. Auto goes by the pad's name. Nintendo goes by position: the bottom button is B.");
-            Row("Display", UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); }),
-                "In a window, or filling the screen.");
+            displayStepper = UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); });
+            Row("Display", displayStepper,
+                "In a window, or filling the screen. F11 or Alt+Enter switches at any time.");
             var sizes = Resolutions();
             int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
             var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
@@ -661,9 +662,17 @@ namespace LastLight.UI
         static readonly Color CellIdle = new Color(1f, 1f, 1f, 0.045f);
         static readonly Color CellHot = new Color(UiKit.Brass.r, UiKit.Brass.g, UiKit.Brass.b, 0.32f);
 
+        UiStepper displayStepper;
+
+        /// <summary>For tours: what Settings ▸ Display shows.</summary>
+        public string DisplayShown => displayStepper.Shown;
+
         void Update()
         {
             UpdateAbout();
+            // F11, Alt+Enter or the desktop may have switched the window meanwhile.
+            int mode = SaveData.Current.fullscreen ? 1 : 0;
+            if (displayStepper != null && displayStepper.Index != mode) displayStepper.Set(mode);
             var es = UnityEngine.EventSystems.EventSystem.current;
             if (KeysOpen)
             {

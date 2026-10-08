@@ -121,6 +121,16 @@ namespace LastLight.UI
 
         void Refresh() => label.text = $"<color=#C9A35A>‹</color>   {Options[Index]}   <color=#C9A35A>›</color>";
 
+        /// <summary>Shows a choice made elsewhere, without acting on it.</summary>
+        public void Set(int index)
+        {
+            Index = Mathf.Clamp(index, 0, Options.Length - 1);
+            Refresh();
+        }
+
+        /// <summary>The choice as shown; for tours.</summary>
+        public string Shown => Options[Index];
+
         void Step(int d)
         {
             Index = (Index + d + Options.Length) % Options.Length;

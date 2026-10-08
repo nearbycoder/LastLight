@@ -106,6 +106,7 @@ namespace LastLight.Core
             Feedback.EnsureLoops();
             AutoPlay = HasArg("-llAuto");
             InputSystem.onDeviceChange += OnDeviceChange;
+            gameObject.AddComponent<ScreenMode>();
         }
 
         void OnDestroy() => InputSystem.onDeviceChange -= OnDeviceChange;
@@ -791,6 +792,9 @@ namespace LastLight.Core
         }
 
         // ---------------------------------------------------------------- automation hooks
+
+        /// <summary>Settings ▸ Keys and buttons is waiting for a key or a button.</summary>
+        public bool SettingsListening => settings != null && settings.Listening;
 
         public void TourShowLogbook() => ShowLogbook(State.Title);
         public void TourShowSettings() => ShowSettings(State.Title);

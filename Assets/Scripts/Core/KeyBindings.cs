@@ -42,8 +42,8 @@ namespace LastLight.Core
 
         public Key Get(KeeperAction a, int slot) => (Key)Row(a)[slot];
 
-        /// <summary>Esc and P pause the game, so they can't be given to anything else.</summary>
-        public static bool Reserved(Key k) => k == Key.Escape || k == Key.P;
+        /// <summary>Esc and P pause the game and F11 switches fullscreen, so they can't be given to anything else.</summary>
+        public static bool Reserved(Key k) => k == Key.Escape || k == Key.P || k == Key.F11;
 
         /// <summary>Puts a key in a slot, taking it from any other slot. Returns the action it was
         /// taken from (if it was another), or false if the key can't be bound.</summary>

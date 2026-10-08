@@ -150,6 +150,9 @@ namespace LastLight.EditorTools
             PlayerSettings.defaultScreenHeight = 1080;
             PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
             PlayerSettings.resizableWindow = true;
+            // The game switches fullscreen itself on F11 and Alt+Enter (see ScreenMode), so the
+            // player's own Alt+Enter would switch it straight back.
+            PlayerSettings.allowFullscreenSwitch = false;
             PlayerSettings.runInBackground = true;
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.visibleInBackground = true;

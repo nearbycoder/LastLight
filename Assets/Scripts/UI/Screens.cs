@@ -17,6 +17,8 @@ namespace LastLight.UI
         protected CanvasGroup Group;
         public bool Visible { get; private set; }
         protected Selectable FirstSelected;
+        /// <summary>For tours: the item chosen first when keys or a pad reach the screen.</summary>
+        public Selectable TourFirst => FirstSelected;
         /// <summary>The panels that must fit on screen at any shape (checked by the screens tour).</summary>
         public readonly List<RectTransform> Frames = new List<RectTransform>();
 
