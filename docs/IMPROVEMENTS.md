@@ -1373,3 +1373,72 @@ gamepad remap and a real-gamepad pass (including Auto's guess for Sony and Ninte
 listening pass, human playtests, fullscreen and real-hardware checks of other screen shapes,
 non-US keyboard layouts, the save on macOS and Windows, a full disk, a real crash or power cut
 during a watch, Windows (module install) and macOS signing (Developer ID).
+
+## Round 11 scope
+
+The ranked list is still blocked (Windows module, macOS signing, a real gamepad, a listening pass,
+playtests) or waiting on the owner (Standard's balance, the Night Watch ramp, slowed records, the
+replay's pace, the offer of help, the frame-rate advice's threshold). These items come from the
+accessibility basics the game still lacks, and from playing it with a pad. A pad player aims with
+the right stick, and the foghorn is on A, under the same thumb: to sound it they must let go of the
+aim, and nothing can be moved (only the keyboard was rebindable, in round 5). Sounds pan with
+their place on screen, as far as 85% to one side, so a keeper who hears with one ear misses half
+the bay's breakers and wrecks, and there's no mono option. The radio, which carries the night's
+instructions, is set in Special Elite, a worn typewriter face that's harder to read than the rest
+of the game's text, with no plainer choice. And the player allows Alt+Enter to switch between a
+window and fullscreen, but the game doesn't notice: Settings goes on showing the old mode, and the
+next start goes back to it. None of the items changes the simulation, so the pinned Standard
+scores and both difficulties stay as they are.
+
+Every item must keep `Tools/unity.sh test` green and the `ui`, `input`, `keys`, `confirm`, `notes`
+and `screens` tours at 0 errors. Captures go to `docs/media/improvements/round11/`. Tour output and
+logs stay under `Builds/round11/`. My own save folder is checksummed before and after
+(`Builds/round11/save_before.txt`). Every test window runs in the private nested KWin
+(`Tools/nested.sh`).
+
+### 1. The pad's buttons for the foghorn and focus
+- Settings ▸ Keys becomes **Keys and buttons**: beside the keyboard's three slots, the foghorn and
+  focus each get two gamepad slots (defaults as now: the horn on A; focus on RT and LT). Choose a
+  slot and press a button to set it, with the pad or the mouse. A button already used moves; Start
+  always pauses and backs out of waiting; the View (Select) button or Backspace empties a slot, but
+  each action keeps at least one button. Reset puts the defaults back. The sticks still aim.
+- Every prompt that names the horn's or focus's pad button (the title strip, the pause card, the
+  hints and their keycaps, the briefing's fog card, the HUD's horn key, the keeper's notes) names
+  the bound button, in the pad style's names (RB, R1 or R).
+- **Verify:** EditMode tests: the defaults, binding, moving a button between actions, Start
+  refused, an action's last button kept, reset, repairing a damaged save, and an older save getting
+  the defaults (none touch the real save). A new `padkeys` tour, with only the simulated pad,
+  opens the panel, binds the horn to RB and focus to LB, checks B binds rather than backs out while
+  waiting, and Start backs out; then on night V checks RB sounds the horn and A doesn't, LB focuses
+  and the triggers don't, with the stick aiming meanwhile, and that the prompts name RB and LB
+  (with PlayStation names too); then resets. `keys` and `input` still pass, and `screens` checks the
+  wider panel fits at all four shapes.
+
+### 2. Mono sound
+- Settings ▸ **Sound**: *Stereo* (as now) or *Mono*, which mixes everything the game plays to
+  the middle, so both ears hear all of it.
+- **Verify:** a tour plays a sound panned hard to one side and measures the left and right
+  channels of the game's own output: with Stereo they differ, with Mono they match. Screenshot of
+  the setting.
+
+### 3. Plain lettering for the radio
+- Settings ▸ **Radio lettering**: *Typewriter* (as now) or *Plain*, the game's sans-serif, for the
+  radio panel, the briefing's speech and the pause menu's radio log.
+- **Verify:** a tour shows a long call in both letterings and checks it fits its panel at 100% and
+  130% HUD text; `screens` checks the Settings panel, two rows longer, fits at all four shapes.
+  Screenshots read by me.
+
+### 4. Alt+Enter and F11 switch fullscreen, and Settings follows
+- Alt+Enter (which the player already allows) and F11 switch between a window and fullscreen;
+  whichever way it changes, Settings ▸ Display and the save follow, so the next start keeps it.
+- **Verify:** a tour, only inside the nested KWin, presses F11 and Alt+Enter with the simulated
+  keyboard and checks the window mode, the Settings row and the save's setting each time, and ends
+  windowed.
+
+### Not in this round
+- **Standard difficulty, the Night Watch ramp, slowed records, the replay's pace, the offer of
+  help and the frame-rate advice's threshold**: the owner's call.
+- **A real pad (and Auto's guess for it), rumble, fullscreen at other shapes, a Steam Deck, non-US
+  layouts, the save on macOS and Windows, a full disk, a real crash or power cut**: no hardware or
+  platforms here to check them on.
+- **Re-cutting the trailer**: the owner's call.
