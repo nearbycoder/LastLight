@@ -47,6 +47,7 @@ namespace LastLight.Core
         State settingsReturn;
         State logbookReturn;
         float outcomeTimer = -1f;
+        bool outcomeSeen;             // the night's end was noticed (its last calls said once)
         bool recorded;
         int previousBest;
         int failNight, failStreak;   // the same night failed this many times running
@@ -54,6 +55,9 @@ namespace LastLight.Core
         Ending ending;
         float nextCheckpoint;         // the watch's time at which where it stands is next written down
         string watchKeptNotice;       // a watch cut short last time was kept: said once, on the title
+        int perfFrames;               // frames drawn while the night was played, and the time they took
+        float perfTime, perfSettle;
+        string perfAdvised;           // the settings the frame-rate advice was last given for, this session
         ParticleSystem rainFx;
         MissionDef watchDef;
 
@@ -338,6 +342,7 @@ namespace LastLight.Core
             Hud.Bind(Runner, Radio);
             feedback = new Feedback(Runner, Hud, Radio);
             outcomeTimer = -1f;
+            outcomeSeen = false;
             recorded = false;
             nextCheckpoint = CheckpointEvery;
             ApplyMood(def);
@@ -425,6 +430,9 @@ namespace LastLight.Core
             Runner.Controls.IgnorePresses();
             Hud.Show(true, 1f);
             Sfx.Play("ui_begin", 0.7f);
+            perfFrames = 0;
+            perfTime = 0f;
+            perfSettle = 3f;   // the first seconds of a night include loading and the fade
             previousBest = Watching ? SaveData.Current.watchBest : SaveData.Current.best[Night - 1];
             Hud.SetBest(previousBest, Watching);
         }
@@ -498,6 +506,7 @@ namespace LastLight.Core
             // Only a night that was kept (or a watch) tried to save.
             results.SetSaveNote(Watching || won ? SaveData.Unsaved : null);
             results.SetHelpNote(!Watching && !won ? HelpNote(failStreak, SaveData.Current) : null);
+            results.SetPerfNote(results.SaveNoteShown == "" ? PerfAdvice() : null);
             results.Show();
             if (Watching) won = true;   // every watch ends in a wreck too many; it still ends at dawn
             Music.PlayTrack(won ? "music_dawn" : "music_title", 2.5f);
@@ -518,6 +527,42 @@ namespace LastLight.Core
             if (save.difficulty == 1) return "If you'd like it gentler: Settings ▸ Difficulty ▸ Standard gives ships more nerve and charts longer.";
             if (save.gameSpeed > 0.75f) return $"If you'd like more time: Settings ▸ Game speed slows the whole night ({(save.gameSpeed > 0.9f ? "85% or 70%" : "70%")}).";
             return null;
+        }
+
+        /// <summary>The frame rate the night was played at, on average (0 if too little was measured).</summary>
+        public float LastNightFps => perfTime >= MinPerfSeconds ? perfFrames / perfTime : 0f;
+        const float MinPerfSeconds = 15f;
+
+        /// <summary>After a slow night, once per session for the same settings: what to lower.
+        /// Tours see it only when they ask for it (-llPerfNote), since a busy test machine is slow.</summary>
+        string PerfAdvice()
+        {
+            if (HasArg("-llTour") && !HasArg("-llPerfNote")) return null;
+            var save = SaveData.Current;
+            string settings = $"{save.renderScale:0.00}/{save.quality}/{save.frameCap}";
+            float fps = LastNightFps;
+            string note = PerfNote(fps, save.FrameRate, save);
+            Debug.Log($"[Game] the night ran at {fps:0.0} fps (aiming for {save.FrameRate}){(note != null ? (settings == perfAdvised ? "; advice already given for these settings" : "; advice given") : "")}");
+            if (note == null || settings == perfAdvised) return null;
+            perfAdvised = settings;
+            return note;
+        }
+
+        /// <summary>What to say after a night that ran at <paramref name="fps"/> while aiming for
+        /// <paramref name="target"/>: nothing unless it was well short (below 45 and below 85% of
+        /// the aim), otherwise the next steps down that aren't in use yet, at most two: Render
+        /// scale, then Fog and haze quality, then a 30 fps cap. Nothing if there's nothing to lower.</summary>
+        public static string PerfNote(float fps, int target, SaveData save)
+        {
+            if (fps <= 0f || fps >= 45f || fps >= 0.85f * target) return null;
+            var steps = new List<string>();
+            if (save.renderScale > 0.75f) steps.Add("Render scale 70%");
+            else if (save.renderScale > 0.55f) steps.Add("Render scale 50%");
+            if (save.quality >= 1) steps.Add("Fog and haze quality " + (save.quality >= 2 ? "Medium" : "Low"));
+            if (steps.Count < 2 && save.frameCap != 30 && fps >= 25f) steps.Add("Frame rate 30, for a steadier pace");
+            if (steps.Count == 0) return null;
+            string which = steps.Count == 1 ? steps[0] : $"{steps[0]} or {steps[1]}";
+            return $"This night ran at about {Mathf.RoundToInt(fps)} frames a second. For a smoother night, try Settings ▸ {which}.";
         }
 
         /// <summary>The slowest game speed this night was played at, in percent.</summary>
@@ -650,6 +695,14 @@ namespace LastLight.Core
             // The pointer means nothing to a pad player: hide it until the mouse moves again.
             if (Cursor.visible == InputMode.Pad) Cursor.visible = !InputMode.Pad;
             float dt = Time.deltaTime;
+            // The frame rate the keeper sees, while a night is played: a hitch over half a second
+            // (the window hidden, a stall elsewhere) isn't counted.
+            if (Current == State.Playing && Runner != null && Runner.World.Outcome == MissionOutcome.Running)
+            {
+                float real = Time.unscaledDeltaTime;
+                if (perfSettle > 0f) perfSettle -= real;
+                else if (real < 0.5f) { perfFrames++; perfTime += real; }
+            }
             Radio.TextSpeed = SaveData.Current.textSpeed;
             if (Current == State.Playing || Current == State.Results || Current == State.Ending) Radio.Update(dt);
             feedback?.Update(dt);
@@ -679,15 +732,18 @@ namespace LastLight.Core
             {
                 var o = Runner.World.Outcome;
                 if (o == MissionOutcome.Running && Runner.World.Time >= nextCheckpoint) CheckpointWatch();
-                if (o != MissionOutcome.Running && outcomeTimer < 0f)
+                // Dawn waits for the radio to finish, but never more than six seconds past the
+                // pause: the night's last calls are said once, however busy the radio is.
+                if (o != MissionOutcome.Running && !outcomeSeen)
                 {
+                    outcomeSeen = true;
                     outcomeTimer = o == MissionOutcome.Won ? 3.5f : 3f;
                     var cues = Runner.Def.radio;
                     if (cues != null)
                         foreach (var c in cues)
                             if (c.on == (o == MissionOutcome.Won ? "end" : "fail")) Radio.Say(c.who, c.text, 3);
                 }
-                if (outcomeTimer >= 0f)
+                if (outcomeSeen)
                 {
                     outcomeTimer -= Unscaled.Delta;
                     if ((outcomeTimer <= 0f && !Radio.Busy) || outcomeTimer < -6f) ShowResults();
@@ -756,6 +812,8 @@ namespace LastLight.Core
             "pause" => pause, "results" => results, "notes" => notes, "chart" => chart, _ => null,
         };
         public ChartScreen TourChart => chart;
+        /// <summary>For tours: forget that the frame-rate advice was given this session.</summary>
+        public void TourForgetPerfAdvice() => perfAdvised = null;
         public ResultsScreen TourResults => results;
         public void TourShowChart() => ShowChart();
         public bool ShowingResults => Current == State.Results;

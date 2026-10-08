@@ -643,7 +643,7 @@ namespace LastLight.UI
     public sealed class ResultsScreen : UiScreen
     {
         public Action OnNext, OnRetry, OnLogbook, OnChart;
-        Text heading, title, verdict, stats, scoreLine, scoreParts, best, debrief, saveNote, helpNote;
+        Text heading, title, verdict, stats, scoreLine, scoreParts, best, debrief, saveNote, helpNote, perfNote;
         float debriefExtra;
         readonly Image[] lamps = new Image[3];
         readonly Text[] lampCaptions = new Text[3];
@@ -694,6 +694,9 @@ namespace LastLight.UI
             best = Label(card, "", UiKit.BodyBold, 22, UiKit.Brass, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -698), new Vector2(900, 32));
             // Said plainly when the night couldn't be saved.
             saveNote = Label(card, "", UiKit.BodyMedium, 22, new Color(1f, 0.62f, 0.52f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -740), new Vector2(900, 34));
+            // After a night that ran slowly: which settings would make it smoother.
+            perfNote = Label(card, "", UiKit.Italic, 22, new Color(0.8f, 0.82f, 0.86f, 0.9f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -740), new Vector2(940, 60));
+            perfNote.lineSpacing = 1f;
             // After the same night fails twice running: where the assists are.
             helpNote = Label(card, "", UiKit.Italic, 24, new Color(0.8f, 0.82f, 0.86f, 0.9f), TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -680), new Vector2(900, 34));
             next = UiButton.Create(card, "Next night", UiKit.Heading, 42, () => OnNext?.Invoke(), TextAnchor.MiddleCenter);
@@ -798,14 +801,26 @@ namespace LastLight.UI
         {
             float parts = scoreParts.text != "" ? 40f : 0f;
             float note = saveNote.text != "" ? 44f : 0f;
+            float perf = perfNote.text != "" ? 62f : 0f;
             // A failed night has no score, so the offer of help takes the score's place.
             ((RectTransform)helpNote.transform).anchoredPosition = new Vector2(0, -640 - debriefExtra);
-            card.sizeDelta = new Vector2(1000, 860 + debriefExtra + parts + note);
+            card.sizeDelta = new Vector2(1000, 860 + debriefExtra + parts + note + perf);
             ((RectTransform)scoreLine.transform).anchoredPosition = new Vector2(0, -620 - debriefExtra);
             ((RectTransform)scoreParts.transform).anchoredPosition = new Vector2(0, -684 - debriefExtra);
             ((RectTransform)best.transform).anchoredPosition = new Vector2(0, -698 - debriefExtra - parts);
             ((RectTransform)saveNote.transform).anchoredPosition = new Vector2(0, -740 - debriefExtra - parts);
+            ((RectTransform)perfNote.transform).anchoredPosition = new Vector2(0, -752 - debriefExtra - parts - note);
         }
+
+        /// <summary>After a slow night: which settings would make it smoother (null for none).</summary>
+        public void SetPerfNote(string text)
+        {
+            perfNote.text = text ?? "";
+            Relayout();
+        }
+
+        /// <summary>The frame-rate advice as shown; for tours.</summary>
+        public string PerfNoteShown => perfNote.text;
 
         /// <summary>Why the night just kept wasn't saved, or null when it was.</summary>
         public void SetSaveNote(string text)
