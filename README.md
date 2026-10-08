@@ -62,20 +62,26 @@ Point the light. That's the whole interface. The rest is deciding where to point
 | Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) |
 | Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
 
-The keyboard keys for turning, focus and the foghorn can be changed in **Settings ▸ Keys** (three
-keys each; Esc and P always pause). The mouse buttons and the gamepad keep theirs. The pad's
-buttons are named as an Xbox pad's above; **Settings ▸ Pad buttons** gives every prompt
+The keyboard keys for turning, focus and the foghorn, and the gamepad's buttons for focus and the
+foghorn, can be changed in **Settings ▸ Keys and buttons** (three keys each, two buttons each; Esc,
+P and Start always pause, and F11 switches fullscreen). A pad player who aims with the right stick
+can put the foghorn on a shoulder button, so the thumb stays on the aim. The mouse buttons keep
+theirs, either stick turns the light, and every prompt names the keys and buttons you've chosen.
+The pad's buttons are named as an Xbox pad's above; **Settings ▸ Pad buttons** gives every prompt
 PlayStation names (Cross, Circle, R2, Options) or Nintendo's (B, A, ZR, +, by position, so the
 bottom button is B), and on *Auto* the game guesses from the pad's name.
 
-The game starts fullscreen. Settings has volumes for master, music, effects, radio and ambience,
-along with text speed, hints, screen shake, **focus** (hold the button, or toggle: press once to
+The game starts fullscreen; **F11** or **Alt+Enter** switches between a window and fullscreen at
+any time, and Settings ▸ Display and the next start follow. Settings has volumes for master, music,
+effects, radio and ambience, **mono sound** (every sound in both ears alike, for hearing on one side
+or a single speaker), text speed, **radio lettering** (the radio's calls in plain letters instead of
+the worn typewriter, on the HUD, in briefings and in the pause menu's log), hints, screen shake, **focus** (hold the button, or toggle: press once to
 focus and again to widen), lens turn speed, windowed or fullscreen, resolution,
 **frame rate** (the display's refresh rate, or a cap of 60 or 30 to save power and heat on a
 laptop or handheld), fog quality, **render scale** (the 3D scene at 100, 85, 70 or 50% while the text stays sharp),
 **brightness** (five steps for the 3D scene, from half a stop darker to a stop brighter; the
 menus and HUD are unchanged), **reduce flashing** (the storm's lightning lights the bay at about
-a tenth of its strength), HUD text size, difficulty, **game speed**, the keyboard **keys** and
+a tenth of its strength), HUD text size, difficulty, **game speed**, the **keys and buttons** and
 the **pad buttons**' names. A line under the settings says what the one chosen (or under the
 pointer) does. After a night that ran well short of the frame rate it aims for (below 45 frames a
 second), the dawn card says so and names the next settings to lower (Render scale, then Fog and
@@ -122,7 +128,7 @@ Each onboarding hint shows once per save (**Settings ▸ Show hints again** brin
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
 They also follow the Focus setting, so in Toggle they say "press" or "click" rather than "hold",
-and name the keys you've chosen in Settings ▸ Keys.
+and name the keys and buttons you've chosen in Settings ▸ Keys and buttons.
 
 ### The rules in brief
 
@@ -332,7 +338,7 @@ contains a copy of it.
 
 ### Tests and validation
 
-- `Tools/unity.sh test` runs the EditMode tests (115 of them). They check that every mission
+- `Tools/unity.sh test` runs the EditMode tests (122 of them). They check that every mission
   references valid map data, that every reef, buoy and wrecker lantern is reachable by the beam,
   that every route is safe for every hull once its hazards are charted, that the **AutoKeeper**
   bot wins all twelve nights in the pure simulation, that the bot keeps a generated Night
@@ -367,7 +373,10 @@ contains a copy of it.
   `Temp/`, check a Night Watch under way: its checkpoint survives the save file, a watch cut short
   is kept once at its place in the table, ending or throwing a watch away clears it, and an older
   save has none. Two check the replay's moments on nights II and IX (each wreck, lure and lost
-  way once, in order), and three the advice after a slow night.
+  way once, in order), and three the advice after a slow night. Seven cover the pad's buttons for
+  focus and the foghorn: the defaults, moving a button, the exchange when an action would lose its
+  last button, Start and View refused, reset and repair, the save format (an older save gets the
+  defaults), and the keeper's notes in the bound buttons' names.
 - `Tools/validate.sh` prints the same checks as a report from a resident editor
   (`Tools/unity.sh serve`). `Tools/tour.sh report <dir>` produces the report from the built player.
   The report also plays every night with a **novice keeper**, which is slow to react, has a shaky
@@ -384,7 +393,7 @@ contains a copy of it.
   the bot's watches ended after 16 to 25 minutes. Nearly all of those wrecks were hulls striking
   reefs that had already been charted, and full astern now prevents those (see Status and known
   issues).
-- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf> <dir> -llFresh` plays the built
+- `Tools/tour.sh <ui|nights|ending|input|watch|flash|breakers|status|radiolog|screens|watchend|endingskip|speed|offscreen|confirm|brightness|keys|names|notes|framerate|chart|lamps|best|help|perf|padkeys|mono|lettering|fullscreen> <dir> -llFresh` plays the built
   game with scripted input and saves screenshots. `-llFresh` keeps the tour away from your save,
   and tours run with a config directory of their own (`Builds/tour-config`, or `LL_TOUR_CONFIG`),
   so Unity's window settings don't land in your `~/.config/unity3d` either.
@@ -428,7 +437,17 @@ briefing, pause card and HUD use its names. `radiolog` pauses night 6 late on to
   with Back chosen without going back. `perf` (with `-llPerfNote -llFps 30`) plays night I held
   to 30 fps and checks the dawn card's advice, that it isn't repeated, and that it stays quiet
   with a 30 cap chosen and at the display's rate; it also ends a night with a long call on the
-  radio and checks dawn still comes within ten seconds.
+  radio and checks dawn still comes within ten seconds. `padkeys`, with only the simulated pad,
+  binds the foghorn to RB and focus to LB in Settings ▸ Keys and buttons (B binds while a slot
+  waits, Start backs out, focus keeps its last button), then on night V checks RB sounds the horn
+  and A doesn't, LB focuses and the triggers don't, the stick aims meanwhile, and every prompt
+  names RB and LB (and R1 and L1 with PlayStation names). `mono` plays the foghorn panned hard to
+  each side and measures the left and right channels of the game's output with Sound on Stereo and
+  on Mono. `lettering` measures every scripted call and briefing against its box in both radio
+  letterings and shows the longest call at 100% and 130% HUD text. `fullscreen` (only inside
+  `Tools/nested.sh`) presses F11 and Alt+Enter and checks the window's mode, Settings ▸ Display and
+  the save each time, and that Alt+Enter doesn't also choose the menu item; a KWin script that
+  resizes the window only if KWin doesn't hold it fullscreen confirms each switch from KWin's side.
   `endingskip` skips the ending with Esc, a pad's Start and a pad's B. `speed` measures each game
   speed (sim seconds per real second) and checks the dawn card and watch table marks. `flash` measures screen
   brightness on a lightning strike with Reduce flashing off and on. `breakers` captures a breakers
@@ -547,8 +566,8 @@ Linux. Here's what is still unproven or rough:
   Night Watch's ramp may need tuning once people play it.
 - **The audio has only been measured.** Every clip passes `Tools/audio_check.py`, but no one has
   yet judged whether the music and gibberish voices are pleasant to listen to.
-- **Gamepad support is tested only with a simulated device.** Button layouts and stick dead zones
-  on real controllers are unverified. An 8BitDo receiver is plugged into the development machine,
+- **Gamepad support is tested only with a simulated device.** Button layouts, stick dead zones and
+  rebound buttons on real controllers are unverified. An 8BitDo receiver is plugged into the development machine,
   but Unity listed only the mouse, keyboard and touchscreen (the pad was presumably off), and no
   one pressed its buttons.
 - **Linux only, as published.** `Tools/unity.sh build-mac` makes a universal macOS app (Mono, macOS
@@ -586,8 +605,10 @@ Linux. Here's what is still unproven or rough:
   Once, in round 4, the `ui` tour's switch from a 1280×1024 window to 1280×720 didn't take. It
   didn't happen again in three runs in round 5 (the resize took effect within 0.01 s), so the cause
   is unknown.
-- **Rebinding covers the keyboard only.** The gamepad's buttons are fixed (there's no real pad to
-  check a remap on). Key names come from the keyboard layout, so an AZERTY keyboard should show "Q"
+- **Rebinding was checked with the simulated pad and keyboard only.** Focus and the foghorn can go
+  on any of the pad's face, shoulder, trigger, stick or d-pad buttons; the sticks always aim, Start
+  always pauses and View empties a slot, so those three can't be bound. No real pad has pressed a
+  rebound button. Key names come from the keyboard layout, so an AZERTY keyboard should show "Q"
   for the default turn-left key, but only a US layout has been tried.
 - **Pad buttons' names were checked with simulated pads only.** Choosing PlayStation or Nintendo
   in Settings renames every prompt, and that's tested. *Auto* guesses from the name Unity gives a
@@ -642,5 +663,17 @@ Linux. Here's what is still unproven or rough:
 - **Names step aside, but only a line or two.** On a crowded spot (two wrecks at the same rock on
   the chart) the names stack up beside each other; when no clear place is near, a name takes the
   least covered one.
+- **Fullscreen from the desktop isn't noticed.** F11, Alt+Enter and Settings ▸ Display switch the
+  window and are kept. But when the desktop itself makes the window fullscreen (KWin's own shortcut
+  or window menu, tried through a KWin script in the private nested KWin), Unity's Wayland backend
+  goes on reporting a window, so Settings still says Windowed and the next start goes back to a
+  window. Only KDE's KWin on Wayland was tried; X11, other desktops, macOS and Windows weren't.
+- **Mono sound and plain radio lettering are judged by measurement, not people.** Mono was
+  measured on the game's own output (a sound panned hard left reaches both channels equally); it
+  halves the level of a sound that was wholly on one side, as a mono mix does. Whether Plain is
+  easier to read for the players it's meant for, and whether its size (8% larger than the
+  typewriter, to match its height) is right, needs a playtest. In the typewriter, the Board's
+  letter on night I takes four lines and its last line sits in the radio panel's bottom margin;
+  in Plain it takes three.
 - **No license has been chosen yet.** Until one is added, all rights are reserved. The bundled
   fonts keep their own open licenses.
