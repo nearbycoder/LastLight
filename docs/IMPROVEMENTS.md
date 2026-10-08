@@ -1442,3 +1442,83 @@ logs stay under `Builds/round11/`. My own save folder is checksummed before and 
   layouts, the save on macOS and Windows, a full disk, a real crash or power cut**: no hardware or
   platforms here to check them on.
 - **Re-cutting the trailer**: the owner's call.
+
+## Round 11 results (2026-10-08)
+
+All four items landed on `improvements-11`, one commit each, plus a tooling commit and a README
+commit. Verification was on the built Linux player from `b6b47a7`, the tip before this section
+(this commit changes only this file): 122/122 EditMode tests (115 before, plus seven for the pad's
+buttons; `Logs/test-results.xml`, `Builds/round11/test_final.log`), and a final pass of 38 runs,
+every one in the private nested KWin (`Builds/round11/final.log`, run by `Builds/round11/final.sh`):
+round 10's 34 (`input`, `ui`, `status`, `radiolog`, `ending`, `endingskip`, `offscreen`,
+`brightness`, `keys`, `names`, `notes`, `chart`, `lamps`, `watchend`, `confirm`, `speed`, `best`,
+`screens` at four window sizes with 130% HUD text, `framerate`, `help`, `perf`, and the `season`
+tour ten ways) and the new `padkeys`, `mono`, `lettering` and `fullscreen`. The log has 472 PASS
+lines and no FAIL or exception; every tour that ends on its own ended with 0 errors. The pass
+waited for the load average to fall below 24 before each run and ran at 12.3 to 23.7, with the
+shared GPU 84–99% busy. Captures are in `docs/media/improvements/round11/`.
+
+No simulation code changed, so the pinned Standard scores pass and balance is unchanged on both
+difficulties; the validation report wasn't re-run.
+
+1. **The pad's buttons for the foghorn and focus.** As planned. Settings ▸ Keys and buttons sets
+   the keyboard's three slots and the pad's two side by side (the turn rows say "either stick").
+   A button taken from an action that has no other moves across in exchange for the slot's own
+   button, or is refused if the slot is empty, so neither action is ever left without one. The
+   `padkeys` tour (24 checks) did it all with the simulated pad: RB on the horn, LB for focus, View
+   emptying LT and refusing to empty LB, B binding while a slot waited, Start backing out with
+   "Nothing changed."; then on night V, A didn't sound the horn and RB did (cooldown 13.6 s), the
+   triggers held hard gave focus 0.00 and LB 1.00 while the right stick swung the light 100°; the
+   title strip, fog card, both hints and their keycaps, the horn gauge and the pause card said LB
+   and RB, and L1 and R1 with PlayStation names; Reset to defaults put A and RT/LT back. Prompts on
+   the default buttons read exactly as before. `keys`, `input` and `notes` still pass.
+2. **Mono sound.** As planned. Settings ▸ Sound folds the listener's whole mix to the middle. The
+   `mono` tour measured the game's own output: the foghorn panned hard left gave left 0.2023 and
+   right 0.0000 on Stereo; on Mono 0.1005 and 0.1005, and panned right 0.1006 and 0.1006; back on
+   Stereo, panned right, 0.0002 and 0.1877. Settings rows now sit 52 units apart, not 56, and
+   Frame rate moved to the right-hand column, so each column has thirteen rows; the `input` tour
+   walks all 27 and `screens` finds the panel on screen at all four shapes.
+3. **Plain lettering for the radio.** As planned. Plain uses Alegreya Sans Medium 8% larger than
+   the typewriter (23 becomes 25 on the HUD). The `lettering` tour measured all 144 scripted calls
+   and hails against the HUD's radio panel and all 12 briefings against Ianto's box, in both
+   letterings: everything fits. **Found on the way:** in the typewriter, as released, the Board's
+   letter on night I runs to four lines and its last line sits in the panel's 12-unit bottom
+   margin (98 units of text in an 88-unit box); in Plain it takes three. The typewriter was left
+   as it is.
+4. **F11 and Alt+Enter.** Changed from the plan. F11 and Alt+Enter switch, and Settings ▸ Display
+   and the save follow, as planned; the game does it itself (the player's own Alt+Enter is now
+   off, so a real press can't switch twice) before the menus read the Enter, and F11 can't be
+   bound to a key. The `fullscreen` tour (11 checks) switched from a 1280×720 window with each, and
+   checked Alt+Enter with "Begin the watch" chosen left the title where it was (the first build
+   didn't: the EventSystem runs at execution order −1000, so the switch now runs at −2000).
+   Because Unity reports a mode the instant it's asked, the tour also asks KWin: a KWin script
+   resizes the window only if KWin doesn't hold it fullscreen, and it did resize it while windowed
+   (to 800 wide) and left it alone after F11 and after Alt+Enter. **What was dropped:** the plan
+   had the save follow the desktop's own fullscreen too. Asked through a KWin script, KWin made
+   the window fullscreen, but Unity's Wayland backend went on reporting a window (Windowed,
+   1600×900), so the game can't tell. The code for it was removed rather than kept unverified;
+   the tour logs the finding, and the README lists it as a known issue.
+
+**Tooling.** `Tools/nested.sh` now stops, when its session ends, any process whose environment
+carries that run's own private config folder (the helpers its D-Bus session started, such as
+ksecretd), and logs them in `Builds/nested/helpers.log`. A test with a stray process started
+inside a session showed it stopped. None of this round's nested sessions left a helper behind;
+the 85 or so ksecretd processes running on the machine belong to other games' sessions and were
+left alone.
+
+**Process notes.** Each item was built and toured on its own before its commit, but items 2 and
+3 changed the Settings layout, so `input` and `screens` ran only after item 3; the final pass
+covers every commit's code together. My own save folder held the editor's `prefs` (same checksum
+before and after; its timestamp moved during a batch build) and the test runner's
+`TestResults.xml` (rewritten by each test run), and no `save.json`, as in rounds 7 to 10. Some
+single tours early in the session ran at loads of 22 to 50 (other sessions); everything was
+re-run in the final pass below 24.
+
+Still open: Standard difficulty and the Night Watch ramp (owner), whether slowed scores should be
+kept apart (owner), the offer of help's wording and threshold (owner), the replay's pace (owner),
+whether 45 fps is the right line for the frame-rate advice, a real-gamepad pass (now including
+rebound buttons and Auto's guess for Sony and Nintendo pads), rumble, a listening pass (now
+including mono), human playtests (now including whether Plain lettering reads better), the
+desktop's own fullscreen (not seen on Wayland), fullscreen and real-hardware checks of other
+screen shapes, non-US keyboard layouts, the save on macOS and Windows, a full disk, a real crash or
+power cut during a watch, Windows (module install) and macOS signing (Developer ID).
