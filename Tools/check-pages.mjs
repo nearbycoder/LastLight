@@ -258,7 +258,12 @@ async function run(engine, url) {
     if (opts.play && first.ready) {
       // ---- 2. sound waits for a click, then plays
       const before = await page.evaluate(() => window.__llAudio());
-      check(before.states.length > 0 && before.states.every((s) => s !== "running"), `sound held before any input (audio context ${before.states.join(",") || "none"})`);
+      // Driven by Playwright, a page counts as clicked from the start (navigator.userActivation.hasBeenActive), so the
+      // browser lets sound start unasked; whether it waits for a click can only be seen when that isn't so.
+      const activated = await page.evaluate(() => navigator.userActivation ? navigator.userActivation.hasBeenActive : false);
+      info.soundBeforeInput = activated ? `not testable here: the automation counts as a click (context ${before.states.join(",")})` : before.states.join(",");
+      if (activated) console.log(`[check] ${engine}: NOTE sound held before input: ${info.soundBeforeInput}`);
+      else check(before.states.length > 0 && before.states.every((s) => s !== "running"), `sound held before any input (audio context ${before.states.join(",") || "none"})`);
       await page.mouse.click(...at(1300, 300));   // the sky over the bay: no menu there
       let after = before;
       for (let i = 0; i < 20; i++) {
@@ -275,6 +280,15 @@ async function run(engine, url) {
       await page.mouse.click(...at(300, 762));   // title ▸ Settings (fourth item while the Night Watch is locked)
       await sleep(1500);
       await shot("02-settings");
+      // Settings ▸ Sound (the left column's sixth row, its control centred at x 760): Mono folds the page's output
+      // to one channel; back to Stereo.
+      await page.mouse.click(...at(850, 236 + 5 * 52));
+      await sleep(500);
+      const mono = await page.evaluate(() => window.__llAudio().channels);
+      await page.mouse.click(...at(850, 236 + 5 * 52));
+      await sleep(500);
+      const stereo = await page.evaluate(() => window.__llAudio().channels);
+      check(mono.includes(1) && !stereo.includes(1), `Settings ▸ Sound ▸ Mono sets the page's output to one channel and Stereo back (channels ${mono} then ${stereo})`);
       // The panel is 1660x1000 in the middle; rows sit 236 + 52 a row from the top, the right column's controls
       // centred at x 1580. In a browser Graphics fidelity is that column's tenth row (no Resolution row); the left
       // half of a stepper steps back, the right half on.
@@ -333,6 +347,22 @@ async function run(engine, url) {
         const resumed = await waitLog("[Game] resumed", 5000, pauseMark);
         check(paused && resumed, `the night pauses and resumes (Esc); the night ran at about ${fps.toFixed(0)} fps`);
         await sleep(1500);
+        // Alt+Enter asks the browser for fullscreen, and again leaves it. Held a few frames, as a hand would: the game
+        // reads the keys once a frame.
+        const altEnter = async () => {
+          await page.keyboard.down("Alt"); await sleep(80);
+          await page.keyboard.down("Enter"); await sleep(120);
+          await page.keyboard.up("Enter"); await sleep(80);
+          await page.keyboard.up("Alt");
+        };
+        await altEnter();
+        let full = false;
+        for (let i = 0; i < 15 && !full; i++) { await sleep(200); full = await page.evaluate(() => !!document.fullscreenElement); }
+        await sleep(500);
+        await altEnter();
+        let left = false;
+        for (let i = 0; i < 15 && !left; i++) { await sleep(200); left = await page.evaluate(() => !document.fullscreenElement); }
+        check(full && left, `Alt+Enter goes fullscreen and back (${full ? "fullscreen" : "no fullscreen"}, then ${left ? "the page" : "still fullscreen"})`);
       }
       check(problems.length === 0, `no console errors, page errors or failed requests while playing${problems.length ? ": " + problems.slice(0, 3).join(" | ") : ""}`);
     }
