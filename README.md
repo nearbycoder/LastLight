@@ -37,8 +37,8 @@ install, built from `main` (the same game as the screenshots and trailer below).
   tried in Safari, on Windows or macOS, or by a person at a real screen. Phones and tablets
   can load it, but the game has no touch controls.
 - **Download:** about 26 MB the first time (19 MB of it is the game's data);
-  the browser keeps a copy for later visits. The title was up 2 to 4 s after opening the page from
-  a local server (load average about 20 on a busy 32-core machine); over the internet, add the
+  the browser keeps a copy for later visits. The title was up 2 to 8 s after opening the page from
+  a local server (load average 13 to 30 on a busy 32-core machine); over the internet, add the
   time 26 MB takes to arrive.
 - **Saves and settings** stay in the browser's storage for this site (IndexedDB) and survive a
   reload, but not clearing the site's data or a private window. They aren't shared with the
@@ -48,7 +48,8 @@ install, built from `main` (the same game as the screenshots and trailer below).
   fullscreen (or Alt+Enter; Esc leaves it) and there's no Resolution row, since the page fills the
   window; new saves start on Graphics fidelity **Medium** rather than High, because WebGL costs
   more than the desktop renderer (the setting still offers Low to Ultra; Night I on High ran at
-  53 to 58 fps in headless Chromium and Firefox here, against a 60 fps ceiling); Mono folds the browser's sound output to one
+  57 to 60 fps in headless Chromium and 34 to 57 fps in Firefox here, against a 60 fps ceiling,
+  depending on the machine's load); Mono folds the browser's sound output to one
   channel, which was set but not heard through speakers. A night left mid-way by closing the tab
   is treated like a crash: a Night Watch is kept as it stood at its last checkpoint.
 
