@@ -32,10 +32,11 @@
 **[Play Last Light in your browser](https://nearbycoder.github.io/LastLight/)**: no download or
 install, built from `main` (the same game as the screenshots and trailer below).
 
-- **Browsers:** a desktop browser with WebGL 2 and a keyboard and mouse, or a gamepad. Checked in
-  headless Chromium 151 and Firefox 157 on Linux (AMD Radeon 8060S); not yet
-  tried in Safari, on Windows or macOS, or by a person at a real screen. Phones and tablets
-  can load it, but the game has no touch controls.
+- **Browsers:** a desktop browser with WebGL 2 and a keyboard and mouse, or a gamepad; or a phone
+  or tablet held sideways, with on-screen controls (below). Checked in headless Chromium 151 and
+  Firefox 157 on Linux (AMD Radeon 8060S), and in headless WebKit and Chromium made up as an
+  iPhone, an iPad and an Android phone; not yet tried in Safari on a Mac, on Windows, on a real
+  phone or tablet, or by a person at a real screen.
 - **Download:** about 26 MB the first time (19 MB of it is the game's data);
   the browser keeps a copy for later visits. The title was up 2 to 8 s after opening the page from
   a local server (load average 13 to 30 on a busy 32-core machine); over the internet, add the
@@ -52,6 +53,31 @@ install, built from `main` (the same game as the screenshots and trailer below).
   depending on the machine's load); Mono folds the browser's sound output to one
   channel, which was set but not heard through speakers. A night left mid-way by closing the tab
   is treated like a crash: a Night Watch is kept as it stood at its last checkpoint.
+- **On a phone or tablet:** play it held sideways (in portrait the page asks you to turn it, and a
+  night under way pauses). On-screen controls appear on a touch screen, and only there; they step
+  aside as soon as a mouse, a key or a gamepad is used, and come back with the next touch:
+  - **Drag anywhere** to turn the light. Your finger moves the point the lens turns towards, as on
+    a trackpad, so it needn't cover the ship you're lighting; the lens keeps its weight.
+  - **FOCUS**, at the right thumb: hold it to focus (or tap it on and off, with Settings ▸ Focus
+    set to Toggle). Hold it with one thumb while the other drags.
+  - **HORN**, above it, on the nights with fog; its ring fills as it gets ready again.
+  - **II** at the top left pauses (on the briefing it's **‹**, back to the title). Menus, the dawn
+    card and Settings are tapped; on the dawn chart, drag the timeline to scrub, tap by a mark to
+    jump to that moment, and tap Replay. At the very end, touch and hold to put out the light.
+
+  The buttons are thumb-sized (Focus 76 to 104 pt, Horn 60 to 80, Pause 46), kept clear of the
+  notch and the home indicator, and drawn in the HUD's brass; the HUD moves aside for them. The
+  page doesn't scroll, zoom or select. Sound starts with your first tap (on an iPhone, the ring
+  and silent switch can still mute it). Phones and tablets get lighter defaults, for a browser
+  tab's tight memory (an iPhone's Safari stops a tab well short of a desktop's limits): new saves
+  start on Graphics fidelity **Low** and Render scale **70%**, and the picture is drawn at no more
+  than about 1920x1080 pixels. At the title that cut what WebGL holds (render targets, textures
+  and buffers) from 246 to 67 MB on an iPad Pro 11, 76 to 41 MB on an iPhone 15 and 90 to 47 MB
+  on a Pixel 7; the game's own heap stays 157 MB and the download 26 MB. If a visit is stopped anyway, the next one says so and starts on
+  Low at 70% at most; running out of memory or losing the graphics shows a plain message rather
+  than a dead page. Menu text and rows are drawn for a 1080-line screen, so on a phone they're
+  small (a menu row is about 20 pt tall on an iPhone held sideways): readable, and tappable with
+  care.
 
 ## Trailer
 
@@ -106,14 +132,14 @@ Progress and settings are saved in `save.json` in the game's data folder (on Lin
 
 Point the light. That's the whole interface. The rest is deciding where to point it.
 
-| Action | Mouse and keyboard | Gamepad |
-|---|---|---|
-| Aim the beam | Move the mouse (the lens follows with weight), or turn it with **A / D** or **← / →** | Right or left stick |
-| Focus: a narrow, long, bright beam that turns slower | Hold the **left mouse button**, **Shift**, **W** or **↑** (or press to switch, with Focus set to Toggle) | Hold either trigger (or press, with Toggle) |
-| Sound the foghorn (14 s cooldown) | **Space** or the **right mouse button** | **A** |
-| Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) |
-| Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose |
-| Switch between a window and fullscreen | **F11** or **Alt+Enter** | |
+| Action | Mouse and keyboard | Gamepad | Touch (browser, phone or tablet) |
+|---|---|---|---|
+| Aim the beam | Move the mouse (the lens follows with weight), or turn it with **A / D** or **← / →** | Right or left stick | Drag anywhere |
+| Focus: a narrow, long, bright beam that turns slower | Hold the **left mouse button**, **Shift**, **W** or **↑** (or press to switch, with Focus set to Toggle) | Hold either trigger (or press, with Toggle) | Hold **FOCUS** (or tap, with Toggle) |
+| Sound the foghorn (14 s cooldown) | **Space** or the **right mouse button** | **A** | Tap **HORN** |
+| Pause, or back out of a menu | **Esc** or **P** | **Start** (and **B** in menus) | **II** (**‹** on the briefing); menus have their own buttons |
+| Move through and choose menu items | Mouse, or **arrow keys / Tab** and **Enter** | D-pad or stick, **A** to choose | Tap |
+| Switch between a window and fullscreen | **F11** or **Alt+Enter** | | Settings ▸ Display (not on an iPhone) |
 
 The keyboard keys for turning, focus and the foghorn, and the gamepad's buttons for focus and the
 foghorn, can be changed in **Settings ▸ Keys and buttons** (three keys each, two buttons each; Esc,
@@ -122,7 +148,9 @@ can put the foghorn on a shoulder button, so the thumb stays on the aim. The mou
 theirs, either stick turns the light, and every prompt names the keys and buttons you've chosen.
 The pad's buttons are named as an Xbox pad's above; **Settings ▸ Pad buttons** gives every prompt
 PlayStation names (Cross, Circle, R2, Options) or Nintendo's (B, A, ZR, +, by position, so the
-bottom button is B), and on *Auto* the game guesses from the pad's name. There's no touch input.
+bottom button is B), and on *Auto* the game guesses from the pad's name. Touch works in the browser
+on a phone or tablet (see [Play in your browser](#play-in-your-browser)); the desktop builds have
+no touch input.
 
 Hints, the title's control strip, the briefing prompt and the HUD's foghorn key follow the device
 you last touched, so a gamepad player reads "Hold RT" and "A" rather than mouse buttons and Space.
@@ -376,6 +404,7 @@ Tools/package.sh 0.1.0 linux   # zip a build for a release, into Builds/release 
 Tools/build-pages.sh           # the browser build: the static site in Builds/Pages/LastLight (Unity's Web module)
 node Tools/check-pages.mjs --serve --play --browser=chromium,firefox   # try it as Pages serves it (needs playwright-core)
 node Tools/check-pages.mjs https://nearbycoder.github.io/LastLight/      # does the live site reach the title?
+node Tools/check-mobile.mjs --serve --play --device=iphone,ipad,android   # phones and tablets by touch, with memory
 ```
 
 `Tools/unity.sh` expects the editor at `~/Unity/Hub/Editor/6000.6.2f1` (set `UNITY` to change
@@ -543,7 +572,10 @@ release is still v0.1.0 (4 October 2026); everything since is on `main` only (se
   on a Mac**. `build-windows` is ready but needs Unity's *Windows Build Support (Mono)* module,
   which isn't installed on the development machine. The browser build (see
   [Play in your browser](#play-in-your-browser)) was checked in headless Chromium and Firefox on
-  Linux only. The save's location and
+  Linux only, and on phones and tablets only as headless WebKit and Chromium made up as them
+  (`Tools/check-mobile.mjs`): real touch events, but not a real iPhone's memory limit, GPU, sound,
+  notch or hand. That WebKit couldn't play the game's sound (its GStreamer lacks the decoder), so
+  sound on a phone is untested. The save's location and
   its trouble notices were checked on Linux only.
 - **Graphics fidelity was measured on one machine, with its GPU shared.** Whether Low is smooth on
   a genuinely weak GPU, and how Ultra runs on a discrete card, hasn't been tried. Ultra's temporal

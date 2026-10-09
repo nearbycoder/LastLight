@@ -1700,3 +1700,59 @@ real-hardware checks of other screen shapes, non-US keyboard layouts, the save o
 Windows, a full disk, a real crash or power cut during a watch, Windows (module install), macOS
 signing (Developer ID), and re-cutting the trailer (README captures still show the release's
 look, which is High's).
+
+## The browser build on phones and tablets (2026-10-09)
+
+On the `web-mobile` branch. The owner opened the browser build on an iPhone and the tab crashed;
+every game was to work on phones and tablets, with on-screen controls shown only there.
+
+**Before.** `Tools/check-mobile.mjs` (new) loads the site in headless WebKit as an iPhone 15 and an
+iPad Pro 11 and headless Chromium as a Pixel 7, with real touch events. Today's build reached the
+title on all three, but nothing past the menus could be done by touch: no way to aim, focus, sound
+the horn, pause, go back from the briefing or put out the light at the end, and every hint spoke of
+the mouse. In WebKit the tab died about 30 s in with sound on: this WebKit's GStreamer can't decode
+the game's AAC, a Linux test-machine fault rather than an iPhone's, so the checks replace WebKit's
+sound with silence (`--real-sound` keeps it). The memory was heavy for a phone: at the title WebGL
+held 246 MB on the iPad (a 2388x1668 canvas through 64-bit HDR targets), 76 MB on the iPhone and
+90 MB on the Pixel; the wasm heap was 157 MB; the loader kept its 29 MB copy of the wasm; and the
+page's process in WebKit peaked at 1.19 GB (iPhone) and 1.57 GB (iPad), a figure that on Linux
+includes the GL driver.
+
+**Done.**
+1. **On-screen controls, touch only** (`2cd10d4`). FOCUS (held, or tapped with Focus on Toggle),
+   HORN with its cooldown ring on the nights with fog, and a corner button (pause in a night, back
+   on the briefing). Drag anywhere to aim, as on a trackpad: the finger moves the point the lens
+   turns towards. Shown on a touch-first device or after a finger; hidden for a mouse, a key or a
+   pad. Thumb-sized, clear of the notch and home indicator, multi-touch, no scroll, zoom,
+   selection or callouts. The HUD moves aside for them; landscape is asked for; every hint, the
+   notes, the pause controls, the ending's hold and the dawn chart's replay speak of touch; the
+   chart's timeline takes a finger over a taller area and snaps a tap to a moment's mark.
+2. **Memory.** On touch devices a pixel budget of about 1920x1080 and new saves on Low at 70%; the
+   wasm copy released; the WebGL probe's context returned. After (same checks, at the title): WebGL
+   67 MB on the iPad, 41 MB on the iPhone, 47 MB on the Pixel; WebKit's process peaked at 1.10 GB
+   (iPhone) and 1.29 GB (iPad). A tab stopped while showing is noticed next time (the page says
+   so and starts on Low at 70%); running out of memory or losing WebGL shows a message.
+3. **Mouse detection in Safari** (`c4842b0`): Safari reports no `movementX`, so a moving mouse
+   (an iPad's trackpad) didn't put the controls away; the page now compares positions.
+4. **Sound on strict browsers** (`cd44cde`). Music and the sea play through audio elements, which
+   Unity starts after the gesture rather than in it; Safari on iOS and Chromium's strict policy
+   refused them and the title stayed silent (three Chromium runs in a row here, and once in three
+   before this branch's page changes). Every tap, click or key now resumes the context and replays
+   refused elements inside the event: sound came at once in 5 of 5 runs afterwards.
+
+**Checks, on `cd44cde`** (load 23 to 57): `Tools/check-mobile.mjs` passed every check on the
+iPhone 15 (22, with an emulated notch, turned to portrait mid-night, and a stopped visit), the
+Pixel 7 (22), the iPad Pro 11 and iPhone SE (21 each), all three in portrait (4 each: the page
+asks to turn), the dawn chart on the Pixel (10: a night played out, Chart tapped, the timeline
+dragged and tapped, Replay), and desktop Chromium and Firefox (10 each: no touch controls, ever).
+`Tools/check-pages.mjs --play` passed in Chromium and Firefox. The EditMode tests passed 124 of
+124, and the `ui`, `input`, `chart`, `keys`, `padkeys`, `notes`, `help`, `screens`, `fidelity` and
+`endingskip` tours passed on a Linux build of `fc13c5f`'s game code (the later commits change the
+web page and its glue; `help` needed a longer timeout at a load near 90). Logs: `Logs/mobile-check/`
+(`before/`, `final/`), `Logs/pages-check-final/`, `Builds/tours-webmobile/`.
+
+Still open, for a real device: an iPhone's own memory limit (headless WebKit doesn't enforce one,
+and its process figures include Linux's GL driver), the frame rate on a phone GPU (headless WebKit
+here draws in software at 5 to 9 fps; Chromium as a Pixel ran at 57), sound on iOS (and the ring
+and silent switch), the notch and home indicator (emulated by insets here), how the drag and the
+buttons feel in the hand, and menu rows about 20 pt tall on a phone held sideways.
