@@ -97,6 +97,7 @@ namespace LastLight.Core
             int fidelity = Arg("-llFidelity", -1);
             if (fidelity >= 0) SaveData.Current.quality = fidelity;
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
+            Debug.Log($"[Game] started on {Application.platform}: Graphics fidelity {Fidelity.Names[Fidelity.Level]}");
             int steps = Arg("-llSteps", -1);
             if (steps > 0) ShaderGlobals.Steps = steps;
             Rig = Stage.BuildCamera();
@@ -110,6 +111,7 @@ namespace LastLight.Core
             AutoPlay = HasArg("-llAuto");
             InputSystem.onDeviceChange += OnDeviceChange;
             gameObject.AddComponent<ScreenMode>();
+            Platform.WhenHidden(gameObject.name, nameof(PageHidden));
         }
 
         void OnDestroy() => InputSystem.onDeviceChange -= OnDeviceChange;
@@ -239,6 +241,8 @@ namespace LastLight.Core
             Rig.Snap(CameraRig.TitlePose);
             ShowTitle(false);
             fader.FadeFrom(1f, 2.5f);
+            Platform.Ready();
+            Debug.Log("[Game] the title is up");
         }
 
         // ---------------------------------------------------------------- flow
@@ -448,6 +452,7 @@ namespace LastLight.Core
             perfSettle = 3f;   // the first seconds of a night include loading and the fade
             previousBest = Watching ? SaveData.Current.watchBest : SaveData.Current.best[Night - 1];
             Hud.SetBest(previousBest, Watching);
+            Debug.Log(Watching ? "[Game] the Night Watch under way" : $"[Game] night {Night} under way");
         }
 
         void RestartNight()
@@ -474,6 +479,7 @@ namespace LastLight.Core
             pause.Show();
             pause.SetRadioLog(Radio.Log);
             Sfx.Play("ui_page", 0.4f, 1.2f);
+            Debug.Log("[Game] paused");
         }
 
         void Resume()
@@ -482,6 +488,7 @@ namespace LastLight.Core
             Time.timeScale = 1f;
             Current = State.Playing;
             Runner?.Controls.IgnorePresses();
+            Debug.Log("[Game] resumed");
         }
 
         /// <summary>The keeper stands a Night Watch down: dawn now, and the watch is kept and ranked.</summary>
@@ -643,6 +650,15 @@ namespace LastLight.Core
             watchRank = SaveData.Current.RecordWatch(w.Score, w.Arrivals, w.Time, names, SpeedPercent);
             Debug.Log($"[Game] the watch was kept as the game closed: {w.Score} points, {w.Arrivals} ships, {UiKit.Clock(w.Time)}, rank {watchRank}");
             return true;
+        }
+
+        /// <summary>The browser build: the tab was hidden or the page is closing, which never calls
+        /// OnApplicationQuit and may never come back. Keep the save, and where a watch under way
+        /// stands, so the next visit finds it as KeepCutShortWatch does after a crash.</summary>
+        void PageHidden()
+        {
+            if (WatchUnderway) CheckpointWatch();
+            else SaveData.Current.Save();
         }
 
         // ---------------------------------------------------------------- a watch that outlives a crash

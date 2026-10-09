@@ -11,6 +11,7 @@
 #   Tools/unity.sh build-linux     batch-build Builds/Linux/LastLight.x86_64
 #   Tools/unity.sh build-mac       batch-build Builds/Mac/LastLight.app (universal, unsigned)
 #   Tools/unity.sh build-windows   batch-build Builds/Windows/LastLight.exe (needs the Windows module)
+#   Tools/unity.sh build-web       batch-build the browser build, Builds/Pages/LastLight (Tools/build-pages.sh wraps it)
 #   Tools/unity.sh test            run EditMode tests (mission solvability etc.)
 set -euo pipefail
 
@@ -43,12 +44,16 @@ case "${1:-open}" in
     exec "$UNITY" -batchmode -nographics -quit -projectPath "$PROJECT" \
       -executeMethod LastLight.EditorTools.BuildScript.BuildWindows -logFile -
     ;;
+  build-web)
+    exec "$UNITY" -batchmode -nographics -quit -projectPath "$PROJECT" -buildTarget WebGL \
+      -executeMethod LastLight.EditorTools.BuildScript.BuildWeb -logFile -
+    ;;
   test)
     exec "$UNITY" -batchmode -nographics -projectPath "$PROJECT" -runTests -testPlatform EditMode \
       -testResults "$PROJECT/Logs/test-results.xml" -logFile -
     ;;
   *)
-    echo "usage: $0 [open|serve|setup|build-linux|build-mac|build-windows|test]" >&2
+    echo "usage: $0 [open|serve|setup|build-linux|build-mac|build-windows|build-web|test]" >&2
     exit 2
     ;;
 esac

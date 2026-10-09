@@ -1,6 +1,10 @@
+using System;
+using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace LastLight.EditorTools
 {
@@ -11,6 +15,9 @@ namespace LastLight.EditorTools
         public const string LinuxPath = "Builds/Linux/LastLight.x86_64";
         public const string MacPath = "Builds/Mac/LastLight.app";
         public const string WindowsPath = "Builds/Windows/LastLight.exe";
+        /// <summary>The browser build: the folder is the site (its name names the files in Build/).
+        /// Tools/build-pages.sh adds .nojekyll; serve its parent and open /LastLight/.</summary>
+        public const string WebPath = "Builds/Pages/LastLight";
 
         [MenuItem("Last Light/Build Linux Player")]
         public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, LinuxPath);
@@ -27,6 +34,62 @@ namespace LastLight.EditorTools
         /// <summary>Needs Unity's Windows Build Support (Mono) module for 6000.6.2f1.</summary>
         [MenuItem("Last Light/Build Windows Player")]
         public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, WindowsPath);
+
+        /// <summary>
+        /// The browser build for GitHub Pages (Tools/build-pages.sh): WebGL 2 only, no threads (so no
+        /// SharedArrayBuffer or COOP/COEP headers), Brotli with the loader's own decompression so
+        /// a static host that sends no Content-Encoding still works, the page template in
+        /// Assets/WebGLTemplates/LastLight, and the code built for size. The desktop targets don't
+        /// read any of these settings. The editor is put back on Linux afterwards.
+        /// </summary>
+        [MenuItem("Last Light/Build Web Player (GitHub Pages)")]
+        public static void BuildWeb()
+        {
+            var target = BuildTarget.WebGL;
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, target))
+            {
+                Debug.LogError($"[LastLight] WebGL build: this editor has no Web build support. Install the module for Unity {Application.unityVersion} in Unity Hub.");
+                if (Application.isBatchMode) EditorApplication.Exit(2);
+                return;
+            }
+            PlayerSettings.WebGL.template = "PROJECT:LastLight";
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.showDiagnostics = false;
+            PlayerSettings.WebGL.threadsSupport = false;
+            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.powerPreference = WebGLPowerPreference.HighPerformance;
+            PlayerSettings.SetUseDefaultGraphicsAPIs(target, false);
+            PlayerSettings.SetGraphicsAPIs(target, new[] { GraphicsDeviceType.OpenGLES3 });
+            SetCodeOptimization(Environment.GetEnvironmentVariable("LL_WEB_OPTIMIZATION") ?? "DiskSizeLTO");
+            if (Directory.Exists(WebPath)) Directory.Delete(WebPath, true);
+            var report = DoBuild(target, WebPath);
+            bool ok = report.summary.result == BuildResult.Succeeded;
+            if (Application.isBatchMode)
+            {
+                // Leave the project on the desktop target the other tools expect.
+                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, BuildTarget.StandaloneLinux64);
+                EditorApplication.Exit(ok ? 0 : 1);
+            }
+        }
+
+        /// <summary>Unity's Code Optimization for the web (BuildTimes, RuntimeSpeed, RuntimeSpeedLTO,
+        /// DiskSize, DiskSizeLTO). It lives with the Web module, so it's set by name.</summary>
+        static void SetCodeOptimization(string value)
+        {
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var type = asm.GetType("UnityEditor.WebGL.UserBuildSettings");
+                var prop = type?.GetProperty("codeOptimization", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                if (prop == null) continue;
+                prop.SetValue(null, Enum.Parse(prop.PropertyType, value));
+                Debug.Log($"[LastLight] WebGL code optimization: {value}");
+                return;
+            }
+            Debug.LogWarning("[LastLight] WebGL code optimization setting not found; using the editor's");
+        }
 
         /// <summary>Build from a running editor (e.g. via `unity command eval`); returns a summary.</summary>
         public static string BuildLinuxFromEditor()

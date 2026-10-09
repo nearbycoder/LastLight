@@ -47,6 +47,14 @@ namespace LastLight.Core
         {
             Directory.CreateDirectory(dir);
             var path = Path.Combine(dir, name);
+            if (Platform.IsWeb)
+            {
+                // In a browser the folder is in memory and goes to IndexedDB as a whole once the
+                // file is closed (the page's autoSyncPersistentDataPath), so that step is the
+                // all-or-nothing one; a plain write is safest there.
+                File.WriteAllText(path, text);
+                return;
+            }
             var tmp = path + ".tmp";
             File.WriteAllText(tmp, text);
             if (File.Exists(path)) File.Replace(tmp, path, null);

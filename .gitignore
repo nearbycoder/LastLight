@@ -55,3 +55,6 @@ dist/
 Thumbs.db
 desktop.ini
 *~
+
+# Burst output from WebGL builds
+/Data/

@@ -152,7 +152,8 @@ namespace LastLight.Audio
             var loop = new Loop { Source = src, Bus = bus, Target = volume };
             if (clip != null)
             {
-                src.time = Random.Range(0f, clip.length * 0.9f);
+                // A browser can't seek a compressed clip (Web Audio decodes it whole): it starts at the top.
+                if (!Core.Platform.IsWeb) src.time = Random.Range(0f, clip.length * 0.9f);
                 src.Play();
             }
             self.loops.Add(loop);

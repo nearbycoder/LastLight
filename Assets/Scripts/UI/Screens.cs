@@ -133,7 +133,7 @@ namespace LastLight.UI
             AddItem("Keeper's logbook", () => OnLogbook?.Invoke());
             AddItem("Keeper's notes", () => OnNotes?.Invoke());
             AddItem("Settings", () => OnSettings?.Invoke());
-            AddItem("Quit", () => OnQuit?.Invoke());
+            if (!Platform.IsWeb) AddItem("Quit", () => OnQuit?.Invoke());   // a page has no Quit: closing the tab is that
             SetWatchUnlocked(false);
             FirstSelected = begin;
 

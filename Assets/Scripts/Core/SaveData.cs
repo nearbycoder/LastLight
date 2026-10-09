@@ -55,7 +55,10 @@ namespace LastLight.Core
         public bool fullscreen = true;
         public int resWidth, resHeight;          // 0 = the desktop's own resolution
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
-        public int quality = 2;                  // Graphics fidelity: 0 Low, 1 Medium, 2 High, 3 Ultra (see Fidelity; once Fog and haze quality, Low to High)
+        public int quality = DefaultQuality;     // Graphics fidelity: 0 Low, 1 Medium, 2 High, 3 Ultra (see Fidelity; once Fog and haze quality, Low to High)
+        /// <summary>A new save's Graphics fidelity: High, the game as released; in a browser, which
+        /// draws through WebGL at some cost, Medium.</summary>
+        public static int DefaultQuality => Platform.IsWeb ? Fidelity.Medium : Fidelity.High;
         public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
         public int frameCap;                     // frames per second: 0 = the display's rate (at least 60), or 60 or 30
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
@@ -373,19 +376,24 @@ namespace LastLight.Core
             Sfx.RadioVolume = radio;
             Sfx.AmbienceVolume = ambience;
             MonoMix.On = mono;
+            Platform.SetMono(mono);   // the browser has no OnAudioFilterRead: the page's output folds instead
             quality = Mathf.Clamp(quality, Fidelity.Low, Fidelity.Ultra);
             Fidelity.Set(quality, steps: Game.Arg("-llSteps", -1) <= 0);
             Stage.ApplyFidelity();
             if (Game.Instance != null) Game.Instance.OnFidelity();
             ShaderGlobals.FlashScale = FlashFx.Scale = reduceFlashing ? 0.12f : 1f;
-            Application.targetFrameRate = Game.Arg("-llFps", FrameRate);
+            // In a browser, Display is the page's own pace (requestAnimationFrame, -1); a number
+            // there would pace the game by timer instead.
+            Application.targetFrameRate = Game.Arg("-llFps", Platform.IsWeb && frameCap != 30 && frameCap != 60 ? -1 : FrameRate);
             brightness = Mathf.Clamp(brightness, -2, 2);
             Stage.SetBrightness(brightness);
             if (Game.Instance != null && Game.Instance.Hud != null) { Game.Instance.Hud.SetScale(hudScale); Game.Instance.Hud.SetRadioLettering(); }
             // The pipeline asset is shared with the editor, so only the player changes it.
             if (!Application.isEditor && GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
                 urp.renderScale = Mathf.Clamp(renderScale, 0.5f, 1f);
-            if (display && !Application.isEditor)
+            // A page has no window to size, and fullscreen is the browser's to grant on a click
+            // (Settings ▸ Display and ScreenMode ask for it there).
+            if (display && !Application.isEditor && !Platform.IsWeb)
             {
                 var mode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
                 var native = Screen.currentResolution;

@@ -465,14 +465,24 @@ namespace LastLight.UI
                 "How fast the keys turn the lens. The mouse and the sticks point it directly.");
             Row("Pad buttons", UiStepper.Create(panel, PadButtons.Choices, Mathf.Clamp(save.padStyle, 0, 3), i => { save.padStyle = i; OnFocusMode?.Invoke(); }),
                 "The names prompts give the gamepad's buttons. Auto goes by the pad's name. Nintendo goes by position: the bottom button is B.");
-            displayStepper = UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); });
-            Row("Display", displayStepper,
-                "In a window, or filling the screen. F11 or Alt+Enter switches at any time.");
-            var sizes = Resolutions();
-            int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
-            var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
-            Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }),
-                "The window's size, or the screen's when fullscreen. Native is the display's own.");
+            if (Platform.IsWeb)
+            {
+                // The page fills the browser's window; fullscreen is the browser's to grant, now.
+                displayStepper = UiStepper.Create(panel, new[] { "In the page", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; Platform.RequestFullscreen(i == 1); });
+                Row("Display", displayStepper,
+                    "In the browser's window, or filling the screen. Alt+Enter switches at any time, and the browser's Esc leaves fullscreen.");
+            }
+            else
+            {
+                displayStepper = UiStepper.Create(panel, new[] { "Windowed", "Fullscreen" }, save.fullscreen ? 1 : 0, i => { save.fullscreen = i == 1; save.Apply(); });
+                Row("Display", displayStepper,
+                    "In a window, or filling the screen. F11 or Alt+Enter switches at any time.");
+                var sizes = Resolutions();
+                int current = sizes.FindIndex(r => r.x == save.resWidth && r.y == save.resHeight);
+                var names = sizes.ConvertAll(r => r.x == 0 ? "Native" : $"{r.x} × {r.y}").ToArray();
+                Row("Resolution", UiStepper.Create(panel, names, Mathf.Max(0, current), i => { save.resWidth = sizes[i].x; save.resHeight = sizes[i].y; save.Apply(); }),
+                    "The window's size, or the screen's when fullscreen. Native is the display's own.");
+            }
             int[] caps = { 0, 60, 30 };
             Row("Frame rate", UiStepper.Create(panel, new[] { "Display", "60", "30" }, Mathf.Max(0, System.Array.IndexOf(caps, save.frameCap)), i => { save.frameCap = caps[i]; save.Apply(display: false); }),
                 "Display keeps pace with your screen. 60 or 30 saves power and heat on a laptop or handheld.");

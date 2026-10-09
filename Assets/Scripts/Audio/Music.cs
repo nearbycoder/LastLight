@@ -93,8 +93,9 @@ namespace LastLight.Audio
             float tt = currentId == "music_night" ? tensionTarget : 0f;
             float tv = Mathf.MoveTowards(tension.volume / Mathf.Max(bus, 0.0001f), tt, dt * (tt > 0.01f ? 0.6f : 0.25f));
             tension.volume = tv * bus * 0.9f;
-            // Keep the tension layer in step with the night bed.
-            if (current != null && current.isPlaying && tension.isPlaying && current.clip != null && tension.clip != null && current.clip.length > 1f)
+            // Keep the tension layer in step with the night bed. (A browser can't read or seek a
+            // compressed clip's position; there the two start together and stay so.)
+            if (!Core.Platform.IsWeb && current != null && current.isPlaying && tension.isPlaying && current.clip != null && tension.clip != null && current.clip.length > 1f)
             {
                 float want = current.time % tension.clip.length;
                 if (Mathf.Abs(tension.time - want) > 0.25f) tension.time = want;

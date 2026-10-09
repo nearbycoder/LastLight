@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <meta name="description" content="Keep the last lighthouse on a wrecking coast: twelve nights at Gannet Head.">
+    <!-- An inline icon, so the page asks the host for nothing it doesn't have. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2307111d'/%3E%3Cpath d='M32 22 L62 10 L62 34 Z' fill='%23f3d58a' opacity='.55'/%3E%3Crect x='26' y='24' width='12' height='32' fill='%23e9e2d0'/%3E%3Crect x='26' y='34' width='12' height='6' fill='%23c0392b'/%3E%3Ccircle cx='32' cy='20' r='6' fill='%23ffe9a8'/%3E%3C/svg%3E">
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #060c16; }
+      body { font-family: Georgia, "Times New Roman", serif; color: #ece4d2; }
+      #unity-container { position: fixed; inset: 0; }
+      #unity-canvas { display: block; width: 100%; height: 100%; background: #060c16; outline: none; }
+      #ll-cover {
+        position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center;
+        padding: 0 9vw; box-sizing: border-box;
+        background: #060c16 url("TemplateData/loading.jpg") center / cover no-repeat;
+        transition: opacity 0.8s ease;
+      }
+      #ll-cover.gone { opacity: 0; pointer-events: none; }
+      #ll-title { font-size: clamp(40px, 7.2vw, 128px); letter-spacing: 0.08em; font-weight: normal; margin: 0; text-shadow: 0 3px 14px rgba(0,0,0,0.6); }
+      #ll-tagline { font-style: italic; font-size: clamp(16px, 1.7vw, 30px); color: #cfd3da; margin: 0.4em 0 1.4em 0.2em; }
+      #ll-bar { width: min(560px, 80vw); height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; }
+      #ll-fill { width: 0%; height: 100%; background: #c9a24f; transition: width 0.2s linear; }
+      #ll-status { margin-top: 0.9em; font-size: clamp(14px, 1.2vw, 20px); color: #b9bfc8; min-height: 1.4em; }
+      #ll-error { display: none; max-width: 720px; margin-top: 1.2em; padding: 1em 1.2em; border-left: 4px solid #ff8c6b;
+                  background: rgba(3,6,10,0.85); font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.45; color: #f1ece2; }
+      #ll-error a { color: #f3d58a; }
+      #ll-error code { font-size: 13px; color: #c8c8c8; word-break: break-word; }
+      #ll-sound {
+        position: fixed; left: 50%; top: 14px; transform: translateX(-50%); padding: 6px 14px; border-radius: 14px;
+        background: rgba(3,6,10,0.72); color: #d8d2c4; font: 14px system-ui, sans-serif; pointer-events: none;
+        opacity: 0; transition: opacity 0.6s ease;
+      }
+      #ll-sound.shown { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+    <div id="ll-cover">
+      <h1 id="ll-title">LAST LIGHT</h1>
+      <p id="ll-tagline">Twelve nights at Gannet Head</p>
+      <div id="ll-bar"><div id="ll-fill"></div></div>
+      <div id="ll-status">Loading…</div>
+      <div id="ll-error" role="alert"></div>
+    </div>
+    <div id="ll-sound">Click or press a key for sound</div>
+    <script>
+      (function () {
+        var canvas = document.getElementById("unity-canvas");
+        var cover = document.getElementById("ll-cover");
+        var fill = document.getElementById("ll-fill");
+        var status = document.getElementById("ll-status");
+        var errorBox = document.getElementById("ll-error");
+        var soundHint = document.getElementById("ll-sound");
+        var failed = false;
+
+        // Said plainly on the cover, for the player; the checks read window.lastLightError.
+        function fail(html, detail) {
+          if (failed) return;
+          failed = true;
+          window.lastLightError = (detail || html).toString();
+          cover.classList.remove("gone");
+          document.getElementById("ll-bar").style.display = "none";
+          status.textContent = "";
+          errorBox.innerHTML = html + (detail ? "<br><br><code>" + String(detail).replace(/[<>&]/g, function (c) { return { "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]; }) + "</code>" : "");
+          errorBox.style.display = "block";
+        }
+        window.lastLightFail = fail;
+
+        // WebGL 2 is the one thing the game can't do without.
+        var probe = document.createElement("canvas");
+        var gl = null;
+        try { gl = probe.getContext("webgl2"); } catch (e) { }
+        if (!gl) {
+          fail("Last Light needs <b>WebGL 2</b>, which this browser has turned off or doesn't offer. " +
+               "Try a current Chrome, Edge or Firefox with hardware acceleration on, or " +
+               "<a href=\"https://github.com/nearbycoder/LastLight/releases\">download the game</a> for Windows, macOS or Linux.");
+          return;
+        }
+
+        // Right button is the foghorn: no context menu over the game.
+        canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+
+        // Browsers start sound only after a click or key press; say so until there is one.
+        var heard = false;
+        function firstInput() {
+          heard = true;
+          soundHint.classList.remove("shown");
+          window.removeEventListener("pointerdown", firstInput, true);
+          window.removeEventListener("keydown", firstInput, true);
+        }
+        window.addEventListener("pointerdown", firstInput, true);
+        window.addEventListener("keydown", firstInput, true);
+
+        var ready = false;
+        function showGame() {
+          if (ready || failed) return;
+          ready = true;
+          cover.classList.add("gone");
+          canvas.focus();
+          if (!heard) {
+            soundHint.classList.add("shown");
+            setTimeout(function () { soundHint.classList.remove("shown"); }, 9000);
+          }
+        }
+        // The game says when its title is up (LastLightWeb.jslib).
+        window.lastLightOnReady = showGame;
+
+        var buildUrl = "Build";
+        var config = {
+          arguments: [],
+          dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+          frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+          codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+          symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+          productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+          productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+          // The save and settings (save.json in persistentDataPath) go to IndexedDB as each write finishes.
+          autoSyncPersistentDataPath: true,
+          // Very dense screens draw at most twice the page's size; Settings ▸ Render scale goes lower.
+          devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+          showBanner: function (msg, type) {
+            if (type === "error") fail("Last Light stopped with an error.", msg);
+            else console.warn("[Page] " + msg);
+          },
+        };
+
+        var script = document.createElement("script");
+        script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+        script.onerror = function () {
+          fail("The game's files couldn't be downloaded. Check the connection and reload the page.", script.src);
+        };
+        script.onload = function () {
+          createUnityInstance(canvas, config, function (progress) {
+            fill.style.width = Math.round(100 * progress) + "%";
+            status.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress / 0.9) + "%" : "Lighting the lamp…";
+          }).then(function (instance) {
+            window.lastLightInstance = instance;
+            fill.style.width = "100%";
+            if (window.lastLightReady) showGame();
+            // In case the title never says so, don't leave the cover up for ever.
+            setTimeout(showGame, 20000);
+          }).catch(function (message) {
+            fail("Last Light couldn't start in this browser.", message);
+          });
+        };
+        document.body.appendChild(script);
+      })();
+    </script>
+  </body>
+</html>
