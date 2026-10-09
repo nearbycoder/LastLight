@@ -18,6 +18,43 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  // Music and the sea's sound are played through <audio> elements. Unity starts them when its audio context starts
+  // running, which is after the tap or click that resumed it, not during it; a browser that wants every play() made
+  // inside a gesture (Safari on iOS, Chromium on its strict policy) then refuses, and Unity never asks again, so the
+  // title stayed silent. So on every tap, click or key, inside that event: the context is resumed, Unity's spare
+  // elements are unlocked by a play() made there, and any sound the game is playing whose element sits paused (the game
+  // stops sounds but never pauses them, so that was a refusal) is played again.
+  LastLight_AudioUnlock__deps: ['$WEBAudio'],
+  LastLight_AudioUnlock: function () {
+    if (window.lastLightAudioUnlock) return;
+    var unlock = function () {
+      try {
+        var ctx = WEBAudio.audioContext;
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () { });
+        var cache = WEBAudio.audioCache || [];
+        for (var i = 0; i < cache.length; i++) {
+          var spare = cache[i];
+          if (spare.__lastLightUnlocked) continue;
+          spare.__lastLightUnlocked = true;
+          var p = spare.play();
+          if (p && p.catch) p.catch(function () { });
+          spare.pause();
+        }
+        var all = WEBAudio.audioInstances || {};
+        for (var id in all) {
+          var src = all[id] && all[id].source;
+          var el = src && src.mediaElement;
+          if (!el || src.isStopped || src.playPromise || src.playTimeout || src.pauseRequested) continue;
+          if (!el.paused || el.ended || !el.getAttribute('src')) continue;
+          var again = el.play();
+          if (again && again.catch) again.catch(function () { });
+        }
+      } catch (e) { }
+    };
+    window.lastLightAudioUnlock = unlock;
+    ['pointerup', 'touchend', 'click', 'keydown'].forEach(function (t) { window.addEventListener(t, unlock, true); });
+  },
+
   LastLight_IsFullscreen: function () {
     return document.fullscreenElement || document.webkitFullscreenElement ? 1 : 0;
   },

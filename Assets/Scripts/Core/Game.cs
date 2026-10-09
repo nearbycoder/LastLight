@@ -121,6 +121,7 @@ namespace LastLight.Core
             InputSystem.onDeviceChange += OnDeviceChange;
             gameObject.AddComponent<ScreenMode>();
             Platform.WhenHidden(gameObject.name, nameof(PageHidden));
+            Platform.AudioUnlock();
         }
 
         void OnDestroy() => InputSystem.onDeviceChange -= OnDeviceChange;

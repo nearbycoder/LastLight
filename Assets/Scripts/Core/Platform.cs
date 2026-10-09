@@ -18,6 +18,7 @@ namespace LastLight.Core
         public static readonly bool IsWeb = true;
 
         [DllImport("__Internal")] static extern void LastLight_SetMono(int on);
+        [DllImport("__Internal")] static extern void LastLight_AudioUnlock();
         [DllImport("__Internal")] static extern int LastLight_IsFullscreen();
         [DllImport("__Internal")] static extern void LastLight_RequestFullscreen(int on);
         [DllImport("__Internal")] static extern void LastLight_WhenHidden(string objectName, string methodName);
@@ -44,6 +45,10 @@ namespace LastLight.Core
 
         /// <summary>Tells the page the title is up (its checks wait for this).</summary>
         public static void Ready() => LastLight_Ready();
+
+        /// <summary>Lets the page start sound on any tap, click or key: music and the sea play
+        /// through audio elements, which a strict browser lets start only inside such an event.</summary>
+        public static void AudioUnlock() => LastLight_AudioUnlock();
 
         /// <summary>The page's on-screen controls are on: a touch-first device, or a finger used
         /// since the last mouse, key or pad.</summary>
@@ -95,6 +100,8 @@ namespace LastLight.Core
         public static void WhenHidden(string objectName, string methodName) { }
 
         public static void Ready() { }
+
+        public static void AudioUnlock() { }
 
         public static bool TouchMode => false;
 
