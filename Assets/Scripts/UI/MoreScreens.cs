@@ -98,7 +98,7 @@ namespace LastLight.UI
             };
         }
 
-        static string PromptText() => InputMode.Pick("click, or press Space     ·     Esc to go back", $"press {PadButtons.South}     ·     {PadButtons.East} to go back");
+        static string PromptText() => InputMode.Pick("click, or press Space     ·     Esc to go back", $"press {PadButtons.South}     ·     {PadButtons.East} to go back", "tap it     ·     the arrow at the top left goes back");
 
         /// <summary>The line under the title (the date, or a watch's records); for tours.</summary>
         public string DateLine => date.text;
@@ -110,8 +110,17 @@ namespace LastLight.UI
             ["fog"] = "Fog swallows the light. Hold {RT} to focus, {A} for the horn.",
         };
 
+        // ... and for a finger and the on-screen buttons.
+        static readonly Dictionary<string, string> TouchNewThings = new Dictionary<string, string>
+        {
+            ["aim"] = "Drag anywhere on the sea to turn the light.",
+            ["fog"] = "Fog swallows the light. Hold FOCUS to focus, HORN for the horn.",
+        };
+
         static string NewText(string id, string keys)
         {
+            if (InputMode.Touch && TouchNewThings.TryGetValue(id, out var touch))
+                return id == "fog" && SaveData.Current.focusToggle ? "Fog swallows the light. Tap FOCUS to focus, HORN for the horn." : touch;
             string horn = SaveData.Current.keys.First(KeeperAction.Horn);
             if (horn == "") horn = "right-click";
             if (id == "fog" && SaveData.Current.focusToggle)
@@ -205,7 +214,7 @@ namespace LastLight.UI
         void SetNewIcon(string icon)
         {
             // Mouse pictures mean nothing to a pad player: the light's own lamp stands in.
-            if (InputMode.Pad && (icon == "mouse" || icon == "lmb")) icon = "lamp";
+            if ((InputMode.Pad || InputMode.Touch) && (icon == "mouse" || icon == "lmb")) icon = "lamp";
             newIcon.sprite = icon switch
             {
                 "mouse" => SpriteFactory.Mouse(""),
@@ -267,7 +276,7 @@ namespace LastLight.UI
         int AboutRow()
         {
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse != null && !InputMode.Pad)
+            if (mouse != null && !InputMode.Pad && !InputMode.Touch)
             {
                 var at = mouse.position.ReadValue();
                 for (int i = 0; i < rows.Count; i++)

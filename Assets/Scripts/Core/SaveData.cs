@@ -57,9 +57,13 @@ namespace LastLight.Core
         public float turnSpeed = 1f;             // keyboard lens turn speed, 0.5..1.25
         public int quality = DefaultQuality;     // Graphics fidelity: 0 Low, 1 Medium, 2 High, 3 Ultra (see Fidelity; once Fog and haze quality, Low to High)
         /// <summary>A new save's Graphics fidelity: High, the game as released; in a browser, which
-        /// draws through WebGL at some cost, Medium.</summary>
-        public static int DefaultQuality => Platform.IsWeb ? Fidelity.Medium : Fidelity.High;
-        public float renderScale = 1f;           // the 3D scene's resolution (the UI stays native)
+        /// draws through WebGL at some cost, Medium; on a phone or tablet's browser, with its tight
+        /// memory and small GPU, Low.</summary>
+        public static int DefaultQuality => Platform.TouchDevice ? Fidelity.Low : Platform.IsWeb ? Fidelity.Medium : Fidelity.High;
+        public float renderScale = DefaultRenderScale;   // the 3D scene's resolution (the UI stays native)
+        /// <summary>A new save's Render scale: full, but 70% on a phone or tablet's browser, where
+        /// the screen is dense and every render target costs memory the tab may not have.</summary>
+        public static float DefaultRenderScale => Platform.TouchDevice ? 0.7f : 1f;
         public int frameCap;                     // frames per second: 0 = the display's rate (at least 60), or 60 or 30
         public bool reduceFlashing;              // lightning and impact flashes much dimmer
         public int brightness;                   // the scene's exposure, in steps from -2 to 2 (0 = as graded)

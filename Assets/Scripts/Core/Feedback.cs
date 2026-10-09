@@ -133,8 +133,22 @@ namespace LastLight.Core
             ["breakers"] = ("Breakers ahead! A flickering ring means rock in that ship's path. Light the water in front of it.", "ring", null, null),
         };
 
+        // ... and for a finger and the page's on-screen buttons (FOCUS, HORN), keycaps for icons.
+        static readonly Dictionary<string, (string text, string icon)> TouchHintText = new Dictionary<string, (string, string)>
+        {
+            ["aim"] = ("Drag anywhere on the sea to turn the light.", "lamp"),
+            ["focus"] = ("Hold FOCUS to focus: a narrow beam that reaches further.", "FOCUS"),
+            ["horn"] = ("Fog! Tap HORN to sound the foghorn.", "HORN"),
+            ["douse"] = ("A false light! Hold your beam on its lantern to douse it.", "lamp"),
+        };
+
         static (string text, string icon) HintFor(string id)
         {
+            if (InputMode.Touch)
+            {
+                if (id == "focus" && SaveData.Current.focusToggle) return ("Tap FOCUS to focus: a narrow beam that reaches further. Tap again to widen it.", "FOCUS");
+                if (TouchHintText.TryGetValue(id, out var t)) return t;
+            }
             if (id == "focus" && SaveData.Current.focusToggle)
                 return InputMode.Pad ? ($"Press {PadButtons.FocusWords} to focus: a narrow beam that reaches further. Press again to widen it.", PadButtons.Focus)
                     : ("Click the left button to focus: a narrow beam that reaches further. Click again to widen it.", "lmb");

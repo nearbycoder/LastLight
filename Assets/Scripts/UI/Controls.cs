@@ -1,4 +1,5 @@
 using System;
+using LastLight.Core;
 using LastLight.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -68,9 +69,20 @@ namespace LastLight.UI
 
         public void OnDrag(PointerEventData e) => SetFromPointer(e);
 
+        /// <summary>With a finger (<see cref="InputMode.Touch"/>), where a press lands may be moved
+        /// (the chart's timeline snaps to a moment's tick); a drag after it goes where the finger is.</summary>
+        public Func<float, float> SnapPress;
+
         public override void OnPointerDown(PointerEventData e)
         {
             base.OnPointerDown(e);
+            if (SnapPress != null && InputMode.Touch && RectTransformUtility.ScreenPointToLocalPointInRectangle(track, e.position, e.pressEventCamera, out var local))
+            {
+                var r = track.rect;
+                Value = SnapPress(Mathf.InverseLerp(r.xMin, r.xMax, local.x));
+                Changed?.Invoke(value);
+                return;
+            }
             SetFromPointer(e);
         }
 

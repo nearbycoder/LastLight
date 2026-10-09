@@ -96,6 +96,15 @@ namespace LastLight.Core
             // Captures choose their Graphics fidelity step (the trailer and stills shoot on Ultra).
             int fidelity = Arg("-llFidelity", -1);
             if (fidelity >= 0) SaveData.Current.quality = fidelity;
+            // The last visit ended while the game was showing (the page was never hidden or
+            // closed): most often a phone's browser stopping the tab for memory. Start lighter;
+            // the page says so, and Settings can raise them again.
+            if (Platform.LastVisitStopped)
+            {
+                SaveData.Current.quality = Fidelity.Low;
+                SaveData.Current.renderScale = Mathf.Min(SaveData.Current.renderScale, 0.7f);
+                Debug.Log($"[Game] the last visit stopped while the game was showing: starting on Graphics fidelity Low, Render scale {Mathf.RoundToInt(SaveData.Current.renderScale * 100)}%");
+            }
             SaveData.Current.Apply(display: !HasArg("-screen-width"));
             Debug.Log($"[Game] started on {Application.platform}: Graphics fidelity {Fidelity.Names[Fidelity.Level]}");
             int steps = Arg("-llSteps", -1);
@@ -745,6 +754,10 @@ namespace LastLight.Core
             // B backs out of menus (but never pauses: it's too easy to hit mid-watch).
             // While Settings waits for a pad button, B is one to bind.
             if (pad != null && pad.buttonEast.wasPressedThisFrame && Current != State.Playing && !(settings.Visible && settings.PadBackTaken)) back = true;
+            // The page's corner button on a phone or tablet: Pause in a night, Back on the briefing.
+            int corner = Platform.TouchBackPresses;
+            if (cornerSeen >= 0 && corner != cornerSeen && (Current == State.Playing || Current == State.Briefing)) back = true;
+            cornerSeen = corner;
             if (back)
             {
                 if (Current == State.Playing) Pause();
@@ -783,6 +796,21 @@ namespace LastLight.Core
             }
 
             if (Current == State.Title && Runner != null && Runner.Attract && Runner.World.ShipsDone) StartAttract();
+            if (Platform.IsWeb) PushTouchState();
+        }
+
+        int cornerSeen = -1;
+
+        /// <summary>Tells the page what its on-screen controls should show (Focus, Horn and Pause
+        /// while a night is played; Back on the briefing), and makes room for them in the HUD.</summary>
+        void PushTouchState()
+        {
+            bool playing = Current == State.Playing && Runner != null && !Runner.Attract && Runner.World.Outcome == MissionOutcome.Running && !AutoPlay;
+            var w = Runner != null ? Runner.World : null;
+            Platform.TouchState(playing, playing && Runner.Def.foghorn, w != null ? 1f - w.HornCooldown / SimWorld.HornCooldownTime : 1f,
+                Runner != null && Runner.Controls.Focusing, playing ? 1 : Current == State.Briefing ? 2 : 0,
+                w != null ? w.Beam.Bearing * Mathf.Rad2Deg : 0f);
+            Hud.SetTouchReserve(InputMode.Touch ? Platform.TouchReserve : Vector3.zero);
         }
 
         // ---------------------------------------------------------------- arguments

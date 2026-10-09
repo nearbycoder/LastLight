@@ -47,6 +47,14 @@ namespace LastLight.Core
                           : "Hold the left button" + (focusKey != "" ? $" or {focusKey}" : "") + " to focus.");
             string horn = pad ? $"Press {padHorn}" : hornKey != "" ? $"Press {hornKey} or click the right button" : "Click the right button";
             string pause = pad ? buttons.start : "Esc";
+            if (!pad && InputMode.Touch)
+            {
+                // A finger and the on-screen buttons.
+                turn = "Drag anywhere on the sea to turn the light: the light follows your finger's movement, so it needn't cover the ship.";
+                focus = toggle ? "Tap FOCUS to focus, and again to widen the beam." : "Hold FOCUS to focus.";
+                horn = "Tap HORN";
+                pause = "The II button at the top left";
+            }
             int chart = hard ? 15 : 22, buoy = hard ? 20 : 28;
 
             return new List<Entry>

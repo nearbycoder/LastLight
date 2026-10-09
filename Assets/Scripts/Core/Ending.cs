@@ -63,7 +63,7 @@ namespace LastLight.Core
             }
         }
 
-        static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", $"Hold {PadButtons.South} to put out the light");
+        static string PromptText() => InputMode.Pick("Hold the left button, or Space, to put out the light", $"Hold {PadButtons.South} to put out the light", "Touch and hold to put out the light");
 
         void Build()
         {
@@ -181,7 +181,9 @@ namespace LastLight.Core
                 var kb = Keyboard.current;
                 var mouse = Mouse.current;
                 var pad = Gamepad.current;
-                holding = (kb != null && kb.spaceKey.isPressed) || (mouse != null && mouse.leftButton.isPressed) || (pad != null && pad.buttonSouth.isPressed);
+                var touch = Touchscreen.current;
+                holding = (kb != null && kb.spaceKey.isPressed) || (mouse != null && mouse.leftButton.isPressed) || (pad != null && pad.buttonSouth.isPressed)
+                    || (touch != null && touch.primaryTouch.press.isPressed);
                 if (Tour.Active && waited > 2f) holding = true;
                 held = holding ? held + Time.deltaTime : Mathf.Max(0f, held - Time.deltaTime * 2f);
                 waited += Time.deltaTime;

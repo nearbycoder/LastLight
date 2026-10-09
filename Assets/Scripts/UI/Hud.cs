@@ -206,7 +206,24 @@ namespace LastLight.UI
         static string HornKeyText()
         {
             string key = SaveData.Current.keys.First(KeeperAction.Horn);
-            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", PadButtons.Horn.ToUpperInvariant());
+            return InputMode.Pick(key != "" ? key.ToUpperInvariant() : "RIGHT CLICK", PadButtons.Horn.ToUpperInvariant(), "");   // a finger has the on-screen HORN button
+        }
+
+        Vector3 touchReserve;
+        Vector2 touchReserveSize;
+
+        /// <summary>Room for the page's on-screen buttons on a phone or tablet, as fractions of the
+        /// screen: the Pause button's width at the top left (the night's name moves right of it),
+        /// the Focus and Horn column's width at the bottom right and the home indicator's height
+        /// (the radio moves left of and above them). Zero when they're hidden.</summary>
+        public void SetTouchReserve(Vector3 reserve)
+        {
+            var size = root.rect.size;
+            if ((reserve - touchReserve).sqrMagnitude < 1e-8f && (size - touchReserveSize).sqrMagnitude < 0.25f) return;
+            touchReserve = reserve;
+            touchReserveSize = size;
+            nightBlock.anchoredPosition = new Vector2(46f + reserve.x * size.x, -34f);
+            radioPanel.anchoredPosition = new Vector2(-40f - reserve.y * size.x, 36f + reserve.z * size.y);
         }
 
         /// <summary>For the tours: the key shown under the horn's gauge.</summary>

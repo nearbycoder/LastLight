@@ -35,6 +35,53 @@ mergeInto(LibraryManager.library, {
     window.addEventListener('pagehide', send);
   },
 
+  // Touch: the page (index.html) keeps window.lastLightTouch: whether its on-screen controls are on (a touch-first device,
+  // or a finger since the last mouse, key or pad), its buttons' state, and the room they take. The game reads it once a
+  // frame and tells the page what the buttons should show.
+  //   0 touch mode, 1 Focus held, 2 Focus presses, 3 Horn presses, 4 Pause/Back presses, 5 a touch-first device,
+  //   6 the last visit stopped while the game was showing (most often a phone's browser out of memory)
+  LastLight_TouchRead: function (which) {
+    var t = window.lastLightTouch;
+    if (!t) return 0;
+    switch (which) {
+      case 0: return t.mode ? 1 : 0;
+      case 1: return t.focusHeld ? 1 : 0;
+      case 2: return t.focusPresses | 0;
+      case 3: return t.hornPresses | 0;
+      case 4: return t.backPresses | 0;
+      case 5: return t.device ? 1 : 0;
+      case 6: return t.lastVisitStopped ? 1 : 0;
+    }
+    return 0;
+  },
+
+  // The room the buttons take, as fractions of the game's canvas: 0 the Pause button's (from the left, at the top),
+  // 1 the Focus and Horn column's (from the right, at the bottom), 2 the home indicator's (from the bottom).
+  LastLight_TouchLayout: function (which) {
+    var t = window.lastLightTouch;
+    return t && t.layout ? +t.layout[which] || 0 : 0;
+  },
+
+  // What the buttons show: the night is being played (Focus, Horn and Pause), the foghorn is tonight's and how ready it
+  // is (0..1), the beam is focused, what the corner button does (0 nothing, 1 pause, 2 back), and the light's bearing in
+  // degrees (for the page's checks).
+  LastLight_TouchState: function (playing, horn, hornReady, focused, corner, bearing) {
+    var t = window.lastLightTouch;
+    if (t && t.state) t.state(playing, horn, hornReady, focused, corner, bearing);
+  },
+
+  // The dawn chart's replay as it stands (for the page's checks): where it is and how long the night ran, in seconds, and
+  // whether it's playing.
+  LastLight_ChartState: function (time, duration, playing) {
+    window.lastLightChart = { time: time, duration: duration, playing: !!playing, at: Date.now() };
+  },
+
+  // A gamepad was used: the on-screen controls step aside, as for a mouse or a key.
+  LastLight_PadUsed: function () {
+    var t = window.lastLightTouch;
+    if (t && t.padUsed) t.padUsed();
+  },
+
   // The page (index.html) and Tools/check-pages.mjs wait for this: the game is up and the title showing.
   LastLight_Ready: function () {
     window.lastLightReady = true;

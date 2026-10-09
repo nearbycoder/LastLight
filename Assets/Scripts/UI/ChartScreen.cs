@@ -427,8 +427,9 @@ namespace LastLight.UI
         UiSlider timeline;
         Text timeText, momentText, controlsText;
         RectTransform ticks;
+        Image touchHit;
         List<NightLog.Moment> moments = new List<NightLog.Moment>();
-        bool controlsForPad;
+        int controlsFor = -1;   // the device the replay's controls line was written for: 0 keys, 1 pad, 2 touch
         /// <summary>A jump to a moment lands this many seconds of the night before it.</summary>
         public const float MomentLead = 6f;
         readonly Dictionary<string, Image> lanterns = new Dictionary<string, Image>();
@@ -468,6 +469,13 @@ namespace LastLight.UI
             // and red, ships lost (red) or lured (amber) short.
             ticks = UiKit.Rect("Ticks", timeline.transform).Stretch(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(12, -12), new Vector2(-12, 12));
             ticks.SetAsFirstSibling();
+            // For a finger, more of the timeline takes a touch (taller than it's drawn, down to the
+            // clock under it), and a tap by a tick jumps to that moment.
+            touchHit = UiKit.Image("TouchHit", timeline.transform, null, new Color(0, 0, 0, 0));
+            touchHit.raycastTarget = true;
+            touchHit.rectTransform.Stretch(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, -38), new Vector2(16, 26));
+            touchHit.gameObject.SetActive(false);
+            timeline.SnapPress = SnapToMoment;
             timeText = Label(col, "", UiKit.BodyMedium, 21, InkSoft, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -672), new Vector2(290, 30));
             timeText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             // The moment ahead (or just past), in words; and the replay's keys.
@@ -584,6 +592,22 @@ namespace LastLight.UI
             Sfx.Play("ui_tick", 0.35f, 1.1f, 0, Bus.Ui, 0f);
         }
 
+        static int ControlsDevice => InputMode.Pad ? 1 : InputMode.Touch ? 2 : 0;
+
+        /// <summary>A finger's tap on the timeline: within a few percent of a moment's tick it
+        /// jumps to just before that moment (as Q and E do); elsewhere it stays where it landed.</summary>
+        float SnapToMoment(float fraction)
+        {
+            if (log == null || log.Duration <= 0f) return fraction;
+            float best = 0.045f, to = fraction;
+            foreach (var m in moments)
+            {
+                float d = Mathf.Abs(m.Time / log.Duration - fraction);
+                if (d < best) { best = d; to = Mathf.Max(0f, m.Time - MomentLead) / log.Duration; }
+            }
+            return to;
+        }
+
         /// <summary>Steps the replay by some seconds of the night, paused (as the timeline's arrows do).</summary>
         public void StepReplay(float seconds)
         {
@@ -612,7 +636,8 @@ namespace LastLight.UI
         {
             if (!Visible || log == null) return;
             ReplayKeys();
-            if (controlsForPad != InputMode.Pad) ShowControls();
+            if (controlsFor != ControlsDevice) ShowControls();
+            if (Platform.IsWeb) Platform.ChartState(replayTime, log.Duration, playing);
             if (!playing) return;
             replayTime += Unscaled.Delta * ReplayRate;
             if (replayTime >= log.Duration) { replayTime = log.Duration; playing = false; }
@@ -695,10 +720,12 @@ namespace LastLight.UI
         /// <summary>The replay's keys, or the pad's buttons in the chosen style's names.</summary>
         void ShowControls()
         {
-            controlsForPad = InputMode.Pad;
+            controlsFor = ControlsDevice;
             controlsText.text = InputMode.Pick(
                 $"Space plays  ·  ← → step 5 s\n{KeyBindings.KeyName(Key.Q)} and {KeyBindings.KeyName(Key.E)} jump to each moment",
-                $"{PadButtons.West} plays  ·  d-pad steps 5 s\n{PadButtons.LeftShoulder} and {PadButtons.RightShoulder} jump to each moment");
+                $"{PadButtons.West} plays  ·  d-pad steps 5 s\n{PadButtons.LeftShoulder} and {PadButtons.RightShoulder} jump to each moment",
+                "Drag the timeline to scrub\ntap by a mark to jump to that moment");
+            if (touchHit != null) touchHit.gameObject.SetActive(InputMode.Touch);
         }
 
         // For tours.
