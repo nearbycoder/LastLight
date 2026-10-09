@@ -211,9 +211,14 @@
           if (e.pointerType === "touch" || e.pointerType === "pen") { lastTouch = Date.now(); setTouch(true); }
           else if (e.pointerType === "mouse" && Date.now() - lastTouch > 1000) setTouch(false);
         }, true);
+        // A mouse that moves (Safari reports no movementX, so by where it is), not one standing where a finger was.
+        var mouseAt = null;
         window.addEventListener("pointermove", function (e) {
-          if (e.pointerType === "touch") lastTouch = Date.now();
-          else if (e.pointerType === "mouse" && Date.now() - lastTouch > 1000 && (e.movementX || e.movementY)) setTouch(false);
+          if (e.pointerType === "touch") { lastTouch = Date.now(); return; }
+          if (e.pointerType !== "mouse") return;
+          var moved = mouseAt && Math.abs(e.clientX - mouseAt[0]) + Math.abs(e.clientY - mouseAt[1]) > 2;
+          mouseAt = [e.clientX, e.clientY];
+          if (moved && Date.now() - lastTouch > 1000) setTouch(false);
         }, true);
         window.addEventListener("touchstart", function () { lastTouch = Date.now(); }, { capture: true, passive: true });
         window.addEventListener("keydown", function (e) { if (!e.repeat) setTouch(false); }, true);
