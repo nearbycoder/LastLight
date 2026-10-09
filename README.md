@@ -20,11 +20,37 @@
 
 <p align="center">
   <a href="docs/media/LastLight_trailer.mp4"><b>Watch the trailer</b></a> ·
-  <a href="#play-it"><b>Play it</b></a> ·
+  <a href="https://nearbycoder.github.io/LastLight/"><b>Play in your browser</b></a> ·
+  <a href="#play-it"><b>Download</b></a> ·
   <a href="#how-to-play">How to play</a> ·
   <a href="#settings-and-accessibility">Settings</a> ·
   <a href="#build-from-source">Build from source</a>
 </p>
+
+## Play in your browser
+
+**[Play Last Light in your browser](https://nearbycoder.github.io/LastLight/)**: no download or
+install, built from `main` (the same game as the screenshots and trailer below).
+
+- **Browsers:** a desktop browser with WebGL 2 and a keyboard and mouse, or a gamepad. Checked in
+  headless Chromium 151 and Firefox 157 on Linux (AMD Radeon 8060S); not yet
+  tried in Safari, on Windows or macOS, or by a person at a real screen. Phones and tablets
+  can load it, but the game has no touch controls.
+- **Download:** about 26 MB the first time (19 MB of it is the game's data);
+  the browser keeps a copy for later visits. The title was up 2 to 4 s after opening the page from
+  a local server (load average about 20 on a busy 32-core machine); over the internet, add the
+  time 26 MB takes to arrive.
+- **Saves and settings** stay in the browser's storage for this site (IndexedDB) and survive a
+  reload, but not clearing the site's data or a private window. They aren't shared with the
+  desktop game or with other browsers.
+- **What differs from the desktop game:** sound starts after your first click or key press (a
+  browser rule); there's no Quit (close the tab); Settings ▸ Display asks the browser for
+  fullscreen (or Alt+Enter; Esc leaves it) and there's no Resolution row, since the page fills the
+  window; new saves start on Graphics fidelity **Medium** rather than High, because WebGL costs
+  more than the desktop renderer (the setting still offers Low to Ultra; Night I on High ran at
+  53 to 58 fps in headless Chromium and Firefox here, against a 60 fps ceiling); Mono folds the browser's sound output to one
+  channel, which was set but not heard through speakers. A night left mid-way by closing the tab
+  is treated like a crash: a Night Watch is kept as it stood at its last checkpoint.
 
 ## Trailer
 
@@ -346,6 +372,9 @@ Tools/unity.sh build-mac       # batch-build Builds/Mac/LastLight.app (universal
 Tools/unity.sh build-windows   # batch-build Builds/Windows/LastLight.exe (needs the Windows module)
 Tools/play.sh                  # run the build (LL_W=1920 LL_H=1080 for a window size)
 Tools/package.sh 0.1.0 linux   # zip a build for a release, into Builds/release (or mac, windows)
+Tools/build-pages.sh           # the browser build: the static site in Builds/Pages/LastLight (Unity's Web module)
+node Tools/check-pages.mjs --serve --play --browser=chromium,firefox   # try it as Pages serves it (needs playwright-core)
+node Tools/check-pages.mjs https://nearbycoder.github.io/LastLight/      # does the live site reach the title?
 ```
 
 `Tools/unity.sh` expects the editor at `~/Unity/Hub/Editor/6000.6.2f1` (set `UNITY` to change
@@ -511,7 +540,9 @@ release is still v0.1.0 (4 October 2026); everything since is on `main` only (se
   12 or later) and `Tools/package.sh <version> mac` zips it with instructions for opening an
   unsigned app, but it isn't signed with a Developer ID or notarized, and **it has never been run
   on a Mac**. `build-windows` is ready but needs Unity's *Windows Build Support (Mono)* module,
-  which isn't installed on the development machine. There's no web build. The save's location and
+  which isn't installed on the development machine. The browser build (see
+  [Play in your browser](#play-in-your-browser)) was checked in headless Chromium and Firefox on
+  Linux only. The save's location and
   its trouble notices were checked on Linux only.
 - **Graphics fidelity was measured on one machine, with its GPU shared.** Whether Low is smooth on
   a genuinely weak GPU, and how Ultra runs on a discrete card, hasn't been tried. Ultra's temporal
