@@ -2,16 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- viewport-fit=cover: the sea runs under the notch and the home indicator; the game's canvas keeps clear of the
+         notch's sides and the on-screen controls of all of it (the --ll-inset-* below). No zooming: it's a game. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#060c16">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Last Light</title>
     <meta name="description" content="Keep the last lighthouse on a wrecking coast: twelve nights at Gannet Head.">
     <!-- An inline icon, so the page asks the host for nothing it doesn't have. -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2307111d'/%3E%3Cpath d='M32 22 L62 10 L62 34 Z' fill='%23f3d58a' opacity='.55'/%3E%3Crect x='26' y='24' width='12' height='32' fill='%23e9e2d0'/%3E%3Crect x='26' y='34' width='12' height='6' fill='%23c0392b'/%3E%3Ccircle cx='32' cy='20' r='6' fill='%23ffe9a8'/%3E%3C/svg%3E">
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #060c16; }
-      body { font-family: Georgia, "Times New Roman", serif; color: #ece4d2; }
-      #unity-container { position: fixed; inset: 0; }
-      #unity-canvas { display: block; width: 100%; height: 100%; background: #060c16; outline: none; }
+      :root {
+        /* The safe area (notch, rounded corners, home indicator); the checks can set these to try a notched phone. */
+        --ll-inset-top: env(safe-area-inset-top, 0px);
+        --ll-inset-right: env(safe-area-inset-right, 0px);
+        --ll-inset-bottom: env(safe-area-inset-bottom, 0px);
+        --ll-inset-left: env(safe-area-inset-left, 0px);
+        --ll-brass: #c9a24f;
+        --ll-brass-bright: #f3d58a;
+        --ll-paper: #ece4d2;
+      }
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #060c16;
+        /* A game, not a document: no scrolling, pinching, double-tap zoom, selection, callouts or tap flashes. */
+        touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%;
+        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+      }
+      body { font-family: Georgia, "Times New Roman", serif; color: var(--ll-paper); }
+      #unity-container { position: fixed; top: 0; bottom: 0; left: var(--ll-inset-left); right: var(--ll-inset-right); }
+      #unity-canvas { display: block; width: 100%; height: 100%; background: #060c16; outline: none; touch-action: none; }
       #ll-cover {
         position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center;
         padding: 0 9vw; box-sizing: border-box;
@@ -22,39 +43,115 @@
       #ll-title { font-size: clamp(40px, 7.2vw, 128px); letter-spacing: 0.08em; font-weight: normal; margin: 0; text-shadow: 0 3px 14px rgba(0,0,0,0.6); }
       #ll-tagline { font-style: italic; font-size: clamp(16px, 1.7vw, 30px); color: #cfd3da; margin: 0.4em 0 1.4em 0.2em; }
       #ll-bar { width: min(560px, 80vw); height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; }
-      #ll-fill { width: 0%; height: 100%; background: #c9a24f; transition: width 0.2s linear; }
+      #ll-fill { width: 0%; height: 100%; background: var(--ll-brass); transition: width 0.2s linear; }
       #ll-status { margin-top: 0.9em; font-size: clamp(14px, 1.2vw, 20px); color: #b9bfc8; min-height: 1.4em; }
-      #ll-error { display: none; max-width: 720px; margin-top: 1.2em; padding: 1em 1.2em; border-left: 4px solid #ff8c6b;
-                  background: rgba(3,6,10,0.85); font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.45; color: #f1ece2; }
-      #ll-error a { color: #f3d58a; }
+      #ll-error, #ll-note { display: none; max-width: 720px; margin-top: 1.2em; padding: 1em 1.2em; border-left: 4px solid #ff8c6b;
+                  background: rgba(3,6,10,0.85); font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.45; color: #f1ece2;
+                  -webkit-user-select: text; user-select: text; }
+      #ll-note { border-left-color: var(--ll-brass); font-size: 15px; }
+      #ll-error a { color: var(--ll-brass-bright); }
       #ll-error code { font-size: 13px; color: #c8c8c8; word-break: break-word; }
       #ll-sound {
-        position: fixed; left: 50%; top: 14px; transform: translateX(-50%); padding: 6px 14px; border-radius: 14px;
-        background: rgba(3,6,10,0.72); color: #d8d2c4; font: 14px system-ui, sans-serif; pointer-events: none;
+        position: fixed; left: 50%; top: calc(14px + var(--ll-inset-top)); transform: translateX(-50%); padding: 6px 14px; border-radius: 14px;
+        background: rgba(3,6,10,0.72); color: #d8d2c4; font: 14px system-ui, sans-serif; pointer-events: none; white-space: nowrap;
         opacity: 0; transition: opacity 0.6s ease;
       }
       #ll-sound.shown { opacity: 1; }
+
+      /* On-screen controls: only in touch mode (a touch-first device, or a finger since the last mouse, key or pad). */
+      #ll-touch { display: none; position: fixed; inset: 0; pointer-events: none; }
+      html.ll-touch-mode #ll-touch { display: block; }
+      .ll-btn {
+        position: absolute; box-sizing: border-box; display: none; flex-direction: column; align-items: center; justify-content: center;
+        margin: 0; padding: 0; border-radius: 50%; border: 2px solid rgba(201,162,79,0.85); pointer-events: auto; touch-action: none;
+        background: rgba(3,6,10,0.58); color: var(--ll-paper); box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        font: 700 11px/1 system-ui, -apple-system, sans-serif; letter-spacing: 0.16em; text-indent: 0.16em;
+        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease, opacity 0.2s ease;
+      }
+      .ll-btn svg { display: block; pointer-events: none; }
+      .ll-btn span { pointer-events: none; margin-top: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+      .ll-btn.down { transform: scale(0.94); background: rgba(201,162,79,0.42); border-color: var(--ll-brass-bright); }
+      #ll-touch[data-playing="1"] #ll-focus, #ll-touch[data-playing="1"][data-horn="1"] #ll-horn, #ll-touch:not([data-corner="0"]) #ll-pause { display: flex; }
+      /* Thumb-sized: Focus is the biggest, at the right thumb; the horn above it; Pause small at the top left. */
+      #ll-focus {
+        --size: clamp(76px, 15vmin, 104px); width: var(--size); height: var(--size);
+        right: calc(14px + var(--ll-inset-right)); bottom: calc(14px + var(--ll-inset-bottom));
+      }
+      #ll-focus.on { background: rgba(201,162,79,0.5); border-color: var(--ll-brass-bright); box-shadow: 0 0 18px rgba(243,213,138,0.45); }
+      #ll-horn {
+        --size: clamp(60px, 11.5vmin, 80px); --ready: 1; width: var(--size); height: var(--size);
+        right: calc(14px + var(--ll-inset-right) + (clamp(76px, 15vmin, 104px) - var(--size)) / 2);
+        bottom: calc(28px + var(--ll-inset-bottom) + clamp(76px, 15vmin, 104px));
+        border-color: transparent;
+        background:
+          radial-gradient(closest-side, rgba(3,6,10,0.62) calc(100% - 5px), transparent calc(100% - 4px)),
+          conic-gradient(var(--ll-brass) calc(var(--ready) * 1turn), rgba(236,228,210,0.18) 0);
+      }
+      #ll-horn.cooling { color: rgba(236,228,210,0.55); }
+      #ll-horn.ready { box-shadow: 0 0 14px rgba(243,213,138,0.35), 0 2px 12px rgba(0,0,0,0.5); }
+      #ll-horn.down { transform: scale(0.94); }
+      #ll-pause {
+        width: 46px; height: 46px; border-radius: 12px;
+        left: calc(10px + var(--ll-inset-left)); top: calc(10px + var(--ll-inset-top));
+      }
+      #ll-pause .back { display: none; }
+      #ll-touch[data-corner="2"] #ll-pause .bars { display: none; }
+      #ll-touch[data-corner="2"] #ll-pause .back { display: block; }
+
+      /* Turn the phone: the bay is wide, so the game wants landscape on a touch-first device. */
+      #ll-rotate {
+        display: none; position: fixed; inset: 0; z-index: 10; flex-direction: column; align-items: center; justify-content: center;
+        padding: 0 10vw; box-sizing: border-box; text-align: center; background: rgba(6,12,22,0.94); color: var(--ll-paper);
+      }
+      #ll-rotate h2 { font-weight: normal; font-size: 26px; letter-spacing: 0.04em; margin: 22px 0 8px; }
+      #ll-rotate p { font: 15px/1.45 system-ui, sans-serif; color: #b9bfc8; margin: 0; max-width: 340px; }
+      @media (orientation: portrait) {
+        html.ll-touch-mode #ll-rotate, html.ll-touch-device #ll-rotate { display: flex; }
+      }
     </style>
   </head>
   <body>
     <div id="unity-container">
       <canvas id="unity-canvas" tabindex="-1"></canvas>
     </div>
+    <div id="ll-touch" data-playing="0" data-horn="0" data-corner="0">
+      <button id="ll-pause" class="ll-btn" type="button" aria-label="Pause">
+        <svg class="bars" width="18" height="18" viewBox="0 0 18 18"><rect x="3" y="2" width="4" height="14" rx="1" fill="currentColor"/><rect x="11" y="2" width="4" height="14" rx="1" fill="currentColor"/></svg>
+        <svg class="back" width="20" height="20" viewBox="0 0 20 20"><path d="M13 3 L6 10 L13 17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button id="ll-horn" class="ll-btn" type="button" aria-label="Foghorn">
+        <svg width="26" height="20" viewBox="0 0 26 20"><path d="M2 7 h5 l9 -5 v16 l-9 -5 h-5 z" fill="currentColor"/><path d="M19 6 q3 4 0 8 M22 3 q5 7 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>HORN</span>
+      </button>
+      <button id="ll-focus" class="ll-btn" type="button" aria-label="Focus">
+        <svg width="30" height="26" viewBox="0 0 30 26"><path d="M15 24 L11 2 h8 z" fill="currentColor" opacity="0.9"/><circle cx="15" cy="23" r="2.6" fill="currentColor"/></svg>
+        <span>FOCUS</span>
+      </button>
+    </div>
+    <div id="ll-rotate" role="alert">
+      <svg width="74" height="74" viewBox="0 0 74 74"><rect x="22" y="8" width="30" height="52" rx="5" fill="none" stroke="#ece4d2" stroke-width="3"/><path d="M14 52 a26 26 0 0 0 26 16" fill="none" stroke="#c9a24f" stroke-width="3" stroke-linecap="round"/><path d="M36 63 l5 5 -6 3" fill="none" stroke="#c9a24f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h2>Turn your device sideways</h2>
+      <p>Last Light is played in landscape: the bay is wide. The night waits, paused, until you do.</p>
+    </div>
     <div id="ll-cover">
       <h1 id="ll-title">LAST LIGHT</h1>
       <p id="ll-tagline">Twelve nights at Gannet Head</p>
       <div id="ll-bar"><div id="ll-fill"></div></div>
       <div id="ll-status">Loading…</div>
+      <div id="ll-note" role="status"></div>
       <div id="ll-error" role="alert"></div>
     </div>
     <div id="ll-sound">Click or press a key for sound</div>
     <script>
       (function () {
+        var root = document.documentElement;
         var canvas = document.getElementById("unity-canvas");
         var cover = document.getElementById("ll-cover");
         var fill = document.getElementById("ll-fill");
         var status = document.getElementById("ll-status");
         var errorBox = document.getElementById("ll-error");
+        var noteBox = document.getElementById("ll-note");
         var soundHint = document.getElementById("ll-sound");
         var failed = false;
 
@@ -66,10 +163,13 @@
           cover.classList.remove("gone");
           document.getElementById("ll-bar").style.display = "none";
           status.textContent = "";
+          noteBox.style.display = "none";
           errorBox.innerHTML = html + (detail ? "<br><br><code>" + String(detail).replace(/[<>&]/g, function (c) { return { "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]; }) + "</code>" : "");
           errorBox.style.display = "block";
         }
         window.lastLightFail = fail;
+        var memoryAdvice = "Close other tabs and reload the page. On a phone or tablet, Settings ▸ Graphics fidelity " +
+          "<b>Low</b> and a lower <b>Render scale</b> need less; your progress is kept up to the last dawn.";
 
         // WebGL 2 is the one thing the game can't do without.
         var probe = document.createElement("canvas");
@@ -77,38 +177,191 @@
         try { gl = probe.getContext("webgl2"); } catch (e) { }
         if (!gl) {
           fail("Last Light needs <b>WebGL 2</b>, which this browser has turned off or doesn't offer. " +
-               "Try a current Chrome, Edge or Firefox with hardware acceleration on, or " +
+               "Try a current Chrome, Edge, Firefox or Safari with hardware acceleration on, or " +
                "<a href=\"https://github.com/nearbycoder/LastLight/releases\">download the game</a> for Linux.");
           return;
         }
+        var lose = gl.getExtension("WEBGL_lose_context");
+        if (lose) lose.loseContext();   // the probe's context isn't kept: phones allow only a few
+        gl = probe = null;
 
-        // Right button is the foghorn: no context menu over the game.
-        canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        // ---------------------------------------------------------------- touch
+        // Touch mode: the on-screen controls show on a touch-first device (a coarse pointer and no fine one), or once a
+        // finger is used, and step aside as soon as a mouse, a key or a pad is. The game reads window.lastLightTouch
+        // (Assets/Plugins/WebGL/LastLightWeb.jslib) once a frame and tells it what the buttons should show.
+        var touchDevice = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+        var touchUi = document.getElementById("ll-touch");
+        var buttons = { focus: document.getElementById("ll-focus"), horn: document.getElementById("ll-horn"), pause: document.getElementById("ll-pause") };
+        var T = window.lastLightTouch = {
+          mode: false, device: touchDevice, focusHeld: false, focusPresses: 0, hornPresses: 0, backPresses: 0,
+          layout: [0, 0, 0], lastVisitStopped: false,
+        };
+        if (touchDevice) root.classList.add("ll-touch-device");
+        var lastTouch = -1e9;
+        function setTouch(on) {
+          if (T.mode === on) return;
+          T.mode = on;
+          root.classList.toggle("ll-touch-mode", on);
+          if (!on) release();
+          soundHint.textContent = on ? "Tap for sound" : "Click or press a key for sound";
+          measure();
+        }
+        setTouch(touchDevice);
+        window.addEventListener("pointerdown", function (e) {
+          if (e.pointerType === "touch" || e.pointerType === "pen") { lastTouch = Date.now(); setTouch(true); }
+          else if (e.pointerType === "mouse" && Date.now() - lastTouch > 1000) setTouch(false);
+        }, true);
+        // A mouse that moves (Safari reports no movementX, so by where it is), not one standing where a finger was.
+        var mouseAt = null;
+        window.addEventListener("pointermove", function (e) {
+          if (e.pointerType === "touch") { lastTouch = Date.now(); return; }
+          if (e.pointerType !== "mouse") return;
+          var moved = mouseAt && Math.abs(e.clientX - mouseAt[0]) + Math.abs(e.clientY - mouseAt[1]) > 2;
+          mouseAt = [e.clientX, e.clientY];
+          if (moved && Date.now() - lastTouch > 1000) setTouch(false);
+        }, true);
+        window.addEventListener("touchstart", function () { lastTouch = Date.now(); }, { capture: true, passive: true });
+        window.addEventListener("keydown", function (e) { if (!e.repeat) setTouch(false); }, true);
+        T.padUsed = function () { setTouch(false); };
 
-        // Browsers start sound only after a click or key press; say so until there is one.
+        // The buttons: Focus is held (or tapped, with Settings ▸ Focus "Toggle": the game counts the presses), the horn
+        // and the corner button are pressed. Each finger is its own, so Focus can be held while another drags the light.
+        var focusPointers = {};
+        function press(el, e) { e.preventDefault(); e.stopPropagation(); el.classList.add("down"); try { el.setPointerCapture(e.pointerId); } catch (x) { } }
+        function release() { focusPointers = {}; T.focusHeld = false; buttons.focus.classList.remove("down"); }
+        buttons.focus.addEventListener("pointerdown", function (e) { press(buttons.focus, e); focusPointers[e.pointerId] = true; T.focusHeld = true; T.focusPresses++; });
+        function focusUp(e) {
+          delete focusPointers[e.pointerId];
+          if (Object.keys(focusPointers).length === 0) { T.focusHeld = false; buttons.focus.classList.remove("down"); }
+        }
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) { buttons.focus.addEventListener(t, focusUp); });
+        buttons.horn.addEventListener("pointerdown", function (e) { press(buttons.horn, e); T.hornPresses++; });
+        buttons.pause.addEventListener("pointerdown", function (e) { press(buttons.pause, e); });
+        buttons.pause.addEventListener("pointerup", function (e) { buttons.pause.classList.remove("down"); T.backPresses++; });
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) {
+          buttons.horn.addEventListener(t, function () { buttons.horn.classList.remove("down"); });
+          buttons.pause.addEventListener(t, function () { buttons.pause.classList.remove("down"); });
+        });
+        // No callouts, menus or synthetic mouse clicks from the buttons; the game never sees their fingers.
+        Object.keys(buttons).forEach(function (k) {
+          var el = buttons[k];
+          el.addEventListener("touchstart", function (e) { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+          el.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        });
+        // iOS Safari still zooms on a pinch despite the viewport; and a long press anywhere brings no menu.
+        document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
+        document.addEventListener("contextmenu", function (e) { if (T.mode) e.preventDefault(); });
+
+        // What the game says the buttons should show, changed in the page only when it changes.
+        var shown = {};
+        window.lastLightState = { playing: 0, horn: 0, hornReady: 1, focus: 0, corner: 0, bearing: 0 };
+        T.state = function (playing, horn, hornReady, focused, corner, bearing) {
+          var s = window.lastLightState;
+          s.playing = playing; s.horn = horn; s.hornReady = Math.round(hornReady * 100) / 100; s.focus = focused; s.corner = corner; s.bearing = bearing;
+          if (shown.playing !== playing) { touchUi.setAttribute("data-playing", playing); if (!playing) release(); measure(); }
+          if (shown.horn !== horn) { touchUi.setAttribute("data-horn", horn); measure(); }
+          if (shown.corner !== corner) {
+            touchUi.setAttribute("data-corner", corner);
+            buttons.pause.setAttribute("aria-label", corner === 2 ? "Back" : "Pause");
+            measure();
+          }
+          if (shown.hornReady !== s.hornReady) {
+            buttons.horn.style.setProperty("--ready", s.hornReady);
+            buttons.horn.classList.toggle("ready", s.hornReady >= 1);
+            buttons.horn.classList.toggle("cooling", s.hornReady < 1);
+          }
+          if (shown.focus !== focused) buttons.focus.classList.toggle("on", !!focused);
+          shown = { playing: playing, horn: horn, corner: corner, hornReady: s.hornReady, focus: focused };
+        };
+
+        // The room the buttons take, for the game's HUD (fractions of the canvas): the Pause button at the top left, the
+        // Focus and Horn column at the bottom right, and the home indicator at the bottom.
+        function measure() {
+          var c = canvas.getBoundingClientRect();
+          if (!T.mode || c.width < 1 || c.height < 1) { T.layout = [0, 0, 0]; return; }
+          var gap = 8;
+          var p = buttons.pause.getBoundingClientRect(), f = buttons.focus.getBoundingClientRect();
+          var left = p.width > 0 ? Math.max(0, p.right + gap - c.left) / c.width : 0;
+          var right = f.width > 0 ? Math.max(0, c.right - f.left + gap) / c.width : 0;
+          var safeBottom = parseFloat(getComputedStyle(buttons.focus).bottom) - 14 || 0;
+          T.layout = [left, right, Math.max(0, safeBottom) / c.height];
+        }
+        window.addEventListener("resize", measure);
+
+        // Portrait on a touch device: the page asks to turn it; a night in progress pauses.
+        var portrait = matchMedia("(orientation: portrait)");
+        function orientationChanged() {
+          if (portrait.matches && (T.mode || touchDevice) && window.lastLightState.playing) T.backPresses++;
+          setTimeout(measure, 300);
+        }
+        if (portrait.addEventListener) portrait.addEventListener("change", orientationChanged); else portrait.addListener(orientationChanged);
+        // In fullscreen (Settings ▸ Display), Android can hold the screen in landscape.
+        document.addEventListener("fullscreenchange", function () {
+          if (document.fullscreenElement && T.mode && screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () { });
+          setTimeout(measure, 300);
+        });
+
+        // ---------------------------------------------------------------- sound
+        // Browsers start sound only after a click, a key or a tap; Safari counts the end of a tap, not its start (where the
+        // game's own loader listens), so every audio context the game makes is resumed on any of them.
+        var contexts = [];
+        var NativeAudio = window.AudioContext || window.webkitAudioContext;
+        if (NativeAudio) {
+          var Counted = function (a) { var c = a === undefined ? new NativeAudio() : new NativeAudio(a); contexts.push(c); return c; };
+          Counted.prototype = NativeAudio.prototype;
+          window.AudioContext = Counted;
+          if (window.webkitAudioContext) window.webkitAudioContext = Counted;
+        }
         var heard = false;
         function firstInput() {
+          for (var i = 0; i < contexts.length; i++) if (contexts[i].state !== "running" && contexts[i].state !== "closed") contexts[i].resume().catch(function () { });
+          if (heard) return;
           heard = true;
           soundHint.classList.remove("shown");
-          window.removeEventListener("pointerdown", firstInput, true);
-          window.removeEventListener("keydown", firstInput, true);
         }
-        window.addEventListener("pointerdown", firstInput, true);
-        window.addEventListener("keydown", firstInput, true);
+        ["pointerdown", "pointerup", "touchend", "click", "keydown"].forEach(function (t) { window.addEventListener(t, firstInput, true); });
+
+        // ---------------------------------------------------------------- a visit that stopped
+        // A phone's browser stops a tab that runs short of memory without warning, and shows the page again from the
+        // start. The game marks the page as showing; hiding or closing it clears the mark. Found on the next visit,
+        // the game starts lighter, and the page says why.
+        var aliveKey = "lastLight.showing";
+        try { T.lastVisitStopped = !!localStorage.getItem(aliveKey); } catch (e) { }
+        function alive(on) { try { if (on) localStorage.setItem(aliveKey, String(Date.now())); else localStorage.removeItem(aliveKey); } catch (e) { } }
+        window.addEventListener("pagehide", function () { alive(false); });
+        document.addEventListener("visibilitychange", function () { alive(document.visibilityState === "visible" && ready); });
+        if (T.lastVisitStopped) {
+          noteBox.innerHTML = "Last time, the game stopped while it was showing: most likely the browser ran short of memory. " +
+            "It starts on its lightest settings now (Graphics fidelity Low, Render scale 70%); Settings can raise them again.";
+          noteBox.style.display = "block";
+        }
 
         var ready = false;
         function showGame() {
           if (ready || failed) return;
           ready = true;
+          alive(true);
           cover.classList.add("gone");
           canvas.focus();
+          measure();
           if (!heard) {
             soundHint.classList.add("shown");
             setTimeout(function () { soundHint.classList.remove("shown"); }, 9000);
           }
+          if (T.lastVisitStopped) setTimeout(function () { noteBox.style.display = "none"; }, 1000);
         }
         // The game says when its title is up (LastLightWeb.jslib).
         window.lastLightOnReady = showGame;
+
+        // The browser took the graphics away (on a phone, usually for memory): say so rather than show a frozen frame.
+        canvas.addEventListener("webglcontextlost", function () {
+          fail("The browser took the game's graphics away, most often because it ran short of memory. " + memoryAdvice);
+        });
+
+        // The canvas is drawn at the screen's own density, at most twice the page's size; on a phone or tablet at most
+        // about 2.1 million pixels (1920x1080), since every render target costs memory the tab may not have.
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        if (touchDevice) dpr = Math.max(1, Math.min(dpr, Math.sqrt(2100000 / Math.max(1, innerWidth * innerHeight))));
 
         var buildUrl = "Build";
         var config = {
@@ -122,10 +375,13 @@
           productVersion: "0.1.0",
           // The save and settings (save.json in persistentDataPath) go to IndexedDB as each write finishes.
           autoSyncPersistentDataPath: true,
-          // Very dense screens draw at most twice the page's size; Settings ▸ Render scale goes lower.
-          devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+          // Settings ▸ Render scale goes lower for the 3D scene.
+          devicePixelRatio: dpr,
           showBanner: function (msg, type) {
-            if (type === "error") fail("Last Light stopped with an error.", msg);
+            if (type === "error") {
+              if (/out of memory|memory access out of bounds|Cannot enlarge memory|allocation failed/i.test(msg)) fail("Last Light ran out of memory in this browser. " + memoryAdvice, msg);
+              else fail("Last Light stopped with an error.", msg);
+            }
             else console.warn("[Page] " + msg);
           },
         };
@@ -141,12 +397,15 @@
             status.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress / 0.9) + "%" : "Lighting the lamp…";
           }).then(function (instance) {
             window.lastLightInstance = instance;
+            // The code is compiled; its bytes (about 29 MB) needn't stay in memory.
+            if (instance.Module) instance.Module.wasmBinary = null;
             fill.style.width = "100%";
             if (window.lastLightReady) showGame();
             // In case the title never says so, don't leave the cover up for ever.
             setTimeout(showGame, 20000);
           }).catch(function (message) {
-            fail("Last Light couldn't start in this browser.", message);
+            if (/memory/i.test(String(message))) fail("Last Light couldn't start: the browser ran out of memory for it. " + memoryAdvice, message);
+            else fail("Last Light couldn't start in this browser.", message);
           });
         };
         document.body.appendChild(script);
